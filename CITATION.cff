@@ -1,0 +1,10 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Carrel"
+  given-names: "Adrien"
+  orcid: "https://orcid.org/0000-0002-0051-2247"
+title: "CCSD - Combinatorial Complex Score-based Diffusion model using stochastic differential equations."
+version: 1.0.0
+date-released: 2023-07-18
+url: "https://github.com/AdrienC21/CCSD"
