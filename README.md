@@ -1,7 +1,6 @@
 # CCSD - Combinatorial Complex Score-based Diffusion model using stochastic differential equations
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![Downloads](https://static.pepy.tech/badge/vulpes)](https://pepy.tech/project/vulpes)
 
 **CCSD: Score-based Diffusion model to generate Combinatorial Complexes using Stochastic Differential Equations.**
 
