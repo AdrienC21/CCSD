@@ -18,6 +18,7 @@ import pickle
 import networkx as nx
 import numpy as np
 import scipy.sparse as sp
+from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
 from parsers.parser_generator import ParserGenerator
 
@@ -203,20 +204,20 @@ def gen_graph_list(
 
 def load_dataset(
     data_dir: str = "data", file_name: Optional[str] = None
-) -> List[nx.Graph]:
-    """Load an existing dataset as a list of graphs from a file.
+) -> Union[List[nx.Graph], List[CombinatorialComplex]]:
+    """Load an existing dataset as a list of graphs or list of combinatorial complexes from a file.
 
     Args:
         data_dir (str, optional): directory of the dataset. Defaults to "data".
         file_name (Optional[str], optional): name of the file. Defaults to None.
 
     Returns:
-        List[nx.Graph]: list of graphs
+        Union[List[nx.Graph], List[CombinatorialComplex]]: list of graphs or list of combinatorial complexes
     """
     file_path = os.path.join(data_dir, file_name)
     with open(file_path + ".pkl", "rb") as f:
-        graph_list = pickle.load(f)
-    return graph_list
+        obj_list = pickle.load(f)
+    return obj_list
 
 
 def graph_load_batch(

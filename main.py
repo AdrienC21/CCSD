@@ -13,8 +13,8 @@ import time
 
 from src.parsers.parser import Parser
 from src.parsers.config import get_config
-from src.trainer import Trainer
-from src.sampler import Sampler, Sampler_mol
+from src.trainer import get_trainer_from_config
+from src.sampler import get_sampler_from_config
 
 
 def main(args: argparse.Namespace) -> None:
@@ -35,20 +35,17 @@ def main(args: argparse.Namespace) -> None:
     # -------- Train --------
     if args.type == "train":
         # Train the model
-        trainer = Trainer(config)
+        trainer = get_trainer_from_config(config)
         ckpt = trainer.train(ts)
         if "sample" in config.keys():  # then sample from the trained model
             config.ckpt = ckpt
-            sampler = Sampler(config)
+            sampler = get_sampler_from_config(config)
             sampler.sample()
 
     # -------- Generation --------
     elif args.type == "sample":
         # Select the sampler based on the dataset
-        if config.data.data in ["QM9"]:
-            sampler = Sampler_mol(config)
-        else:
-            sampler = Sampler(config)
+        sampler = get_sampler_from_config(config)
         sampler.sample()
 
     else:

@@ -4,13 +4,14 @@
 """cc_utils.py: utility functions for combinatorial complex data (flag masking, conversions, etc.).
 """
 
-from typing import List, Tuple, Dict, FrozenSet, Optional
+from typing import List, Tuple, Dict, FrozenSet, Optional, Union
 from itertools import combinations
 from collections import defaultdict
 from math import comb
 
 import torch
 import numpy as np
+import networkx as nx
 from rdkit import Chem
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
@@ -18,17 +19,7 @@ from src.utils.graph_utils import pad_adjs
 from src.utils.mol_utils import bond_decoder
 
 
-AN_TO_SYMBOL = {
-    6: "C",
-    7: "N",
-    8: "O",
-    9: "F",
-    15: "P",
-    16: "S",
-    17: "Cl",
-    35: "Br",
-    53: "I",
-}
+DIC_MOL_CONV = {0: "C", 1: "N", 2: "O", 3: "F"}
 
 
 def get_cells(
@@ -86,14 +77,20 @@ def get_cells(
 
 
 def cc_from_incidence(
-    incidence_matrices: Optional[List[np.ndarray]], d_min: int = 3, d_max: int = 6
+    incidence_matrices: Optional[
+        Union[List[Optional[np.ndarray]], List[Optional[torch.Tensor]]]
+    ],
+    d_min: int = 3,
+    d_max: int = 6,
+    is_molecule: bool = False,
 ) -> CombinatorialComplex:
     """Convert (pseudo)-incidence matrices to a combinatorial complex (CC).
 
     Args:
-        incidence_matrices (Optional[List[np.ndarray]]): list of incidence matrices [X, A, F]
+        incidence_matrices (Optional[Union[List[Optional[np.ndarray]], List[Optional[torch.Tensor]]]]): list of incidence matrices [X, A, F]
         d_min (int, optional): minimum size of rank-2 cells. Defaults to 3.
         d_max (int, optional): maximum size of rank-2 cells. Defaults to 6.
+        is_molecule (bool, optional): whether the CC is a molecule. Defaults to False.
 
     Raises:
         NotImplementedError: raise an error if the CC is of dimension greater than 2 (if len(incidence_matrices) > 3)
@@ -107,23 +104,37 @@ def cc_from_incidence(
     if (incidence_matrices is None) or (len(incidence_matrices) == 0):
         return CC
 
+    # Convert to tensors
+    incidence_matrices = [torch.Tensor(m) for m in incidence_matrices]
+
     # 0-dimension CC. One incidence matrix, return CC with just nodes
     N = incidence_matrices[0].shape[0]
     if len(incidence_matrices) == 1:
         for i in range(N):
-            if incidence_matrices[0][i, :].any():
-                attr = {
-                    f"label_{j}": incidence_matrices[0][i, j]
-                    for j in range(incidence_matrices[0].shape[1])
-                }
-                CC.add_node(i, **attr)
+            if incidence_matrices[0][i, :].any().item():
+                if not (is_molecule):
+                    attr = {
+                        f"label_{j}": incidence_matrices[0][i, j].item()
+                        for j in range(incidence_matrices[0].shape[1])
+                    }
+                else:
+                    attr = {
+                        "symbol": DIC_MOL_CONV[
+                            torch.argmax(incidence_matrices[0][i, :]).item()
+                        ]
+                    }
+                CC.add_cell((i,), rank=0, **attr)
         return CC
 
     # 1-dimension CC. Two incidence matrices, return CC with nodes and edges
     for i in range(N):
         for j in range(i + 1, N):
             if incidence_matrices[1][i, j]:
-                CC.add_cell((i, j), 1)
+                if not (is_molecule):
+                    attr = {"label": incidence_matrices[1][i, j].item()}
+                else:
+                    attr = {"bond_type": incidence_matrices[1][i, j].item()}
+                CC.add_cell((i, j), rank=1, **attr)
     if len(incidence_matrices) == 2:
         return CC
 
@@ -132,7 +143,7 @@ def cc_from_incidence(
         incidence_matrix = incidence_matrices[2]
         all_combinations, _, _, _, _, _ = get_cells(N, d_min, d_max)
         for i, combi in enumerate(all_combinations):
-            if incidence_matrix[:, i].any():
+            if incidence_matrix[:, i].any().item():
                 CC.add_cell(combi, 2)
         return CC
     else:
@@ -191,9 +202,63 @@ def get_rank2_dim(N: int, d_min: int, d_max: int) -> int:
     return rows, cols
 
 
+def get_mol_from_x_adj(x: torch.Tensor, adj: torch.Tensor) -> Chem.Mol:
+    """Get a molecule from the node and adjacency matrices after
+    being processed by get_transform_fn inside data_loader_mol.py.
+
+    Atoms:
+    0: C, 1: N, 2: O, 3: F
+    Bonds:
+    1: single, 2: double, 3: triple
+
+    Args:
+        x (torch.Tensor): node matrix
+        adj (torch.Tensor): adjacency matrix
+
+    Returns:
+        Chem.Mol: molecule (RDKIT mol)
+    """
+    mol = Chem.RWMol()
+    for i in range(x.shape[0]):
+        if x[i].any():
+            atom_symbol = DIC_MOL_CONV[torch.argmax(x[i]).item()]
+            mol.AddAtom(Chem.Atom(atom_symbol))
+
+    for i in range(adj.shape[0]):
+        for j in range(i + 1, adj.shape[1]):
+            if adj[i, j]:
+                mol.AddBond(i, j, bond_decoder[adj[i, j].item()])
+
+    mol = mol.GetMol()  # convert from RWMol (editable) to Mol
+    return mol
+
+
+def get_all_mol_rings(mol: Chem.Mol) -> List[FrozenSet[int]]:
+    """Get all the rings of a molecule.
+
+    Args:
+        mol (Chem.Mol): molecule (RDKIT mol)
+
+    Returns:
+        List[FrozenSet[int]]: list of rings as frozensets of atom indices
+    """
+    res = []
+    ri = mol.GetRingInfo()
+    for ring in ri.AtomRings():
+        ring_list = []
+        for atom in ring:
+            ring_list.append(atom)
+        res.append(frozenset(ring_list))
+    return res
+
+
 def mols_to_cc(mols: List[Chem.Mol]) -> List[CombinatorialComplex]:
     """Convert a list of molecules to a list of combinatorial complexes
     where the rings are rank-2 cells.
+
+    This is a general function mostly used for testing.
+    A more complete one is implemented in src/utils/data_loader_mol.py
+    within the MolDataset class.
 
     Args:
         mols (List[Chem.Mol]): list of molecules (RDKIT mol)
@@ -220,16 +285,12 @@ def mols_to_cc(mols: List[Chem.Mol]) -> List[CombinatorialComplex]:
             CC.add_cell(
                 (bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()),
                 rank=1,
-                bond_type=int(bond.GetBondTypeAsDouble()),
+                bond_type=bond.GetBondTypeAsDouble(),
             )
 
         # Ring as rank-2 cells
-        ri = mol.GetRingInfo()
-        for ring in ri.AtomRings():
-            ring_list = []
-            for atom in ring:
-                ring_list.append(atom)
-            CC.add_cell(tuple(ring_list), rank=2)
+        for rings in get_all_mol_rings(mol):
+            CC.add_cell(rings, rank=2)
 
         ccs.append(CC)
     return ccs
@@ -542,3 +603,31 @@ def cc_to_tensor(
     del padded_rank2
 
     return adj, rank2
+
+
+def convert_CC_to_graphs(
+    ccs: List[CombinatorialComplex], undirected: bool = True
+) -> List[nx.Graph]:
+    """Convert a list of combinatorial complexes to a list of graphs
+
+    Args:
+        ccs (List[CombinatorialComplex]): list of combinatorial complexes
+        undirected (bool, optional): whether to create an undirected graph. Defaults to True.
+
+    Returns:
+        List[nx.Graph]: list of graphs
+    """
+    graphs = []
+    for cc in ccs:
+        graph = nx.Graph()
+        for node in cc.cells.hyperedge_dict[0]:
+            n = tuple(node)[0]
+            graph.add_node(n, **cc.cells.hyperedge_dict[0][node])
+        for edge in cc.cells.hyperedge_dict[1]:
+            u = tuple(edge)[0]
+            v = tuple(edge)[1]
+            graph.add_edge(u, v, **cc.cells.hyperedge_dict[1][edge])
+            if undirected:
+                graph.add_edge(v, u, **cc.cells.hyperedge_dict[1][edge])
+        graphs.append(graph)
+    return graphs

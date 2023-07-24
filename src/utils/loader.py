@@ -12,6 +12,7 @@ import numpy as np
 import networkx as nx
 from easydict import EasyDict
 from torch.utils.data import DataLoader
+from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
 from src.models.ScoreNetwork_X import ScoreNetworkX, ScoreNetworkX_GMH
 from src.models.ScoreNetwork_A import ScoreNetworkA
@@ -21,8 +22,8 @@ from src.losses import get_sde_loss_fn, get_sde_loss_fn_cc
 from src.solver import get_pc_sampler, S4_solver
 from src.evaluation.mmd import gaussian, gaussian_emd, gaussian_tv
 from src.utils.ema import ExponentialMovingAverage
-from src.utils.data_loader_mol import dataloader
-from src.utils.data_loader import dataloader_mol
+from src.utils.data_loader_mol import dataloader, dataloader_cc
+from src.utils.data_loader import dataloader_mol, dataloader_mol_cc
 from src.utils.cc_utils import get_rank2_dim
 
 
@@ -159,21 +160,34 @@ def load_ema_from_ckpt(
 
 
 def load_data(
-    config: EasyDict, get_graph_list: bool = False
-) -> Union[Tuple[DataLoader, DataLoader], Tuple[List[nx.Graph], List[nx.Graph]]]:
+    config: EasyDict,
+    get_list: bool = False,
+    is_cc: bool = False,
+) -> Union[
+    Tuple[DataLoader, DataLoader],
+    Union[
+        Tuple[List[nx.Graph], List[nx.Graph]],
+        Tuple[List[CombinatorialComplex], List[CombinatorialComplex]],
+    ],
+]:
     """Return a DataLoader object for training based on the configuration
 
     Args:
         config (EasyDict): configuration for training
-        get_graph_list (bool, optional): if True, returns lists of graph instead of dataloaders. Defaults to False.
+        get_list (bool, optional): if True, returns lists of graph or combinatorial complexes instead of dataloaders. Defaults to False.
+        is_cc (bool, optional): if True, the dataset is made of combinatorial complexes. Defaults to False.
 
     Returns:
-        Union[Tuple[DataLoader, DataLoader], Tuple[List[nx.Graph], List[nx.Graph]]]: DataLoader object for training
+        Union[Tuple[DataLoader, DataLoader], Union[Tuple[List[nx.Graph], List[nx.Graph]], Tuple[List[CombinatorialComplex], List[CombinatorialComplex]]]]: DataLoader object or list of objects for training
     """
     if config.data.data in ["QM9"]:
-        return dataloader(config, get_graph_list)
+        if not (is_cc):
+            return dataloader(config, get_list)
+        return dataloader_cc(config, get_list)
     else:
-        return dataloader_mol(config, get_graph_list)
+        if not (is_cc):
+            return dataloader_mol(config, get_list)
+        return dataloader_mol_cc(config, get_list)
 
 
 def load_batch(
@@ -299,9 +313,15 @@ def load_sampling_fn(
     is_cc: bool = False,
     d_min: Optional[int] = None,
     d_max: Optional[int] = None,
-) -> Callable[
-    [torch.nn.Module, torch.nn.Module, torch.Tensor],
-    Tuple[torch.Tensor, torch.Tensor, float],
+) -> Union[
+    Callable[
+        [torch.nn.Module, torch.nn.Module, torch.Tensor],
+        Tuple[torch.Tensor, torch.Tensor, float],
+    ],
+    Callable[
+        [torch.nn.Module, torch.nn.Module, torch.nn.Module, torch.Tensor],
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float],
+    ],
 ]:
     """Load the sampling function from the configuration
 
@@ -315,7 +335,7 @@ def load_sampling_fn(
         d_max (Optional[int], optional): maximum size of rank2 cells (for cc). Defaults to None.
 
     Returns:
-        Callable[[torch.nn.Module, torch.nn.Module, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, float]]: sampling function
+        Union[Callable[[torch.nn.Module, torch.nn.Module, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, float]], Callable[[torch.nn.Module, torch.nn.Module, torch.nn.Module, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]]]: sampling function
     """
 
     sde_x = load_sde(config_train.sde.x)

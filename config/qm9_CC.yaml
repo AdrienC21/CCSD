@@ -1,4 +1,4 @@
-is_cc: False
+is_cc: True
 
 data:
   data: QM9
@@ -7,6 +7,8 @@ data:
   max_node_num: 9
   max_feat_num: 4
   init: atom
+  d_min: 3
+  d_max: 9
 
 sde:
   x:
@@ -19,10 +21,16 @@ sde:
     beta_min: 0.1
     beta_max: 1.0
     num_scales: 1000
+  rank2:
+    type: VE
+    beta_min: 0.1
+    beta_max: 1.0
+    num_scales: 1000
 
 model:
   x: ScoreNetworkX
   adj: ScoreNetworkA
+  rank2: ScoreNetworkF
   conv: GCN
   num_heads: 4
   depth: 2

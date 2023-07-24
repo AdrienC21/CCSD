@@ -11,8 +11,8 @@ from easydict import EasyDict
 
 
 class Logger:
-    """Logger class for logging to a file.
-    """
+    """Logger class for logging to a file."""
+
     def __init__(self, filepath: str, mode: str, lock: Optional[Any] = None) -> None:
         """Initialize the Logger class.
 

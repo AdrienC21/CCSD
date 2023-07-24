@@ -1,8 +1,10 @@
-is_cc: False
+is_cc: True
 
 data:
   data: QM9
   dir: './data'
+  d_min: 3
+  d_max: 9
 
 ckpt: gdss_qm9
 

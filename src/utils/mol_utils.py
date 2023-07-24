@@ -13,15 +13,31 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 from rdkit import Chem, RDLogger
+from easydict import EasyDict
 
 
 RDLogger.DisableLog("rdApp.*")
 
 ATOM_VALENCY = {6: 4, 7: 3, 8: 2, 9: 1, 15: 3, 16: 2, 17: 1, 35: 1, 53: 1}
+# Extended bond decoder
 bond_decoder = {
+    0: Chem.rdchem.BondType.ZERO,
+    0.0: Chem.rdchem.BondType.ZERO,
     1: Chem.rdchem.BondType.SINGLE,
+    1.0: Chem.rdchem.BondType.SINGLE,
+    1.5: Chem.rdchem.BondType.AROMATIC,
     2: Chem.rdchem.BondType.DOUBLE,
+    2.0: Chem.rdchem.BondType.DOUBLE,
+    2.5: Chem.rdchem.BondType.TWOANDAHALF,
     3: Chem.rdchem.BondType.TRIPLE,
+    3.0: Chem.rdchem.BondType.TRIPLE,
+    3.5: Chem.rdchem.BondType.THREEANDAHALF,
+    4: Chem.rdchem.BondType.QUADRUPLE,
+    4.0: Chem.rdchem.BondType.QUADRUPLE,
+    4.5: Chem.rdchem.BondType.FOURANDAHALF,
+    5: Chem.rdchem.BondType.QUINTUPLE,
+    5.0: Chem.rdchem.BondType.QUINTUPLE,
+    5.5: Chem.rdchem.BondType.FIVEANDAHALF,
 }
 AN_TO_SYMBOL = {
     6: "C",
@@ -34,6 +50,10 @@ AN_TO_SYMBOL = {
     35: "Br",
     53: "I",
 }
+
+
+def is_molecular_config(config: EasyDict) -> bool:
+    return config.data.data in ["QM9"]
 
 
 def mols_to_smiles(mols: List[Chem.Mol]) -> List[str]:
