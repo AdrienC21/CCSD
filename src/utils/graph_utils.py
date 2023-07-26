@@ -71,7 +71,9 @@ def node_flags(adj: torch.Tensor, eps: float = 1e-5) -> torch.Tensor:
 
 
 def init_features(init: str, adjs: torch.Tensor, nfeat: int = 10) -> torch.Tensor:
-    """Create initial node features
+    """Create initial node features by initaliazing the adjacency matrix,
+    creating a node flag matrix based on the initialization, and masking the
+    node features with the node flag matrix
 
     Args:
         init (str): node feature initialization method
@@ -195,12 +197,18 @@ def quantize_mol(adjs: Union[torch.Tensor, np.ndarray]) -> np.ndarray:
 
 
 def adjs_to_graphs(
-    adjs: Union[torch.Tensor, List[torch.Tensor]], is_cuda: bool = False
+    adjs: Union[
+        torch.Tensor,
+        List[torch.Tensor],
+        List[np.ndarray],
+        List[List[List[Union[int, float]]]],
+    ],
+    is_cuda: bool = False,
 ) -> List[nx.Graph]:
     """Convert generated adjacency matrices to networkx graphs
 
     Args:
-        adjs (Union[torch.Tensor, List[torch.Tensor]]): Adjaency matrices
+        adjs (Union[torch.Tensor, List[torch.Tensor], List[np.ndarray], List[List[List[Union[int, float]]]]]): Adjaency matrices
         is_cuda (bool, optional): are the tensor on CPU?. Defaults to False.
 
     Returns:
@@ -210,7 +218,14 @@ def adjs_to_graphs(
     for adj in adjs:
         if is_cuda:
             adj = adj.detach().cpu().numpy()
-        G = nx.from_numpy_matrix(adj)
+        else:
+            if isinstance(adj, torch.Tensor):
+                adj = adj.detach().numpy()
+            elif isinstance(adj, np.ndarray):
+                pass
+            elif isinstance(adj, list):
+                adj = np.array(adj, dtype=np.float32)
+        G = nx.from_numpy_array(adj)
         G.remove_edges_from(nx.selfloop_edges(G))
         G.remove_nodes_from(list(nx.isolates(G)))
         if G.number_of_nodes() < 1:
@@ -307,7 +322,7 @@ def graphs_to_tensor(graph_list: List[nx.Graph], max_node_num: int) -> torch.Ten
             node_list.append(v)
 
         # convert to adj matrix
-        adj = nx.to_numpy_matrix(g, nodelist=node_list)
+        adj = nx.to_numpy_array(g, nodelist=node_list)
         padded_adj = pad_adjs(adj, node_number=max_node_num)  # pad to max node number
         adjs_list.append(padded_adj)
 
@@ -339,7 +354,7 @@ def graphs_to_adj(graph: nx.Graph, max_node_num: int) -> torch.Tensor:
     for v, feature in graph.nodes.data("feature"):
         node_list.append(v)
 
-    adj = nx.to_numpy_matrix(graph, nodelist=node_list)
+    adj = nx.to_numpy_array(graph, nodelist=node_list)
     padded_adj = pad_adjs(adj, node_number=max_node_num)
 
     adj = torch.tensor(padded_adj, dtype=torch.float32)
@@ -349,7 +364,9 @@ def graphs_to_adj(graph: nx.Graph, max_node_num: int) -> torch.Tensor:
 
 
 def node_feature_to_matrix(x: torch.Tensor) -> torch.Tensor:
-    """Convert a node feature matrix to a node pair feature matrix
+    """Convert a node feature matrix to a node pair feature matrix.
+    Squared matrices where coeff i, j: concatenation of coeff i and coeff j of the associated
+    node feature matrix
 
     Args:
         x (torch.Tensor): B x N x F  (F feature space)

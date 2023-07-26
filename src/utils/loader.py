@@ -22,8 +22,8 @@ from src.losses import get_sde_loss_fn, get_sde_loss_fn_cc
 from src.solver import get_pc_sampler, S4_solver
 from src.evaluation.mmd import gaussian, gaussian_emd, gaussian_tv
 from src.utils.ema import ExponentialMovingAverage
-from src.utils.data_loader_mol import dataloader, dataloader_cc
-from src.utils.data_loader import dataloader_mol, dataloader_mol_cc
+from src.utils.data_loader import dataloader, dataloader_cc
+from src.utils.data_loader_mol import dataloader_mol, dataloader_mol_cc
 from src.utils.cc_utils import get_rank2_dim
 
 
@@ -182,23 +182,23 @@ def load_data(
     """
     if config.data.data in ["QM9"]:
         if not (is_cc):
-            return dataloader(config, get_list)
-        return dataloader_cc(config, get_list)
-    else:
-        if not (is_cc):
             return dataloader_mol(config, get_list)
         return dataloader_mol_cc(config, get_list)
+    else:
+        if not (is_cc):
+            return dataloader(config, get_list)
+        return dataloader_cc(config, get_list)
 
 
 def load_batch(
-    batch: torch.Tensor, device: Union[str, List[str]], is_cc: bool = False
+    batch: List[torch.Tensor], device: Union[str, List[str]], is_cc: bool = False
 ) -> Union[
     Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
 ]:
     """Load the batch on the device
 
     Args:
-        batch (torch.Tensor): input batch
+        batch (List[torch.Tensor]): input batch
         device (Union[str, List[str]]): device to use
         is_cc (bool, optional): if True, the elements of the input batch are combinatorial complexes. Defaults to False.
 
@@ -407,6 +407,8 @@ def load_sampling_fn(
             is_cc=is_cc,
             sde_rank2=sde_rank2,
             shape_rank2=shape_rank2,
+            d_min=d_min,
+            d_max=d_max,
         )
     return sampling_fn
 
@@ -520,14 +522,16 @@ def load_ckpt(
 
 
 def load_model_from_ckpt(
-    params: Dict[str, Any], state_dict: Dict[str, Any], device: Union[str, List[str]]
+    params: Dict[str, Any],
+    state_dict: Dict[str, Any],
+    device: Union[str, List[str], List[int]],
 ) -> Union[torch.nn.Module, torch.nn.DataParallel]:
     """Load the model from the checkpoint
 
     Args:
         params (Dict[str, Any]): parameters of the model
         state_dict (Dict[str, Any]): state dictionary of the model
-        device (Union[str, List[str]]): device to use
+        device (Union[str, List[str], List[int]]): device to use
 
     Returns:
         Union[torch.nn.Module, torch.nn.DataParallel]: loaded model
@@ -540,7 +544,10 @@ def load_model_from_ckpt(
     if isinstance(device, list):
         if len(device) > 1:
             model = torch.nn.DataParallel(model, device_ids=device)
-        model = model.to(f"cuda:{device[0]}")
+        new_device = f"cuda:{device[0]}" if "cuda" not in device[0] else device[0]
+        model = model.to(new_device)
+    else:
+        model = model.to(device)
     return model
 
 

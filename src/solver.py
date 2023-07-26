@@ -12,8 +12,9 @@ import torch
 import numpy as np
 from tqdm import trange
 
-from src.losses import get_score_fn
+from src.losses import get_score_fn, get_score_fn_cc
 from src.utils.graph_utils import mask_adjs, mask_x, gen_noise
+from src.utils.cc_utils import mask_rank2, gen_noise_rank2
 from src.sde import VPSDE, subVPSDE, SDE
 
 
@@ -178,7 +179,6 @@ class ReverseDiffusionPredictor(Predictor):
     def update_fn(
         self, x: torch.Tensor, adj: torch.Tensor, flags: torch.Tensor, t: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-
         # Reverse SDE for the node features
         if self.obj == "x":
             f, G = self.rsde.discretize(x, adj, flags, t, is_adj=False)
@@ -233,7 +233,6 @@ class NoneCorrector(Corrector):
     def update_fn(
         self, x: torch.Tensor, adj: torch.Tensor, flags: torch.Tensor, t: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-
         # Reverse SDE for the node features
         if self.obj == "x":
             return x, x
@@ -387,6 +386,11 @@ def get_pc_sampler(
     denoise: bool = True,
     eps: float = 1e-3,
     device: str = "cuda",
+    is_cc: bool = False,
+    sde_rank2: Optional[SDE] = None,
+    shape_rank2: Optional[Sequence[int]] = None,
+    d_min: Optional[int] = None,
+    d_max: Optional[int] = None,
 ):
     """Returns a PC sampler.
 
@@ -405,72 +409,185 @@ def get_pc_sampler(
         denoise (bool, optional): if True, use denoising diffusion (returns the mean of the reverse SDE). Defaults to True.
         eps (float, optional): epsilon for the reverse-time SDE. Defaults to 1e-3.
         device (str, optional): device to use. Defaults to "cuda".
+        is_cc (bool, optional): if True, get PC sampler for combinatorial complexes. Defaults to False.
+        sde_rank2 (Optional[SDE], optional): SDE for the higher-order features. Defaults to None.
+        shape_rank2 (Optional[Sequence[int]], optional): shape of the higher-order features. Defaults to None.
+        d_min (Optional[int], optional): minimum size of rank-2 cells (if combinatorial complexes). Defaults to None.
+        d_max (Optional[int], optional): maximum size of rank-2 cells (if combinatorial complexes). Defaults to None.
     """
 
-    def pc_sampler(
-        model_x: torch.nn.Module, model_adj: torch.nn.Module, init_flags: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, float]:
-        """PC sampler: sample from the model.
+    if not (is_cc):
 
-        Args:
-            model_x (torch.nn.Module): model for the node features
-            model_adj (torch.nn.Module): model for the adjacency matrix
-            init_flags (torch.Tensor): initial flags
+        def pc_sampler(
+            model_x: torch.nn.Module,
+            model_adj: torch.nn.Module,
+            init_flags: torch.Tensor,
+        ) -> Tuple[torch.Tensor, torch.Tensor, float]:
+            """PC sampler: sample from the model.
 
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor, float]: node features, adjacency matrix, timestep
-        """
+            Args:
+                model_x (torch.nn.Module): model for the node features
+                model_adj (torch.nn.Module): model for the adjacency matrix
+                init_flags (torch.Tensor): initial flags
 
-        # Get score functions
-        score_fn_x = get_score_fn(sde_x, model_x, train=False, continuous=continuous)
-        score_fn_adj = get_score_fn(
-            sde_adj, model_adj, train=False, continuous=continuous
-        )
+            Returns:
+                Tuple[torch.Tensor, torch.Tensor, float]: node features, adjacency matrix, timestep
+            """
 
-        # Get predictor and corrector functions
-        predictor_fn = get_predictor(predictor)
-        corrector_fn = get_corrector(corrector)
-
-        # Evaluate the predictor and corrector
-        predictor_obj_x = predictor_fn("x", sde_x, score_fn_x, probability_flow)
-        corrector_obj_x = corrector_fn("x", sde_x, score_fn_x, snr, scale_eps, n_steps)
-
-        predictor_obj_adj = predictor_fn("adj", sde_adj, score_fn_adj, probability_flow)
-        corrector_obj_adj = corrector_fn(
-            "adj", sde_adj, score_fn_adj, snr, scale_eps, n_steps
-        )
-
-        with torch.no_grad():
-            # Initial sample
-            x = sde_x.prior_sampling(shape_x).to(device)
-            adj = sde_adj.prior_sampling_sym(shape_adj).to(device)
-            flags = init_flags
-            # Mask the initial sample
-            x = mask_x(x, flags)
-            adj = mask_adjs(adj, flags)
-            diff_steps = sde_adj.N
-            timesteps = torch.linspace(sde_adj.T, eps, diff_steps, device=device)
-
-            # Reverse diffusion process
-            for i in trange(
-                0, (diff_steps), desc="[Sampling]", position=1, leave=False
-            ):
-                t = timesteps[i]
-                vec_t = torch.ones(shape_adj[0], device=t.device) * t
-
-                _x = x
-                x, x_mean = corrector_obj_x.update_fn(x, adj, flags, vec_t)
-                adj, adj_mean = corrector_obj_adj.update_fn(_x, adj, flags, vec_t)
-
-                _x = x
-                x, x_mean = predictor_obj_x.update_fn(x, adj, flags, vec_t)
-                adj, adj_mean = predictor_obj_adj.update_fn(_x, adj, flags, vec_t)
-            print(" ")
-            return (
-                (x_mean if denoise else x),
-                (adj_mean if denoise else adj),
-                diff_steps * (n_steps + 1),
+            # Get score functions
+            score_fn_x = get_score_fn(
+                sde_x, model_x, train=False, continuous=continuous
             )
+            score_fn_adj = get_score_fn(
+                sde_adj, model_adj, train=False, continuous=continuous
+            )
+
+            # Get predictor and corrector functions
+            predictor_fn = get_predictor(predictor)
+            corrector_fn = get_corrector(corrector)
+
+            # Evaluate the predictor and corrector
+            predictor_obj_x = predictor_fn("x", sde_x, score_fn_x, probability_flow)
+            corrector_obj_x = corrector_fn(
+                "x", sde_x, score_fn_x, snr, scale_eps, n_steps
+            )
+
+            predictor_obj_adj = predictor_fn(
+                "adj", sde_adj, score_fn_adj, probability_flow
+            )
+            corrector_obj_adj = corrector_fn(
+                "adj", sde_adj, score_fn_adj, snr, scale_eps, n_steps
+            )
+
+            with torch.no_grad():
+                # Initial sample
+                x = sde_x.prior_sampling(shape_x).to(device)
+                adj = sde_adj.prior_sampling_sym(shape_adj).to(device)
+                flags = init_flags
+                # Mask the initial sample
+                x = mask_x(x, flags)
+                adj = mask_adjs(adj, flags)
+                diff_steps = sde_adj.N
+                timesteps = torch.linspace(sde_adj.T, eps, diff_steps, device=device)
+
+                # Reverse diffusion process
+                for i in trange(
+                    0, (diff_steps), desc="[Sampling]", position=1, leave=False
+                ):
+                    t = timesteps[i]
+                    vec_t = torch.ones(shape_adj[0], device=t.device) * t
+
+                    _x = x
+                    x, x_mean = corrector_obj_x.update_fn(x, adj, flags, vec_t)
+                    adj, adj_mean = corrector_obj_adj.update_fn(_x, adj, flags, vec_t)
+
+                    _x = x
+                    x, x_mean = predictor_obj_x.update_fn(x, adj, flags, vec_t)
+                    adj, adj_mean = predictor_obj_adj.update_fn(_x, adj, flags, vec_t)
+                print(" ")
+                return (
+                    (x_mean if denoise else x),
+                    (adj_mean if denoise else adj),
+                    diff_steps * (n_steps + 1),
+                )
+
+    else:
+
+        def pc_sampler(
+            model_x: torch.nn.Module,
+            model_adj: torch.nn.Module,
+            model_rank2: torch.nn.Module,
+            init_flags: torch.Tensor,
+        ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
+            """PC sampler: sample from the model.
+
+            Args:
+                model_x (torch.nn.Module): model for the node features
+                model_adj (torch.nn.Module): model for the adjacency matrix
+                model_rank2 (torch.nn.Module): model for the higher-order features (rank2 incidence matrix)
+                init_flags (torch.Tensor): initial flags
+
+            Returns:
+                Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]: node features, adjacency matrix, rank2 incidence matrix, timestep
+            """
+
+            # Get score functions
+            score_fn_x = get_score_fn_cc(
+                sde_x, model_x, train=False, continuous=continuous
+            )
+            score_fn_adj = get_score_fn_cc(
+                sde_adj, model_adj, train=False, continuous=continuous
+            )
+            score_fn_rank2 = get_score_fn_cc(
+                sde_rank2, model_rank2, train=False, continuous=continuous
+            )
+
+            # Get predictor and corrector functions
+            predictor_fn = get_predictor(predictor)
+            corrector_fn = get_corrector(corrector)
+
+            # Evaluate the predictor and corrector
+            predictor_obj_x = predictor_fn("x", sde_x, score_fn_x, probability_flow)
+            corrector_obj_x = corrector_fn(
+                "x", sde_x, score_fn_x, snr, scale_eps, n_steps
+            )
+
+            predictor_obj_adj = predictor_fn(
+                "adj", sde_adj, score_fn_adj, probability_flow
+            )
+            corrector_obj_adj = corrector_fn(
+                "adj", sde_adj, score_fn_adj, snr, scale_eps, n_steps
+            )
+
+            predictor_obj_rank2 = predictor_fn(
+                "rank2", sde_rank2, score_fn_rank2, probability_flow
+            )
+            corrector_obj_rank2 = corrector_fn(
+                "rank2", sde_rank2, score_fn_rank2, snr, scale_eps, n_steps
+            )
+
+            with torch.no_grad():
+                # Initial sample
+                x = sde_x.prior_sampling(shape_x).to(device)
+                adj = sde_adj.prior_sampling_sym(shape_adj).to(device)
+                rank2 = sde_rank2.prior_sampling(shape_rank2).to(device)
+                flags = init_flags
+                # Mask the initial sample
+                x = mask_x(x, flags)
+                adj = mask_adjs(adj, flags)
+                rank2 = mask_rank2(rank2, adj.shape[1], d_min, d_max, flags)
+                diff_steps = sde_adj.N
+                timesteps = torch.linspace(sde_adj.T, eps, diff_steps, device=device)
+
+                # Reverse diffusion process
+                for i in trange(
+                    0, (diff_steps), desc="[Sampling]", position=1, leave=False
+                ):
+                    t = timesteps[i]
+                    vec_t = torch.ones(shape_adj[0], device=t.device) * t
+
+                    _x = x
+                    _adj = adj
+                    x, x_mean = corrector_obj_x.update_fn(x, adj, flags, vec_t)
+                    adj, adj_mean = corrector_obj_adj.update_fn(_x, adj, flags, vec_t)
+                    rank2, rank2_mean = corrector_obj_rank2.update_fn(
+                        _x, _adj, flags, vec_t
+                    )
+
+                    _x = x
+                    _adj = adj
+                    x, x_mean = predictor_obj_x.update_fn(x, adj, flags, vec_t)
+                    adj, adj_mean = predictor_obj_adj.update_fn(_x, adj, flags, vec_t)
+                    rank2, rank2_mean = predictor_obj_rank2.update_fn(
+                        _x, _adj, flags, vec_t
+                    )
+                print(" ")
+                return (
+                    (x_mean if denoise else x),
+                    (adj_mean if denoise else adj),
+                    (rank2_mean if denoise else rank2),
+                    diff_steps * (n_steps + 1),
+                )
 
     return pc_sampler
 
@@ -490,6 +607,11 @@ def S4_solver(
     denoise: bool = True,
     eps: float = 1e-3,
     device: str = "cuda",
+    is_cc: bool = False,
+    sde_rank2: Optional[SDE] = None,
+    shape_rank2: Optional[Sequence[int]] = None,
+    d_min: Optional[int] = None,
+    d_max: Optional[int] = None,
 ):
     """Returns a S4 sampler.
 
@@ -508,114 +630,292 @@ def S4_solver(
         denoise (bool, optional): if True, use denoising diffusion (returns the mean of the reverse SDE). Defaults to True.
         eps (float, optional): epsilon for the reverse-time SDE. Defaults to 1e-3.
         device (str, optional): device to use. Defaults to "cuda".
+        is_cc (bool, optional): if True, get S4 sampler for combinatorial complexes. Defaults to False.
+        sde_rank2 (Optional[SDE], optional): SDE for the higher-order features. Defaults to None.
+        shape_rank2 (Optional[Sequence[int]], optional): shape of the higher-order features. Defaults to None.
+        d_min (Optional[int], optional): minimum size of rank-2 cells (if combinatorial complexes). Defaults to None.
+        d_max (Optional[int], optional): maximum size of rank-2 cells (if combinatorial complexes). Defaults to None.
     """
 
-    def s4_solver(
-        model_x: torch.nn.Module, model_adj: torch.nn.Module, init_flags: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor, float]:
-        """S4 solver: sample from the model.
+    if not (is_cc):
 
-        Args:
-            model_x (torch.nn.Module): model for the node features
-            model_adj (torch.nn.Module): model for the adjacency matrix
-            init_flags (torch.Tensor): initial flags
+        def s4_solver(
+            model_x: torch.nn.Module,
+            model_adj: torch.nn.Module,
+            init_flags: torch.Tensor,
+        ) -> Tuple[torch.Tensor, torch.Tensor, float]:
+            """S4 solver: sample from the model.
 
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor, float]: node features, adjacency matrix, timestep
-        """
+            Args:
+                model_x (torch.nn.Module): model for the node features
+                model_adj (torch.nn.Module): model for the adjacency matrix
+                init_flags (torch.Tensor): initial flags
 
-        # Get score functions
-        score_fn_x = get_score_fn(sde_x, model_x, train=False, continuous=continuous)
-        score_fn_adj = get_score_fn(
-            sde_adj, model_adj, train=False, continuous=continuous
-        )
+            Returns:
+                Tuple[torch.Tensor, torch.Tensor, float]: node features, adjacency matrix, timestep
+            """
 
-        with torch.no_grad():
-            # Initial sample
-            x = sde_x.prior_sampling(shape_x).to(device)
-            adj = sde_adj.prior_sampling_sym(shape_adj).to(device)
-            flags = init_flags
-            # Mask the initial sample
-            x = mask_x(x, flags)
-            adj = mask_adjs(adj, flags)
-            diff_steps = sde_adj.N
-            timesteps = torch.linspace(sde_adj.T, eps, diff_steps, device=device)
-            dt = -1.0 / diff_steps
+            # Get score functions
+            score_fn_x = get_score_fn(
+                sde_x, model_x, train=False, continuous=continuous
+            )
+            score_fn_adj = get_score_fn(
+                sde_adj, model_adj, train=False, continuous=continuous
+            )
 
-            # Reverse diffusion process
-            for i in trange(
-                0, (diff_steps), desc="[Sampling]", position=1, leave=False
-            ):
-                t = timesteps[i]
-                vec_t = torch.ones(shape_adj[0], device=t.device) * t
-                vec_dt = torch.ones(shape_adj[0], device=t.device) * (dt / 2)
+            with torch.no_grad():
+                # Initial sample
+                x = sde_x.prior_sampling(shape_x).to(device)
+                adj = sde_adj.prior_sampling_sym(shape_adj).to(device)
+                flags = init_flags
+                # Mask the initial sample
+                x = mask_x(x, flags)
+                adj = mask_adjs(adj, flags)
+                diff_steps = sde_adj.N
+                timesteps = torch.linspace(sde_adj.T, eps, diff_steps, device=device)
+                dt = -1.0 / diff_steps
 
-                # Score computation
-                score_x = score_fn_x(x, adj, flags, vec_t)
-                score_adj = score_fn_adj(x, adj, flags, vec_t)
+                # Reverse diffusion process
+                for i in trange(
+                    0, (diff_steps), desc="[Sampling]", position=1, leave=False
+                ):
+                    t = timesteps[i]
+                    vec_t = torch.ones(shape_adj[0], device=t.device) * t
+                    vec_dt = torch.ones(shape_adj[0], device=t.device) * (dt / 2)
 
-                Sdrift_x = -sde_x.sde(x, vec_t)[1][:, None, None] ** 2 * score_x
-                Sdrift_adj = -sde_adj.sde(adj, vec_t)[1][:, None, None] ** 2 * score_adj
+                    # Score computation
+                    score_x = score_fn_x(x, adj, flags, vec_t)
+                    score_adj = score_fn_adj(x, adj, flags, vec_t)
 
-                # Correction step
-                timestep = (vec_t * (sde_x.N - 1) / sde_x.T).long()
+                    Sdrift_x = -sde_x.sde(x, vec_t)[1][:, None, None] ** 2 * score_x
+                    Sdrift_adj = (
+                        -sde_adj.sde(adj, vec_t)[1][:, None, None] ** 2 * score_adj
+                    )
 
-                noise = gen_noise(x, flags, sym=False)
-                grad_norm = torch.norm(
-                    score_x.reshape(score_x.shape[0], -1), dim=-1
-                ).mean()
-                noise_norm = torch.norm(
-                    noise.reshape(noise.shape[0], -1), dim=-1
-                ).mean()
-                if isinstance(sde_x, VPSDE):
-                    alpha = sde_x.alphas.to(vec_t.device)[timestep]
-                else:
-                    alpha = torch.ones_like(vec_t)
+                    # Correction step
+                    timestep = (vec_t * (sde_x.N - 1) / sde_x.T).long()
 
-                step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
-                x_mean = x + step_size[:, None, None] * score_x
-                x = (
-                    x_mean
-                    + torch.sqrt(step_size * 2)[:, None, None] * noise * scale_eps
+                    noise = gen_noise(x, flags, sym=False)
+                    grad_norm = torch.norm(
+                        score_x.reshape(score_x.shape[0], -1), dim=-1
+                    ).mean()
+                    noise_norm = torch.norm(
+                        noise.reshape(noise.shape[0], -1), dim=-1
+                    ).mean()
+                    if isinstance(sde_x, VPSDE):
+                        alpha = sde_x.alphas.to(vec_t.device)[timestep]
+                    else:
+                        alpha = torch.ones_like(vec_t)
+
+                    step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
+                    x_mean = x + step_size[:, None, None] * score_x
+                    x = (
+                        x_mean
+                        + torch.sqrt(step_size * 2)[:, None, None] * noise * scale_eps
+                    )
+
+                    noise = gen_noise(adj, flags)
+                    grad_norm = torch.norm(
+                        score_adj.reshape(score_adj.shape[0], -1), dim=-1
+                    ).mean()
+                    noise_norm = torch.norm(
+                        noise.reshape(noise.shape[0], -1), dim=-1
+                    ).mean()
+                    if isinstance(sde_adj, VPSDE):
+                        alpha = sde_adj.alphas.to(vec_t.device)[timestep]  # VP
+                    else:
+                        alpha = torch.ones_like(vec_t)  # VE
+                    step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
+                    adj_mean = adj + step_size[:, None, None] * score_adj
+                    adj = (
+                        adj_mean
+                        + torch.sqrt(step_size * 2)[:, None, None] * noise * scale_eps
+                    )
+
+                    # Prediction step
+                    x_mean = x
+                    adj_mean = adj
+                    mu_x, sigma_x = sde_x.transition(x, vec_t, vec_dt)
+                    mu_adj, sigma_adj = sde_adj.transition(adj, vec_t, vec_dt)
+                    x = mu_x + sigma_x[:, None, None] * gen_noise(x, flags, sym=False)
+                    adj = mu_adj + sigma_adj[:, None, None] * gen_noise(adj, flags)
+
+                    x = x + Sdrift_x * dt
+                    adj = adj + Sdrift_adj * dt
+
+                    mu_x, sigma_x = sde_x.transition(x, vec_t + vec_dt, vec_dt)
+                    mu_adj, sigma_adj = sde_adj.transition(adj, vec_t + vec_dt, vec_dt)
+                    x = mu_x + sigma_x[:, None, None] * gen_noise(x, flags, sym=False)
+                    adj = mu_adj + sigma_adj[:, None, None] * gen_noise(adj, flags)
+
+                    x_mean = mu_x
+                    adj_mean = mu_adj
+                print(" ")
+                return (x_mean if denoise else x), (adj_mean if denoise else adj), 0
+
+    else:
+
+        def s4_solver(
+            model_x: torch.nn.Module,
+            model_adj: torch.nn.Module,
+            model_rank2: torch.nn.Module,
+            init_flags: torch.Tensor,
+        ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
+            """S4 solver: sample from the model.
+
+            Args:
+                model_x (torch.nn.Module): model for the node features
+                model_adj (torch.nn.Module): model for the adjacency matrix
+                model_rank2 (torch.nn.Module): model for the higher-order features (rank2 incidence matrix)
+                init_flags (torch.Tensor): initial flags
+
+            Returns:
+                Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]: node features, adjacency matrix, incidence matrix, timestep
+            """
+
+            # Get score functions
+            score_fn_x = get_score_fn_cc(
+                sde_x, model_x, train=False, continuous=continuous
+            )
+            score_fn_adj = get_score_fn_cc(
+                sde_adj, model_adj, train=False, continuous=continuous
+            )
+            score_fn_rank2 = get_score_fn_cc(
+                sde_rank2, model_rank2, train=False, continuous=continuous
+            )
+
+            with torch.no_grad():
+                # Initial sample
+                x = sde_x.prior_sampling(shape_x).to(device)
+                adj = sde_adj.prior_sampling_sym(shape_adj).to(device)
+                rank2 = sde_rank2.prior_sampling(shape_rank2).to(device)
+                flags = init_flags
+                # Mask the initial sample
+                x = mask_x(x, flags)
+                adj = mask_adjs(adj, flags)
+                rank2 = mask_rank2(rank2, adj.shape[1], d_min, d_max, flags)
+                diff_steps = sde_adj.N
+                timesteps = torch.linspace(sde_adj.T, eps, diff_steps, device=device)
+                dt = -1.0 / diff_steps
+
+                # Reverse diffusion process
+                for i in trange(
+                    0, (diff_steps), desc="[Sampling]", position=1, leave=False
+                ):
+                    t = timesteps[i]
+                    vec_t = torch.ones(shape_adj[0], device=t.device) * t
+                    vec_dt = torch.ones(shape_adj[0], device=t.device) * (dt / 2)
+
+                    # Score computation
+                    score_x = score_fn_x(x, adj, rank2, flags, vec_t)
+                    score_adj = score_fn_adj(x, adj, rank2, flags, vec_t)
+                    score_rank2 = score_fn_rank2(x, adj, rank2, flags, vec_t)
+
+                    Sdrift_x = -sde_x.sde(x, vec_t)[1][:, None, None] ** 2 * score_x
+                    Sdrift_adj = (
+                        -sde_adj.sde(adj, vec_t)[1][:, None, None] ** 2 * score_adj
+                    )
+                    Sdrift_rank2 = (
+                        -sde_rank2.sde(rank2, vec_t)[1][:, None, None] ** 2
+                        * score_rank2
+                    )
+
+                    # Correction step
+                    timestep = (vec_t * (sde_x.N - 1) / sde_x.T).long()
+
+                    noise = gen_noise(x, flags, sym=False)
+                    grad_norm = torch.norm(
+                        score_x.reshape(score_x.shape[0], -1), dim=-1
+                    ).mean()
+                    noise_norm = torch.norm(
+                        noise.reshape(noise.shape[0], -1), dim=-1
+                    ).mean()
+                    if isinstance(sde_x, VPSDE):
+                        alpha = sde_x.alphas.to(vec_t.device)[timestep]
+                    else:
+                        alpha = torch.ones_like(vec_t)
+
+                    step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
+                    x_mean = x + step_size[:, None, None] * score_x
+                    x = (
+                        x_mean
+                        + torch.sqrt(step_size * 2)[:, None, None] * noise * scale_eps
+                    )
+
+                    noise = gen_noise(adj, flags)
+                    grad_norm = torch.norm(
+                        score_adj.reshape(score_adj.shape[0], -1), dim=-1
+                    ).mean()
+                    noise_norm = torch.norm(
+                        noise.reshape(noise.shape[0], -1), dim=-1
+                    ).mean()
+                    if isinstance(sde_adj, VPSDE):
+                        alpha = sde_adj.alphas.to(vec_t.device)[timestep]  # VP
+                    else:
+                        alpha = torch.ones_like(vec_t)  # VE
+                    step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
+                    adj_mean = adj + step_size[:, None, None] * score_adj
+                    adj = (
+                        adj_mean
+                        + torch.sqrt(step_size * 2)[:, None, None] * noise * scale_eps
+                    )
+
+                    noise = gen_noise_rank2(rank2, adj.shape[1], d_min, d_max, flags)
+                    grad_norm = torch.norm(
+                        score_rank2.reshape(score_rank2.shape[0], -1), dim=-1
+                    ).mean()
+                    noise_norm = torch.norm(
+                        noise.reshape(noise.shape[0], -1), dim=-1
+                    ).mean()
+                    if isinstance(sde_rank2, VPSDE):
+                        alpha = sde_rank2.alphas.to(vec_t.device)[timestep]
+                    else:
+                        alpha = torch.ones_like(vec_t)
+
+                    step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
+                    rank2_mean = rank2 + step_size[:, None, None] * score_rank2
+                    rank2 = (
+                        rank2_mean
+                        + torch.sqrt(step_size * 2)[:, None, None] * noise * scale_eps
+                    )
+
+                    # Prediction step
+                    x_mean = x
+                    adj_mean = adj
+                    rank2_mean = rank2
+                    mu_x, sigma_x = sde_x.transition(x, vec_t, vec_dt)
+                    mu_adj, sigma_adj = sde_adj.transition(adj, vec_t, vec_dt)
+                    mu_rank2, sigma_rank2 = sde_rank2.transition(rank2, vec_t, vec_dt)
+                    x = mu_x + sigma_x[:, None, None] * gen_noise(x, flags, sym=False)
+                    adj = mu_adj + sigma_adj[:, None, None] * gen_noise(adj, flags)
+                    rank2 = mu_rank2 + sigma_rank2[:, None, None] * gen_noise_rank2(
+                        rank2, adj.shape[1], d_min, d_max, flags
+                    )
+
+                    x = x + Sdrift_x * dt
+                    adj = adj + Sdrift_adj * dt
+                    rank2 = rank2 + Sdrift_rank2 * dt
+
+                    mu_x, sigma_x = sde_x.transition(x, vec_t + vec_dt, vec_dt)
+                    mu_adj, sigma_adj = sde_adj.transition(adj, vec_t + vec_dt, vec_dt)
+                    mu_rank2, sigma_rank2 = sde_rank2.transition(
+                        rank2, vec_t + vec_dt, vec_dt
+                    )
+                    x = mu_x + sigma_x[:, None, None] * gen_noise(x, flags, sym=False)
+                    adj = mu_adj + sigma_adj[:, None, None] * gen_noise(adj, flags)
+                    rank2 = mu_rank2 + sigma_rank2[:, None, None] * gen_noise_rank2(
+                        rank2, adj.shape[1], d_min, d_max, flags
+                    )
+
+                    x_mean = mu_x
+                    adj_mean = mu_adj
+                    rank2_mean = mu_rank2
+                print(" ")
+                return (
+                    (x_mean if denoise else x),
+                    (adj_mean if denoise else adj),
+                    (rank2_mean if denoise else rank2),
+                    0,
                 )
-
-                noise = gen_noise(adj, flags)
-                grad_norm = torch.norm(
-                    score_adj.reshape(score_adj.shape[0], -1), dim=-1
-                ).mean()
-                noise_norm = torch.norm(
-                    noise.reshape(noise.shape[0], -1), dim=-1
-                ).mean()
-                if isinstance(sde_adj, VPSDE):
-                    alpha = sde_adj.alphas.to(vec_t.device)[timestep]  # VP
-                else:
-                    alpha = torch.ones_like(vec_t)  # VE
-                step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
-                adj_mean = adj + step_size[:, None, None] * score_adj
-                adj = (
-                    adj_mean
-                    + torch.sqrt(step_size * 2)[:, None, None] * noise * scale_eps
-                )
-
-                # Prediction step
-                x_mean = x
-                adj_mean = adj
-                mu_x, sigma_x = sde_x.transition(x, vec_t, vec_dt)
-                mu_adj, sigma_adj = sde_adj.transition(adj, vec_t, vec_dt)
-                x = mu_x + sigma_x[:, None, None] * gen_noise(x, flags, sym=False)
-                adj = mu_adj + sigma_adj[:, None, None] * gen_noise(adj, flags)
-
-                x = x + Sdrift_x * dt
-                adj = adj + Sdrift_adj * dt
-
-                mu_x, sigma_x = sde_x.transition(x, vec_t + vec_dt, vec_dt)
-                mu_adj, sigma_adj = sde_adj.transition(adj, vec_t + vec_dt, vec_dt)
-                x = mu_x + sigma_x[:, None, None] * gen_noise(x, flags, sym=False)
-                adj = mu_adj + sigma_adj[:, None, None] * gen_noise(adj, flags)
-
-                x_mean = mu_x
-                adj_mean = mu_adj
-            print(" ")
-            return (x_mean if denoise else x), (adj_mean if denoise else adj), 0
 
     return s4_solver

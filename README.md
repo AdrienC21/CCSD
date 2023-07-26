@@ -12,7 +12,7 @@ If you like this project, please leave a star ⭐ on GitHub !
 
 Alpha version.
 
-Authors: Adrien Carrel, Tolga Birdal, & al.
+Author: Adrien Carrel.
 
 ## Installation
 
@@ -38,13 +38,11 @@ TODO
 
 ## Testing
 
-Run the command:
+Run the command below to run many automatic tests on most of the functions.
 
 ```bat
-pytest tests/
+pytest tests/ -W ignore::DeprecationWarning
 ```
-
-TODO: Include tests
 
 ## Citation
 

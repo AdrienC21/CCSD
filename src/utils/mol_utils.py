@@ -4,11 +4,12 @@
 """mol_utils.py: utility functions for loading the molecular data, checking the validity of the molecules, converting them, saving them, etc.
 """
 
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Union
 import re
 
 import torch
 import json
+import rdkit
 import numpy as np
 import pandas as pd
 import networkx as nx
@@ -50,6 +51,7 @@ AN_TO_SYMBOL = {
     35: "Br",
     53: "I",
 }
+SYMBOL_TO_AN = {v: k for k, v in AN_TO_SYMBOL.items()}
 
 
 def is_molecular_config(config: EasyDict) -> bool:
@@ -165,13 +167,13 @@ def gen_mol(
 
 
 def construct_mol(
-    x: torch.Tensor, adj: torch.Tensor, atomic_num_list: List[int]
+    x: np.ndarray, adj: np.ndarray, atomic_num_list: List[int]
 ) -> Chem.Mol:
     """Constructs a molecule from the model output.
 
     Args:
-        x (torch.Tensor): node features
-        adj (torch.Tensor): adjacency matrix
+        x (np.ndarray): node features
+        adj (np.ndarray): adjacency matrix
         atomic_num_list (List[int]): atomic number list
 
     Returns:
@@ -209,17 +211,21 @@ def construct_mol(
     return mol
 
 
-def check_valency(mol: Chem.Mol) -> Tuple[bool, Optional[List[int]]]:
+def check_valency(mol: Union[Chem.Mol, Chem.RWMol]) -> Tuple[bool, Optional[List[int]]]:
     """Checks the valency of the molecule.
 
     Args:
-        mol (Chem.Mol): molecule
+        mol (Union[Chem.Mol, Chem.RWMol]): molecule
 
     Returns:
         Tuple[bool, Optional[List[int]]]: whether or not the molecule is valid and the atom id and valency of the atom that is not valid
     """
     try:
-        Chem.SanitizeMol(mol, sanitizeOps=Chem.SanitizeFlags.SANITIZE_PROPERTIES)
+        sanitize_result = Chem.SanitizeMol(
+            mol, sanitizeOps=Chem.SanitizeFlags.SANITIZE_PROPERTIES
+        )
+        if sanitize_result != rdkit.Chem.rdmolops.SanitizeFlags.SANITIZE_NONE:
+            return False, []
         return True, None
     except ValueError as e:
         e = str(e)
@@ -229,14 +235,14 @@ def check_valency(mol: Chem.Mol) -> Tuple[bool, Optional[List[int]]]:
         return False, atomid_valence
 
 
-def correct_mol(m: Chem.Mol) -> Tuple[Chem.Mol, bool]:
+def correct_mol(m: Chem.RWMol) -> Tuple[Chem.RWMol, bool]:
     """Corrects the molecule.
 
     Args:
-        m (Chem.Mol): molecule
+        m (Chem.RWMol): molecule
 
     Returns:
-        Tuple[Chem.Mol, bool]: corrected molecule and whether or not the molecule is corrected
+        Tuple[Chem.RWMol, bool]: corrected molecule and whether or not the molecule is corrected
     """
 
     # xsm = Chem.MolToSmiles(x, isomericSmiles=True)  # in valid_mol_can_with_seg

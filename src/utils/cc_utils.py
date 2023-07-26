@@ -4,7 +4,7 @@
 """cc_utils.py: utility functions for combinatorial complex data (flag masking, conversions, etc.).
 """
 
-from typing import List, Tuple, Dict, FrozenSet, Optional, Union
+from typing import List, Tuple, Dict, FrozenSet, Optional, Union, Any
 from itertools import combinations
 from collections import defaultdict
 from math import comb
@@ -16,7 +16,7 @@ from rdkit import Chem
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
 from src.utils.graph_utils import pad_adjs
-from src.utils.mol_utils import bond_decoder
+from src.utils.mol_utils import bond_decoder, SYMBOL_TO_AN, AN_TO_SYMBOL
 
 
 DIC_MOL_CONV = {0: "C", 1: "N", 2: "O", 3: "F"}
@@ -76,6 +76,63 @@ def get_cells(
     return all_combinations, dic_set, dic_int, all_edges, dic_edge, dic_int_edge
 
 
+def create_incidence_1_2(
+    N: int,
+    A: Union[np.ndarray, torch.Tensor],
+    d_min: int,
+    d_max: int,
+    two_rank_cells: Dict[FrozenSet[int], Dict[str, Any]],
+) -> np.ndarray:
+    """Create the incidence matrix of rank-1 to rank-2 cells from an adjacency matrix
+    and a list of the rank-2 cells of the CC.
+
+    Args:
+        N (int): maximum number of nodes
+        A (Union[np.ndarray, torch.Tensor]): adjacency matrix
+        d_min (int): minimum size of rank-2 cells
+        d_max (int): maximum size of rank-2 cells
+        two_rank_cells (Dict[FrozenSet[int], Dict[str, Any]]): list of rank-2 cells
+
+    Returns:
+        np.ndarray: incidence matrix of rank-1 to rank-2 cells
+    """
+
+    # Get all the combinations of nodes and the mapings
+    all_combinations, dic_set, _, _, dic_edge, _ = get_cells(N, d_min, d_max)
+    row = (N * (N - 1)) // 2
+    col = len(all_combinations)
+    if not (two_rank_cells):
+        f = 1
+    else:
+        attributes_names = list(two_rank_cells[list(two_rank_cells.keys())[0]].keys())
+        if "weight" in attributes_names:
+            attributes_names.remove("weight")
+        f = max(1, len(attributes_names))
+    F = np.zeros((row, col, f), dtype=np.float32)  # empty incidence matrix
+
+    if two_rank_cells:
+        for c in two_rank_cells:
+            j = dic_set[c]  # get the column index of the rank-2 cell
+            combi = tuple(c)
+            # For each pair of nodes in the rank-2 cell, get the row index of the edge
+            for k in range(len(combi) - 1):
+                for l in range(k + 1, len(combi)):
+                    if (
+                        A[combi[k], combi[l]].any() or A[combi[l], combi[k]].any()
+                    ):  # if the edge exists
+                        edge = frozenset((combi[k], combi[l]))
+                        i = dic_edge[edge]
+                        if not (attributes_names):
+                            F[i, j, 0] = 1.0
+                        else:
+                            for attr_id, attr in enumerate(attributes_names):
+                                F[i, j, attr_id] = two_rank_cells[c][attr]
+    # Remove last dimension if only one attribute for rank2 incidence matrix
+    if F.shape[-1] == 1:
+        F = F.squeeze(-1)
+    return F
+
+
 def cc_from_incidence(
     incidence_matrices: Optional[
         Union[List[Optional[np.ndarray]], List[Optional[torch.Tensor]]]
@@ -101,88 +158,84 @@ def cc_from_incidence(
 
     CC = CombinatorialComplex()
     # Empty CC. No incidence matrices, return empty CC
-    if (incidence_matrices is None) or (len(incidence_matrices) == 0):
+    if (
+        (incidence_matrices is None)
+        or (len(incidence_matrices) == 0)
+        or (all(m is None for m in incidence_matrices))
+    ):
         return CC
 
     # Convert to tensors
-    incidence_matrices = [torch.Tensor(m) for m in incidence_matrices]
+    incidence_matrices = [torch.Tensor(m) for m in incidence_matrices if m is not None]
 
-    # 0-dimension CC. One incidence matrix, return CC with just nodes
+    # 0-dimension CC. If only one incidence matrix, return CC with just nodes
     N = incidence_matrices[0].shape[0]
+    for i in range(N):
+        if incidence_matrices[0][i, :].any().item():
+            if not (is_molecule):
+                attr = {
+                    f"label_{j}": incidence_matrices[0][i, j].item()
+                    for j in range(incidence_matrices[0].shape[1])
+                }
+            else:
+                attr = {
+                    "symbol": SYMBOL_TO_AN[
+                        DIC_MOL_CONV[torch.argmax(incidence_matrices[0][i, :]).item()]
+                    ]
+                }
+            CC.add_cell((i,), rank=0, **attr)
     if len(incidence_matrices) == 1:
-        for i in range(N):
-            if incidence_matrices[0][i, :].any().item():
-                if not (is_molecule):
-                    attr = {
-                        f"label_{j}": incidence_matrices[0][i, j].item()
-                        for j in range(incidence_matrices[0].shape[1])
-                    }
-                else:
-                    attr = {
-                        "symbol": DIC_MOL_CONV[
-                            torch.argmax(incidence_matrices[0][i, :]).item()
-                        ]
-                    }
-                CC.add_cell((i,), rank=0, **attr)
         return CC
 
     # 1-dimension CC. Two incidence matrices, return CC with nodes and edges
+    adj_has_many_features = (
+        len(incidence_matrices[1].shape) > 2
+    )  # check if the adjacency matrix has many features
     for i in range(N):
         for j in range(i + 1, N):
-            if incidence_matrices[1][i, j]:
+            if incidence_matrices[1][i, j].any().item():
                 if not (is_molecule):
-                    attr = {"label": incidence_matrices[1][i, j].item()}
+                    if not (adj_has_many_features):
+                        attr = {"label": incidence_matrices[1][i, j].item()}
+                    else:
+                        attr = {
+                            f"label_{k}": incidence_matrices[1][i, j, k].item()
+                            for k in range(incidence_matrices[1].shape[2])
+                        }
                 else:
-                    attr = {"bond_type": incidence_matrices[1][i, j].item()}
+                    if not (adj_has_many_features):
+                        attr = {"bond_type": incidence_matrices[1][i, j].item()}
+                    else:
+                        bond_type = torch.argmax(incidence_matrices[1][i, j]).item()
+                        attr = {"bond_type": bond_type}
                 CC.add_cell((i, j), rank=1, **attr)
     if len(incidence_matrices) == 2:
         return CC
 
-    # 2-dimension CC. Three incidence matrices, return CC with nodes, edges and rank-2 cells
+    # 2-dimension CC. If three incidence matrices, return CC with nodes, edges and rank-2 cells
+    incidence_matrix = incidence_matrices[2]
+    rank2_has_many_features = (
+        len(incidence_matrix.shape) > 2
+    )  # check if the rank2 incidence matrix has many features
+    all_combinations, _, _, _, _, _ = get_cells(N, d_min, d_max)
+    for i, combi in enumerate(all_combinations):
+        if incidence_matrix[:, i].any().item():  # there is a rank2 cell
+            label_index = incidence_matrix[:, i].abs().argmax().item()
+            if not (rank2_has_many_features):
+                attr = {"label": incidence_matrix[label_index, i].item()}
+            else:
+                label_index = label_index // incidence_matrix.shape[2]
+                attr = {
+                    f"label_{k}": incidence_matrix[label_index, i, k].item()
+                    for k in range(incidence_matrix.shape[2])
+                }
+            CC.add_cell(combi, 2, **attr)
     if len(incidence_matrices) == 3:
-        incidence_matrix = incidence_matrices[2]
-        all_combinations, _, _, _, _, _ = get_cells(N, d_min, d_max)
-        for i, combi in enumerate(all_combinations):
-            if incidence_matrix[:, i].any().item():
-                CC.add_cell(combi, 2)
         return CC
-    else:
-        raise NotImplementedError()
-
-
-def create_incidence_1_2(
-    N: int, A: np.ndarray, d_min: int, d_max: int, two_rank_cells: List[FrozenSet[int]]
-) -> np.ndarray:
-    """Create the incidence matrix of rank-1 to rank-2 cells from an adjacency matrix
-    and a list of the rank-2 cells of the CC.
-
-    Args:
-        N (int): maximum number of nodes
-        A (np.ndarray): adjacency matrix
-        d_min (int): minimum size of rank-2 cells
-        d_max (int): maximum size of rank-2 cells
-        two_rank_cells (List[FrozenSet[int]]): list of rank-2 cells
-
-    Returns:
-        np.ndarray: incidence matrix of rank-1 to rank-2 cells
-    """
-
-    # Get all the combinations of nodes and the mapings
-    all_combinations, dic_set, _, _, dic_edge, _ = get_cells(N, d_min, d_max)
-    row = (N * (N - 1)) // 2
-    col = len(all_combinations)
-    res = np.zeros((row, col))  # empty incidence matrix
-    for c in two_rank_cells:
-        j = dic_set[c]  # get the column index of the rank-2 cell
-        combi = list(c)
-        # For each pair of nodes in the rank-2 cell, get the row index of the edge
-        for k in range(len(combi) - 1):
-            for l in range(k + 1, len(combi)):
-                if A[combi[k], combi[l]] or A[combi[l], combi[k]]:  # if the edge exists
-                    edge = frozenset((combi[k], combi[l]))
-                    i = dic_edge[edge]
-                    res[i, j] = 1
-    return res
+    else:  # if more than 3 incidence matrices, return an error
+        raise NotImplementedError(
+            "Combinatorial Complexes of dimension > 2 not implemented"
+        )
 
 
 def get_rank2_dim(N: int, d_min: int, d_max: int) -> int:
@@ -248,7 +301,7 @@ def get_all_mol_rings(mol: Chem.Mol) -> List[FrozenSet[int]]:
         ring_list = []
         for atom in ring:
             ring_list.append(atom)
-        res.append(frozenset(ring_list))
+        res.append(frozenset(sorted(ring_list)))
     return res
 
 
@@ -268,9 +321,8 @@ def mols_to_cc(mols: List[Chem.Mol]) -> List[CombinatorialComplex]:
         where the cycles are rank-2 cells
 
     Example:
-        >>> mols = [Chem.MolFromSmiles('Cc1ccccc1'), Chem.MolFromSmiles('c1cccc2c1CCCC2')]
+        >>> mols = [Chem.MolFromSmiles("Cc1ccccc1"), Chem.MolFromSmiles("c1cccc2c1CCCC2")]
         >>> ccs = mols_to_cc(mols)
-
     """
     ccs = []
     for mol in mols:
@@ -278,7 +330,7 @@ def mols_to_cc(mols: List[Chem.Mol]) -> List[CombinatorialComplex]:
 
         # Atom
         for atom in mol.GetAtoms():
-            CC.add_cell((atom.GetIdx(),), rank=0, symbol=atom.GetSymbol())
+            CC.add_cell((atom.GetIdx(),), rank=0, symbol=SYMBOL_TO_AN[atom.GetSymbol()])
 
         # Bond
         for bond in mol.GetBonds():
@@ -311,37 +363,59 @@ def CC_to_incidence_matrices(
     """
 
     if not (CC.cells.hyperedge_dict):  # empty CC
-        return [np.array(), np.array(), np.array()]
+        return [np.array([]), np.array([]), np.array([])]
 
     # Nodes
     nodes = CC.cells.hyperedge_dict[0]
     N = len(nodes)
-    f = min(1, len(nodes[list(nodes.keys())[0]]))
-    X = np.zeros((N, f))
-    attributes_names = list(nodes[list(nodes.keys())[0]].keys())
-    attributes_names.remove("weight")
-    for k in list(nodes.keys()):
-        node = list(k)[0]
-        if not (attributes_names):
-            X[node, 0] = 1
-        else:
-            for attr_id, attr in enumerate(attributes_names):
-                X[node, attr_id] = nodes[k][attr]
+    if not (nodes):
+        f = 1
+    else:
+        attributes_names = list(nodes[list(nodes.keys())[0]].keys())
+        if "weight" in attributes_names:
+            attributes_names.remove("weight")
+        f = max(1, len(attributes_names))
+    X = np.zeros((N, f), dtype=np.float32)
+    if nodes:
+        for k in list(nodes.keys()):
+            node = tuple(k)[0]
+            if not (attributes_names):
+                X[node, 0] = 1
+            else:
+                for attr_id, attr in enumerate(attributes_names):
+                    X[node, attr_id] = nodes[k][attr]
 
     # Edges
     if 1 not in CC.cells.hyperedge_dict:
-        return [X, np.array(), np.array()]
+        return [X, np.array([]), np.array([])]
     edges = CC.cells.hyperedge_dict[1]
-    A = np.zeros((N, N))
-    for edge in list(edges.keys()):
-        i, j = tuple(edge)
-        A[i, j] = 1
-        A[j, i] = 1
+    if not (edges):
+        f = 1
+    else:
+        attributes_names = list(edges[list(edges.keys())[0]].keys())
+        if "weight" in attributes_names:
+            attributes_names.remove("weight")
+        f = max(1, len(attributes_names))
+    A = np.zeros((N, N, f), dtype=np.float32)
+    if edges:
+        for k in list(edges.keys()):
+            edge = tuple(k)
+            u, v = edge[0], edge[1]
+            if not (attributes_names):
+                A[u, v, 0] = 1.0
+                A[v, u, 0] = 1.0
+            else:
+                for attr_id, attr in enumerate(attributes_names):
+                    A[u, v, attr_id] = edges[k][attr]
+                    A[v, u, attr_id] = edges[k][attr]
+    # Remove last dimension if only one attribute for adjacency matrix
+    if A.shape[-1] == 1:
+        A = A.squeeze(-1)
 
     # Rank-2 cells
     if 2 not in CC.cells.hyperedge_dict:
-        return [X, A, np.array()]
-    rank_2_cells = list(CC.cells.hyperedge_dict[2].keys())
+        return [X, A, np.array([])]
+    rank_2_cells = CC.cells.hyperedge_dict[2]
     d_min = min(len(c) for c in rank_2_cells) if d_min is None else d_min
     d_max = min(len(c) for c in rank_2_cells) if d_max is None else d_max
     F = create_incidence_1_2(N, A, d_min, d_max, rank_2_cells)
@@ -364,7 +438,7 @@ def ccs_to_mol(ccs: List[CombinatorialComplex]) -> List[Chem.Mol]:
 
         atoms = cc.cells.hyperedge_dict[0]
         for atom in atoms:
-            atom_symbol = atoms[atom]["symbol"]
+            atom_symbol = AN_TO_SYMBOL[atoms[atom]["symbol"]]
             mol.AddAtom(Chem.Atom(atom_symbol))
 
         bonds = cc.cells.hyperedge_dict[1]
@@ -400,7 +474,7 @@ def get_N_from_rank2(rank2: torch.Tensor) -> int:
 
 
 def get_rank2_flags(
-    rank2: torch.Tensor, flags: torch.Tensor, N: int, d_min: int, d_max: int
+    rank2: torch.Tensor, N: int, d_min: int, d_max: int, flags: torch.Tensor
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Get flags for left and right nodes of rank2 cells.
     The left flag is 0 if the edge is not in the CC as a node is not.
@@ -409,10 +483,10 @@ def get_rank2_flags(
     Args:
         rank2 (torch.Tensor): batch of rank2 incidence matrices.
             B x (NC2) x K or B x C x (NC2) x K
-        flags (torch.Tensor): 0-1 flags tensor. B x N
         N (int): number of nodes
         d_min (int): minimum dimension of rank2 cells
         d_max (int): maximum dimension of rank2 cells
+        flags (torch.Tensor): 0-1 flags tensor. B x N
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: flags for left and right nodes of rank2 cells
@@ -467,19 +541,25 @@ def mask_rank2(
 
 def gen_noise_rank2(
     x: torch.Tensor,
+    N: int,
+    d_min: int,
+    d_max: int,
     flags: Optional[torch.Tensor] = None,
 ) -> torch.Tensor:
     """Generate noise for the rank-2 incidence matrix
 
     Args:
         x (torch.Tensor): input tensor
+        N (int): number of nodes
+        d_min (int): minimum dimension of rank2 cells
+        d_max (int): maximum dimension of rank2 cells
         flags (Optional[torch.Tensor], optional): optional flags. Defaults to None.
 
     Returns:
         torch.Tensor: generated noisy tensor
     """
     z = torch.randn_like(x)  # gaussian centered normal distribution
-    z = mask_rank2(z, flags)
+    z = mask_rank2(z, N, d_min, d_max, flags)
     return z
 
 
@@ -522,16 +602,49 @@ def pad_rank2(
     return res
 
 
+def get_global_cc_properties(ccs: List[CombinatorialComplex]) -> Tuple[int, int, int]:
+    """Get the global properties of a list of combinatorial complexes:
+    number of nodes, minimum dimension of rank2 cells and maximum dimension of rank2 cells
+
+    Args:
+        ccs (List[CombinatorialComplex]): list of combinatorial complexes
+
+    Returns:
+        Tuple[int, int, int]: number of nodes, minimum dimension of rank2 cells and maximum dimension of rank2 cells
+
+    Example:
+        >>> mols = [Chem.MolFromSmiles("Cc1ccccc1"), Chem.MolFromSmiles("c1cccc2c1CCCC2"), Chem.MolFromSmiles("C1CC1")]
+        >>> ccs = mols_to_cc(mols)
+        >>> get_global_cc_properties(ccs)
+        (10, 3, 6)
+    """
+    max_node_num = max(len(cc.cells.hyperedge_dict.get(0, [])) for cc in ccs)
+    d_min = min(
+        min(len(cell) for cell in cc.cells.hyperedge_dict.get(2, [])) for cc in ccs
+    )
+    d_max = max(
+        max(len(cell) for cell in cc.cells.hyperedge_dict.get(2, [])) for cc in ccs
+    )
+    return max_node_num, d_min, d_max
+
+
 def ccs_to_tensors(
-    cc_list: List[CombinatorialComplex], max_node_num: int, d_min: int, d_max: int
+    cc_list: List[CombinatorialComplex],
+    max_node_num: Optional[int] = None,
+    d_min: Optional[int] = None,
+    d_max: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Convert a list of combinatorial complexes to two tensors, one for the adjacency matrices and one for the incidence matrices
+    If the combinatorial complexes have different number of nodes, the adjacency matrices and incidence matrices
+    are padded to the maximum number of nodes.
+    If the max number of nodes is not provided, it is calculated from the combinatorial complexes.
+    Same for the minimum and maximum dimension of rank2 cells.
 
     Args:
         cc_list (List[CombinatorialComplex]): list of combinatorial complexes
-        max_node_num (int): max number of nodes in all the combinatorial complexes
-        d_min (int): minimum dimension of rank2 cells
-        d_max (int): maximum dimension of rank2 cells
+        max_node_num (Optional[int], optional): max number of nodes in all the combinatorial complexes. Defaults to None.
+        d_min (Optional[int], optional): minimum dimension of rank2 cells. Defaults to None.
+        d_max (Optional[int], optional): maximum dimension of rank2 cells. Defaults to None.
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: adjacency matrices and rank2 incidence matrices
@@ -539,6 +652,9 @@ def ccs_to_tensors(
     adjs_list = []
     rank2_list = []
     max_node_num = max_node_num  # memory issue
+
+    if (max_node_num is None) or (d_min is None) or (d_max is None):
+        max_node_num, d_min, d_max = get_global_cc_properties(cc_list)
 
     for cc in cc_list:
         assert isinstance(cc, CombinatorialComplex)
@@ -571,20 +687,29 @@ def ccs_to_tensors(
 
 
 def cc_to_tensor(
-    cc: CombinatorialComplex, max_node_num: int, d_min: int, d_max: int
+    cc: CombinatorialComplex,
+    max_node_num: Optional[int] = None,
+    d_min: Optional[int] = None,
+    d_max: Optional[int] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """Convert a single combinatorial complex to a tuple of tensors, one for the adjacency matrix and one for the rank2 incidence matrix
+    If the max number of nodes is not provided, it is calculated from the combinatorial complexes.
+    Same for the minimum and maximum dimension of rank2 cells.
+    Incidence matrices (A, F) are padded to the maximum number of nodes.
 
     Args:
         cc (CombinatorialComplex): combinatorial complex to convert
-        max_node_num (int): maximum number of nodes
-        d_min (int): minimum dimension of rank2 cells
-        d_max (int): maximum dimension of rank2 cells
+        max_node_num (Optional[int], optional): maximum number of nodes. Defaults to None.
+        d_min (Optional[int], optional): minimum dimension of rank2 cells. Defaults to None.
+        d_max (Optional[int], optional): maximum dimension of rank2 cells. Defaults to None.
 
     Returns:
         Tuple[torch.Tensor, torch.Tensor]: adjacency matrix and rank2 incidence matrix
     """
     max_node_num = max_node_num  # memory issue
+
+    if (max_node_num is None) or (d_min is None) or (d_max is None):
+        max_node_num, d_min, d_max = get_global_cc_properties([cc])
 
     assert isinstance(cc, CombinatorialComplex)
     _, adj, rank2 = CC_to_incidence_matrices(cc, d_min, d_max)

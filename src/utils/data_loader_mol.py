@@ -42,7 +42,17 @@ def load_mol(filepath: str) -> List[Tuple[Any, Any]]:
     print(f"Loading file {filepath}")
     if not os.path.exists(filepath):
         raise ValueError(f"Invalid filepath {filepath} for dataset")
-    load_data = np.load(filepath)
+    try:
+        load_data = np.load(
+            filepath, allow_pickle=True
+        )  # allow pickle for complex data
+    except:
+        with open(filepath, "rb") as f:
+            load_data = np.load(f, allow_pickle=True)
+    if isinstance(
+        load_data, np.ndarray
+    ):  # if the data is a numpy array, convert it to dict
+        load_data = load_data.item()
     result = []
     i = 0
     while True:
@@ -207,6 +217,7 @@ def get_transform_fn(
                 # rank2 incidence matrix
                 mol = get_mol_from_x_adj(x, adj)
                 rings = get_all_mol_rings(mol)
+                rings = {ring: {} for ring in rings}  # convert to dict
                 rank2 = create_incidence_1_2(
                     x.shape[0], adj, d_min, d_max, two_rank_cells=rings
                 )

@@ -13,6 +13,7 @@ class ExponentialMovingAverage:
     """
     Maintains (exponential) moving average of a set of parameters.
     """
+
     def __init__(
         self,
         parameters: torch.nn.parameter.Parameter,

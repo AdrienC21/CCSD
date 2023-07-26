@@ -8,11 +8,6 @@ This is a ScoreNetwork model that operates on the rank2 incidence matrix of the 
 from typing import Optional, Tuple
 
 import torch
-import torch.nn.functional as torch_func
-
-from src.models.layers import DenseGCNConv, MLP
-from src.utils.cc_utils import mask_rank2, pow_tensor, mask_x, node_feature_to_matrix
-from src.models.attention import AttentionLayer
 
 
 # TODO: MODIFY THIS CLASS TO IMPLEMENT OUR OWN MODEL
@@ -26,12 +21,15 @@ class BaselineNetworkLayer(torch.nn.Module):
     def __init__(
         self,
     ) -> None:
-        """Initialize the BaselineNetworkLayer.
-        """
+        """Initialize the BaselineNetworkLayer."""
         super(BaselineNetworkLayer, self).__init__()
 
     def forward(
-        self, x: torch.Tensor, adj: torch.Tensor, rank2: torch.Tensor, flags: Optional[torch.Tensor]
+        self,
+        x: torch.Tensor,
+        adj: torch.Tensor,
+        rank2: torch.Tensor,
+        flags: Optional[torch.Tensor],
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Forward pass of the BaselineNetworkLayer.
 
@@ -54,12 +52,15 @@ class BaselineNetwork(torch.nn.Module):
     def __init__(
         self,
     ) -> None:
-        """Initialize the BaselineNetwork.
-        """
+        """Initialize the BaselineNetwork."""
         super(BaselineNetwork, self).__init__()
 
     def forward(
-        self, x: torch.Tensor, adj: torch.Tensor, rank2: torch.Tensor, flags: Optional[torch.Tensor] = None
+        self,
+        x: torch.Tensor,
+        adj: torch.Tensor,
+        rank2: torch.Tensor,
+        flags: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Forward pass of the BaselineNetwork. Returns the score with respect to the rank2 incidence matrix.
 
@@ -82,14 +83,16 @@ class ScoreNetworkF(BaselineNetwork):
     def __init__(
         self,
     ) -> None:
-        """Initialize the ScoreNetworkF model.
-        """
+        """Initialize the ScoreNetworkF model."""
 
-        super(ScoreNetworkF, self).__init__(
-        )
+        super(ScoreNetworkF, self).__init__()
 
     def forward(
-        self, x: torch.Tensor, adj: torch.Tensor, rank2: torch.Tensor, flags: Optional[torch.Tensor] = None
+        self,
+        x: torch.Tensor,
+        adj: torch.Tensor,
+        rank2: torch.Tensor,
+        flags: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
         """Forward pass of the ScoreNetworkF. Returns the score with respect to the rank2 incidence matrix.
 
