@@ -15,20 +15,20 @@ from src.utils.graph_utils import mask_x, pow_tensor
 from src.models.attention import AttentionLayer
 
 
-# TODO: MODIFY THIS CLASS TO INCORPORATE RANK2 INCIDENCE MATRIX OPTIONALLY
-
-
 class ScoreNetworkX(torch.nn.Module):
     """ScoreNetworkX network model.
     Returns the score with respect to the node feature matrix X."""
 
-    def __init__(self, max_feat_num: int, depth: int, nhid: int) -> None:
+    def __init__(
+        self, max_feat_num: int, depth: int, nhid: int, is_cc: bool = False
+    ) -> None:
         """Initialize ScoreNetworkX.
 
         Args:
             max_feat_num (int): maximum number of node features (input and output dimension of the network)
             depth (int): number of DenseGCNConv layers
             nhid (int): number of hidden units in DenseGCNConv layers
+            is_cc (bool, optional): True if we generate combinatorial complexes. Defaults to False.
         """
 
         super(ScoreNetworkX, self).__init__()
@@ -37,6 +37,7 @@ class ScoreNetworkX(torch.nn.Module):
         self.nfeat = max_feat_num
         self.depth = depth
         self.nhid = nhid
+        self.is_cc = is_cc
 
         # Initialize DenseGCNConv layers
         self.layers = torch.nn.ModuleList()
@@ -60,7 +61,13 @@ class ScoreNetworkX(torch.nn.Module):
         # Initialize activation function
         self.activation = torch.tanh
 
-    def forward(
+        # Pick the right forward function
+        if not (self.is_cc):
+            self.forward = self.forward_graph
+        else:
+            self.forward = self.forward_cc
+
+    def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor]
     ) -> torch.Tensor:
         """Forward pass of the ScoreNetworkX model.
@@ -93,6 +100,26 @@ class ScoreNetworkX(torch.nn.Module):
 
         return x
 
+    def forward_cc(
+        self,
+        x: torch.Tensor,
+        adj: torch.Tensor,
+        rank2: torch.Tensor,
+        flags: Optional[torch.Tensor],
+    ) -> torch.Tensor:
+        """Forward pass of the ScoreNetworkX model.
+
+        Args:
+            x (torch.Tensor): node feature matrix (B x N x F)
+            adj (torch.Tensor): adjacency matrix (B x N x N)
+            rank2 (torch.Tensor): rank2 incidence matrix (B x (NC2) x K)
+            flags (Optional[torch.Tensor]): optional mask matrix (B x N x 1)
+
+        Returns:
+            torch.Tensor: score with respect to the node feature matrix (B x N x F)
+        """
+        return self.forward_graph(x, adj, flags)
+
 
 class ScoreNetworkX_GMH(torch.nn.Module):
     """ScoreNetworkX network model.
@@ -111,6 +138,7 @@ class ScoreNetworkX_GMH(torch.nn.Module):
         adim: int,
         num_heads: int = 4,
         conv: str = "GCN",
+        is_cc: bool = False,
     ) -> None:
         """Initialize ScoreNetworkX_GMH.
 
@@ -128,12 +156,14 @@ class ScoreNetworkX_GMH(torch.nn.Module):
             num_heads (int, optional): number of heads for the Attention. Defaults to 4.
             conv (str, optional): type of convolutional layer, choose from [GCN, MLP].
                 Defaults to "GCN".
+            is_cc (bool, optional): True if we generate combinatorial complexes. Defaults to False.
         """
         super().__init__()
 
         # Initialize parameters
         self.depth = depth
         self.c_init = c_init
+        self.is_cc = is_cc
 
         # Initialize AttentionLayer layers
         self.layers = torch.nn.ModuleList()
@@ -178,7 +208,13 @@ class ScoreNetworkX_GMH(torch.nn.Module):
         # Initialize activation function
         self.activation = torch.tanh
 
-    def forward(
+        # Pick the right forward function
+        if not (self.is_cc):
+            self.forward = self.forward_graph
+        else:
+            self.forward = self.forward_cc
+
+    def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor]
     ) -> torch.Tensor:
         """Forward pass of the ScoreNetworkX_GMH model.
@@ -212,3 +248,23 @@ class ScoreNetworkX_GMH(torch.nn.Module):
         x = mask_x(x, flags)
 
         return x
+
+    def forward_cc(
+        self,
+        x: torch.Tensor,
+        adj: torch.Tensor,
+        rank2: torch.Tensor,
+        flags: Optional[torch.Tensor],
+    ) -> torch.Tensor:
+        """Forward pass of the ScoreNetworkX_GMH model.
+
+        Args:
+            x (torch.Tensor): node feature matrix (B x N x F)
+            adj (torch.Tensor): adjacency matrix (B x N x N)
+            rank2 (torch.Tensor): rank2 incidence matrix (B x (NC2) x K)
+            flags (Optional[torch.Tensor]): optional mask matrix (B x N x 1)
+
+        Returns:
+            torch.Tensor: score with respect to the node feature matrix (B x N x F)
+        """
+        return self.forward_graph(x, adj, flags)

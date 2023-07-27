@@ -15,9 +15,6 @@ from src.utils.graph_utils import mask_adjs, pow_tensor, mask_x, node_feature_to
 from src.models.attention import AttentionLayer
 
 
-# TODO: MODIFY THIS CLASS TO INCORPORATE RANK2 INCIDENCE MATRIX OPTIONALLY
-
-
 class BaselineNetworkLayer(torch.nn.Module):
     """BaselineNetworkLayer that operates on tensors derived from an adjacency matrix A.
     Used in the BaselineNetwork model.
@@ -30,7 +27,7 @@ class BaselineNetworkLayer(torch.nn.Module):
         conv_output_dim: int,
         input_dim: int,
         output_dim: int,
-        batch_norm: bool = False,
+        use_bn: bool = False,
     ) -> None:
         """Initialize the BaselineNetworkLayer.
 
@@ -40,12 +37,12 @@ class BaselineNetworkLayer(torch.nn.Module):
             conv_output_dim (int): output dimension of the DenseGCNConv layers
             input_dim (int): number of DenseGCNConv layers (part of the input dimension of the final MLP)
             output_dim (int): output dimension of the final MLP
-            batch_norm (bool, optional): if True, apply Batch Normalization.
-                TODO: NOT IMPLEMENTED. Defaults to False.
+            use_bn (bool, optional): whether to use batch normalization in the MLP. Defaults to False.
         """
         super(BaselineNetworkLayer, self).__init__()
 
         # Initialize the parameters and the layers
+        self.use_bn = use_bn
         self.convs = torch.nn.ModuleList()
         for _ in range(input_dim):
             self.convs.append(DenseGCNConv(conv_input_dim, conv_output_dim))
@@ -56,7 +53,7 @@ class BaselineNetworkLayer(torch.nn.Module):
             self.mlp_in_dim,
             self.hidden_dim,
             output_dim,
-            use_bn=False,
+            use_bn=self.use_bn,
             activate_func=F.elu,
         )
         self.multi_channel = MLP(
@@ -64,7 +61,7 @@ class BaselineNetworkLayer(torch.nn.Module):
             input_dim * conv_output_dim,
             self.hidden_dim,
             conv_output_dim,
-            use_bn=False,
+            use_bn=self.use_bn,
             activate_func=F.elu,
         )
 
@@ -122,6 +119,8 @@ class BaselineNetwork(torch.nn.Module):
         adim: int,
         num_heads: int = 4,
         conv: str = "GCN",
+        use_bn: bool = False,
+        is_cc: bool = False,
     ) -> None:
         """Initialize the BaselineNetwork.
 
@@ -139,6 +138,8 @@ class BaselineNetwork(torch.nn.Module):
             adim (int): UNUSED HERE. attention dimension (except for the first layer).
             num_heads (int, optional): UNUSED HERE. number of heads for the Attention. Defaults to 4.
             conv (str, optional): UNUSED HERE. type of convolutional layer, choose from [GCN, MLP]. Defaults to "GCN".
+            use_bn (bool, optional): whether to use batch normalization in the MLP. Defaults to False.
+            is_cc (bool, optional): True if we generate combinatorial complexes. Defaults to False.
         """
 
         super(BaselineNetwork, self).__init__()
@@ -152,6 +153,8 @@ class BaselineNetwork(torch.nn.Module):
         self.c_init = c_init
         self.c_hid = c_hid
         self.c_final = c_final
+        self.use_bn = use_bn
+        self.is_cc = is_cc
 
         # Initialize the layers
         self.layers = torch.nn.ModuleList()
@@ -159,21 +162,36 @@ class BaselineNetwork(torch.nn.Module):
             if not (k):  # first layer
                 self.layers.append(
                     BaselineNetworkLayer(
-                        self.num_linears, self.nfeat, self.nhid, self.c_init, self.c_hid
+                        self.num_linears,
+                        self.nfeat,
+                        self.nhid,
+                        self.c_init,
+                        self.c_hid,
+                        self.use_bn,
                     )
                 )
 
             elif k == (self.num_layers - 1):  # last layer
                 self.layers.append(
                     BaselineNetworkLayer(
-                        self.num_linears, self.nhid, self.nhid, self.c_hid, self.c_final
+                        self.num_linears,
+                        self.nhid,
+                        self.nhid,
+                        self.c_hid,
+                        self.c_final,
+                        self.use_bn,
                     )
                 )
 
             else:  # intermediate layers
                 self.layers.append(
                     BaselineNetworkLayer(
-                        self.num_linears, self.nhid, self.nhid, self.c_hid, self.c_hid
+                        self.num_linears,
+                        self.nhid,
+                        self.nhid,
+                        self.c_hid,
+                        self.c_hid,
+                        self.use_bn,
                     )
                 )
 
@@ -184,7 +202,7 @@ class BaselineNetwork(torch.nn.Module):
             input_dim=self.fdim,
             hidden_dim=2 * self.fdim,
             output_dim=1,
-            use_bn=False,
+            use_bn=self.use_bn,
             activate_func=F.elu,
         )
         # Initialize the mask
@@ -193,7 +211,13 @@ class BaselineNetwork(torch.nn.Module):
         )
         self.mask.unsqueeze_(0)
 
-    def forward(
+        # Pick the right forward function
+        if not (self.is_cc):
+            self.forward = self.forward_graph
+        else:
+            self.forward = self.forward_cc
+
+    def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """Forward pass of the BaselineNetwork. Returns the score with respect to the adjacency matrix A.
@@ -231,6 +255,26 @@ class BaselineNetwork(torch.nn.Module):
 
         return score
 
+    def forward_cc(
+        self,
+        x: torch.Tensor,
+        adj: torch.Tensor,
+        rank2: torch.Tensor,
+        flags: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """Forward pass of the BaselineNetwork. Returns the score with respect to the adjacency matrix A.
+
+        Args:
+            x (torch.Tensor): node feature matrix
+            adj (torch.Tensor): adjacency matrix
+            rank2 (torch.Tensor): rank2 incidence matrix
+            flags (Optional[torch.Tensor], optional): optional flags for the score. Defaults to None.
+
+        Returns:
+            torch.Tensor: score with respect to the adjacency matrix A
+        """
+        return self.forward_graph(x, adj, flags)
+
 
 class ScoreNetworkA(BaselineNetwork):
     """ScoreNetworkA to calculate the score with respect to the adjacency matrix A."""
@@ -248,6 +292,8 @@ class ScoreNetworkA(BaselineNetwork):
         adim: int,
         num_heads: int = 4,
         conv: str = "GCN",
+        use_bn: bool = False,
+        is_cc: bool = False,
     ) -> None:
         """Initialize the ScoreNetworkA model.
 
@@ -265,6 +311,8 @@ class ScoreNetworkA(BaselineNetwork):
             adim (int): attention dimension (except for the first layer).
             num_heads (int, optional): number of heads for the Attention. Defaults to 4.
             conv (str, optional): type of convolutional layer, choose from [GCN, MLP]. Defaults to "GCN".
+            use_bn (bool, optional): whether to use batch normalization in the MLP. Defaults to False.
+            is_cc (bool, optional): True if we generate combinatorial complexes. Defaults to False.
         """
 
         super(ScoreNetworkA, self).__init__(
@@ -279,12 +327,16 @@ class ScoreNetworkA(BaselineNetwork):
             adim,
             num_heads=4,
             conv="GCN",
+            use_bn=use_bn,
+            is_cc=is_cc,
         )
 
         # Initialize the parameters
         self.adim = adim
         self.num_heads = num_heads
         self.conv = conv
+        self.use_bn = use_bn
+        self.is_cc = is_cc
 
         # Initialize the layers
         self.layers = torch.nn.ModuleList()
@@ -300,6 +352,7 @@ class ScoreNetworkA(BaselineNetwork):
                         self.c_hid,
                         self.num_heads,
                         self.conv,
+                        self.use_bn,
                     )
                 )
             elif k == (self.num_layers - 1):  # last layer
@@ -313,6 +366,7 @@ class ScoreNetworkA(BaselineNetwork):
                         self.c_final,
                         self.num_heads,
                         self.conv,
+                        self.use_bn,
                     )
                 )
             else:  # intermediate layers
@@ -326,6 +380,7 @@ class ScoreNetworkA(BaselineNetwork):
                         self.c_hid,
                         self.num_heads,
                         self.conv,
+                        self.use_bn,
                     )
                 )
 
@@ -336,7 +391,7 @@ class ScoreNetworkA(BaselineNetwork):
             input_dim=self.fdim,
             hidden_dim=2 * self.fdim,
             output_dim=1,
-            use_bn=False,
+            use_bn=self.use_bn,
             activate_func=F.elu,
         )
         # Initialize the mask
@@ -345,7 +400,13 @@ class ScoreNetworkA(BaselineNetwork):
         )
         self.mask.unsqueeze_(0)
 
-    def forward(
+        # Pick the right forward function
+        if not (self.is_cc):
+            self.forward = self.forward_graph
+        else:
+            self.forward = self.forward_cc
+
+    def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor] = None
     ) -> torch.Tensor:
         """Forward pass of the ScoreNetworkA. Returns the score with respect to the adjacency matrix A.
@@ -382,3 +443,23 @@ class ScoreNetworkA(BaselineNetwork):
         score = mask_adjs(score, flags)
 
         return score
+
+    def forward_cc(
+        self,
+        x: torch.Tensor,
+        adj: torch.Tensor,
+        rank2: torch.Tensor,
+        flags: Optional[torch.Tensor] = None,
+    ) -> torch.Tensor:
+        """Forward pass of the ScoreNetworkA. Returns the score with respect to the adjacency matrix A.
+
+        Args:
+            x (torch.Tensor): node feature matrix
+            adj (torch.Tensor): adjacency matrix
+            rank2 (torch.Tensor): rank2 incidence matrix
+            flags (Optional[torch.Tensor], optional): optional flags for the score. Defaults to None.
+
+        Returns:
+            torch.Tensor: score with respect to the adjacency matrix A
+        """
+        return self.forward_graph(x, adj, flags)

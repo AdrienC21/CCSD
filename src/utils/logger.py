@@ -136,7 +136,6 @@ def model_log(logger: Logger, config: EasyDict, is_cc: bool = False) -> None:
         is_cc (bool, optional): True if we are modelling with combinatorial complexes. Defaults to False.
     """
     config_m = config.model
-    # TODO: ADD LOGGING FOR CC
     model_log = (
         f"({config_m.x})+({config_m.adj}={config_m.conv},{config_m.num_heads})   : "
         f"depth={config_m.depth} adim={config_m.adim} nhid={config_m.nhid} layers={config_m.num_layers} "

@@ -28,6 +28,34 @@ warnings.filterwarnings(
 options = {"node_size": 2, "edge_color": "black", "linewidths": 1, "width": 0.5}
 
 
+def save_fig(
+    save_dir: Optional[str] = None, title: str = "fig", dpi: int = 300
+) -> None:
+    """Function to adjust the figure and save it.
+
+    Args:
+        save_dir (Optional[str], optional): directory to save the figures. Defaults to None.
+        title (str, optional): name of the file. Defaults to "fig".
+        dpi (int, optional): DPI (Dots per Inch). Defaults to 300.
+    """
+    plt.tight_layout()
+    plt.subplots_adjust(top=0.85)
+    if save_dir is None:
+        plt.show()
+    else:
+        fig_dir = os.path.join(*["samples", "fig", save_dir])
+        if not os.path.exists(fig_dir):
+            os.makedirs(fig_dir)
+        plt.savefig(
+            os.path.join(fig_dir, title),
+            bbox_inches="tight",
+            dpi=dpi,
+            transparent=False,
+        )
+        plt.close()
+    return
+
+
 def plot_graphs_list(
     graphs: List[Union[nx.Graph, Dict[str, Any]]],
     title: str = "title",
@@ -69,34 +97,6 @@ def plot_graphs_list(
     figure.suptitle(title)
 
     save_fig(save_dir=save_dir, title=title)
-
-
-def save_fig(
-    save_dir: Optional[str] = None, title: str = "fig", dpi: int = 300
-) -> None:
-    """Function to adjust the figure and save it.
-
-    Args:
-        save_dir (Optional[str], optional): directory to save the figures. Defaults to None.
-        title (str, optional): name of the file. Defaults to "fig".
-        dpi (int, optional): DPI (Dots per Inch). Defaults to 300.
-    """
-    plt.tight_layout()
-    plt.subplots_adjust(top=0.85)
-    if save_dir is None:
-        plt.show()
-    else:
-        fig_dir = os.path.join(*["samples", "fig", save_dir])
-        if not os.path.exists(fig_dir):
-            os.makedirs(fig_dir)
-        plt.savefig(
-            os.path.join(fig_dir, title),
-            bbox_inches="tight",
-            dpi=dpi,
-            transparent=False,
-        )
-        plt.close()
-    return
 
 
 def save_graph_list(
@@ -157,9 +157,10 @@ def plot_cc_list(
         v = len(cc.skeleton(0))  # number of vertices (rank 0)
         e = len(cc.skeleton(1))  # number of edges (rank 1)
         f = len(cc.skeleton(2))  # number of faces (rank 2)
-        scenes = {
-            i: (tuple([str(n) for n in edge])) for i, edge in enumerate(cc.skeleton(1))
-        }
+        # Isolated nodes removed from the plot automatically as we use the edges/faces
+        # Same for self loops as they can't be represented in a CC
+        edges = cc.skeleton(1)
+        scenes = {i: (tuple([str(n) for n in edge])) for i, edge in enumerate(edges)}
         scenes.update(
             {
                 i + e: (tuple([str(n) for n in face]))
@@ -167,8 +168,6 @@ def plot_cc_list(
             }
         )
         H = hnx.Hypergraph(scenes)
-
-        # TODO: remove self loops? and isolated nodes!
 
         ax = plt.subplot(img_c, img_c, i + 1)
         hnx.drawing.draw(H, with_edge_labels=False, with_node_labels=False, ax=ax)
@@ -238,3 +237,24 @@ def plot_molecule_list(
     figure.suptitle(title)
 
     save_fig(save_dir=save_dir, title=title)
+
+
+def save_molecule_list(
+    log_folder_name: str, exp_name: str, gen_mol_list: List[Chem.Mol]
+) -> str:
+    """Save the generated molecules in a pickle file.
+
+    Args:
+        log_folder_name (str): name of the folder where the pickle file will be saved
+        exp_name (str): name of the experiment
+        gen_mol_list (List[Chem.Mol]): list of generated molecules
+
+    Returns:
+        str: path to the pickle file
+    """
+    if not (os.path.isdir("./samples/pkl/{}".format(log_folder_name))):
+        os.makedirs(os.path.join("./samples/pkl/{}".format(log_folder_name)))
+    with open("./samples/pkl/{}/{}.pkl".format(log_folder_name, exp_name), "wb") as f:
+        pickle.dump(obj=gen_mol_list, file=f, protocol=pickle.HIGHEST_PROTOCOL)
+    save_dir = "./samples/pkl/{}/{}.pkl".format(log_folder_name, exp_name)
+    return save_dir

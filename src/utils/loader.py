@@ -470,7 +470,6 @@ def load_model_params(
     if not (is_cc):
         return params_x, params_adj
     params_rank2 = {
-        # TODO: add parameters based on ScoreNetworkF !
     }
     return params_x, params_adj, params_rank2
 
@@ -557,8 +556,8 @@ def load_eval_settings(
     """Load the evaluation settings from the configuration
 
     Args:
-        data (Any): TODO
-        orbit_on (bool, optional): TODO. Defaults to True.
+        data (Any): dataset to use. UNUSED HERE.
+        orbit_on (bool, optional): whether to use orbit distance. UNUSED HERE. Defaults to True.
 
     Returns:
         Tuple[List[str], Dict[str, Callable[[np.ndarray, np.ndarray], float]]]: methods and kernels, used for generic graph generation

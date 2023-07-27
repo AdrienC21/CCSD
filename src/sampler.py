@@ -32,8 +32,15 @@ from src.utils.loader import (
     load_sampling_fn,
     load_eval_settings,
 )
-from src.utils.graph_utils import adjs_to_graphs, init_flags, quantize, quantize_mol
-from src.utils.plot import save_graph_list, plot_graphs_list, plot_cc_list, save_cc_list
+from src.utils.graph_utils import adjs_to_graphs, quantize, quantize_mol
+from src.utils.plot import (
+    plot_graphs_list,
+    save_graph_list,
+    plot_cc_list,
+    save_cc_list,
+    plot_molecule_list,
+    save_molecule_list,
+)
 from src.evaluation.stats import eval_graph_list
 from src.utils.mol_utils import (
     gen_mol,
@@ -42,7 +49,12 @@ from src.utils.mol_utils import (
     canonicalize_smiles,
     mols_to_nx,
 )
-from src.utils.cc_utils import cc_from_incidence, convert_CC_to_graphs
+from src.utils.cc_utils import (
+    cc_from_incidence,
+    convert_CC_to_graphs,
+    mols_to_cc,
+    init_flags,
+)
 from src.utils.mol_utils import is_molecular_config
 
 
@@ -139,13 +151,15 @@ class Sampler(object):
         logger.log(f"MMD_full {result_dict}", verbose=False)
         logger.log(100 * "=")
 
-        # -------- Save samples --------
-        save_dir = save_graph_list(self.log_folder_name, self.log_name, gen_graph_list)
+        # -------- Save samples & Plot --------
+        save_dir = save_graph_list(
+            self.log_folder_name, self.log_name + "_graphs", gen_graph_list
+        )
         with open(save_dir, "rb") as f:
             sample_graph_list = pickle.load(f)
         plot_graphs_list(
             graphs=sample_graph_list,
-            title=f"{self.config.ckpt}",
+            title=f"{self.config.ckpt}_graphs",
             max_num=16,
             save_dir=self.log_folder_name,
         )
@@ -271,14 +285,16 @@ class Sampler_CC(object):
         logger.log(f"MMD_full {result_dict}", verbose=False)
         logger.log(100 * "=")
 
-        # -------- Save samples --------
+        # -------- Save samples & Plot --------
         # ccs
-        save_dir = save_cc_list(self.log_folder_name, self.log_name, gen_CC_list)
+        save_dir = save_cc_list(
+            self.log_folder_name, self.log_name + "_ccs", gen_CC_list
+        )
         with open(save_dir, "rb") as f:
             sample_CC_list = pickle.load(f)
         plot_cc_list(
             ccs=sample_CC_list,
-            title=f"{self.config.ckpt}",
+            title=f"{self.config.ckpt}_ccs",
             max_num=16,
             save_dir=self.log_folder_name,
         )
@@ -381,6 +397,9 @@ class Sampler_mol(object):
         gen_smiles = mols_to_smiles(gen_mols)
         gen_smiles = [smi for smi in gen_smiles if len(smi)]
 
+        # Convert generated molecules into graphs
+        gen_graph_list = mols_to_nx(gen_mols)
+
         # -------- Save generated molecules --------
         with open(os.path.join(self.log_dir, f"{self.log_name}.txt"), "a") as f:
             for smiles in gen_smiles:
@@ -396,7 +415,7 @@ class Sampler_mol(object):
             train=train_smiles,
         )
         scores_nspdk = eval_graph_list(
-            self.test_graph_list, mols_to_nx(gen_mols), methods=["nspdk"]
+            self.test_graph_list, gen_graph_list, methods=["nspdk"]
         )["nspdk"]
 
         logger.log(f"Number of molecules: {num_mols}")
@@ -405,6 +424,32 @@ class Sampler_mol(object):
             logger.log(f"{metric}: {scores[metric]}")
         logger.log(f"NSPDK MMD: {scores_nspdk}")
         logger.log(100 * "=")
+
+        # -------- Save samples & Plot --------
+        # graphs
+        save_dir = save_graph_list(
+            self.log_folder_name, self.log_name + "_mol_graphs", gen_graph_list
+        )
+        with open(save_dir, "rb") as f:
+            sample_graph_list = pickle.load(f)
+        plot_graphs_list(
+            graphs=sample_graph_list,
+            title=f"{self.config.ckpt}_mol_graphs",
+            max_num=16,
+            save_dir=self.log_folder_name,
+        )
+        # molecules
+        save_dir = save_molecule_list(
+            self.log_folder_name, self.log_name + "_mols", gen_mols
+        )
+        with open(save_dir, "rb") as f:
+            sample_mol_list = pickle.load(f)
+        plot_molecule_list(
+            mols=sample_mol_list,
+            title=f"{self.config.ckpt}_mols",
+            max_num=16,
+            save_dir=self.log_folder_name,
+        )
 
 
 class Sampler_mol_CC(object):
@@ -479,9 +524,9 @@ class Sampler_mol_CC(object):
         with open(f"data/{self.configt.data.data.lower()}_test_nx.pkl", "rb") as f:
             self.test_graph_list = pickle.load(f)  # for NSPDK MMD
 
-        self.init_flags = init_flags(self.train_CC_list, self.configt, 10000).to(
-            self.device0
-        )
+        self.init_flags = init_flags(
+            self.train_CC_list, self.configt, 10000, is_cc=True
+        ).to(self.device0)
         x, adj, rank2, _ = self.sampling_fn(
             self.model_x, self.model_adj, self.model_rank2, self.init_flags
         )
@@ -506,6 +551,10 @@ class Sampler_mol_CC(object):
         gen_smiles = mols_to_smiles(gen_mols)
         gen_smiles = [smi for smi in gen_smiles if len(smi)]
 
+        # Convert generated molecules into graphs and combinatorial complexes
+        gen_graph_list = mols_to_nx(gen_mols)
+        gen_CC_list = mols_to_cc(gen_mols)
+
         # -------- Save generated molecules --------
         with open(os.path.join(self.log_dir, f"{self.log_name}.txt"), "a") as f:
             for smiles in gen_smiles:
@@ -521,7 +570,7 @@ class Sampler_mol_CC(object):
             train=train_smiles,
         )
         scores_nspdk = eval_graph_list(
-            self.test_graph_list, mols_to_nx(gen_mols), methods=["nspdk"]
+            self.test_graph_list, gen_graph_list, methods=["nspdk"]
         )["nspdk"]
 
         logger.log(f"Number of molecules: {num_mols}")
@@ -530,6 +579,44 @@ class Sampler_mol_CC(object):
             logger.log(f"{metric}: {scores[metric]}")
         logger.log(f"NSPDK MMD: {scores_nspdk}")
         logger.log(100 * "=")
+
+        # -------- Save samples & Plot --------
+        # ccs
+        save_dir = save_cc_list(
+            self.log_folder_name, self.log_name + "_mol_ccs", gen_CC_list
+        )
+        with open(save_dir, "rb") as f:
+            sample_CC_list = pickle.load(f)
+        plot_cc_list(
+            ccs=sample_CC_list,
+            title=f"{self.config.ckpt}_mol_ccs",
+            max_num=16,
+            save_dir=self.log_folder_name,
+        )
+        # graphs
+        save_dir = save_graph_list(
+            self.log_folder_name, self.log_name + "_mol_graphs", gen_graph_list
+        )
+        with open(save_dir, "rb") as f:
+            sample_graph_list = pickle.load(f)
+        plot_graphs_list(
+            graphs=sample_graph_list,
+            title=f"{self.config.ckpt}_mol_graphs",
+            max_num=16,
+            save_dir=self.log_folder_name,
+        )
+        # molecules
+        save_dir = save_molecule_list(
+            self.log_folder_name, self.log_name + "_mols", gen_mols
+        )
+        with open(save_dir, "rb") as f:
+            sample_mol_list = pickle.load(f)
+        plot_molecule_list(
+            mols=sample_mol_list,
+            title=f"{self.config.ckpt}_mols",
+            max_num=16,
+            save_dir=self.log_folder_name,
+        )
 
 
 def get_sampler_from_config(

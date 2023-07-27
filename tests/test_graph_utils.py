@@ -18,7 +18,6 @@ from src.utils.graph_utils import (
     mask_adjs,
     node_flags,
     init_features,
-    init_flags,
     gen_noise,
     quantize,
     quantize_mol,
@@ -218,19 +217,6 @@ def test_init_features_not_implemented() -> None:
     nfeat = 10
     with pytest.raises(NotImplementedError):
         init_features(init_method, adjs, nfeat)
-
-
-def test_init_flags() -> None:
-    """Test the init_flags function (return node flags for each graphs of the batch)."""
-    num_graphs = 10
-    num_nodes = 8
-    num_edges = 5
-    batch_size = 3
-    config = EasyDict({"data": {"batch_size": batch_size, "max_node_num": num_nodes}})
-    graph_list = create_sample_graphs(num_graphs, num_nodes, num_edges)
-    flags = init_flags(graph_list, config, batch_size=batch_size)
-    assert flags.shape == (batch_size, num_nodes)
-    assert torch.all((flags == 0) | (flags == 1)).item()
 
 
 def test_gen_noise_sym() -> None:

@@ -13,9 +13,10 @@ import torch
 import numpy as np
 import networkx as nx
 from rdkit import Chem
+from easydict import EasyDict
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
-from src.utils.graph_utils import pad_adjs
+from src.utils.graph_utils import pad_adjs, node_flags, graphs_to_tensor
 from src.utils.mol_utils import bond_decoder, SYMBOL_TO_AN, AN_TO_SYMBOL
 
 
@@ -580,6 +581,9 @@ def pad_rank2(
     Returns:
         np.ndarray: Padded adjacency matrix
     """
+    if not (ori_rank2.size):
+        rows, cols = get_rank2_dim(node_number, d_min, d_max)
+        return np.zeros((rows, cols), dtype=np.float32)
     r = ori_rank2
     ori_len = get_N_from_rank2(r)
     if ori_len == node_number:  # same shape
@@ -756,3 +760,84 @@ def convert_CC_to_graphs(
                 graph.add_edge(v, u, **cc.cells.hyperedge_dict[1][edge])
         graphs.append(graph)
     return graphs
+
+
+def convert_graphs_to_CCs(
+    graphs: List[nx.Graph], is_molecule: bool = False
+) -> List[CombinatorialComplex]:
+    """Convert a list of graphs to a list of combinatorial complexes (of dimension 1).
+
+    Args:
+        graphs (List[nx.Graph]): list of graphs
+        is_molecule (bool, optional): whether the graphs are molecules. Defaults to False.
+
+    Returns:
+        List[CombinatorialComplex]: list of combinatorial complexes
+    """
+    ccs = []
+    for graph in graphs:
+        CC = CombinatorialComplex()
+        for node in graph.nodes:
+            attr = graph.nodes[node]
+            if is_molecule and isinstance(attr["label"], str):
+                attr["symbol"] = attr["label"]
+                del attr["label"]
+                attr["symbol"] = SYMBOL_TO_AN[attr["symbol"]]
+            CC.add_cell((node,), rank=0, **attr)
+        for edge in graph.edges:
+            attr = graph.edges[edge]
+            if is_molecule:
+                attr["bond_type"] = float(attr["label"])
+                del attr["label"]
+            CC.add_cell(edge, rank=1, **attr)
+        ccs.append(CC)
+    return ccs
+
+
+def init_flags(
+    obj_list: Union[List[nx.Graph], List[CombinatorialComplex]],
+    config: EasyDict,
+    batch_size: Optional[int] = None,
+    is_cc: bool = False,
+) -> torch.Tensor:
+    """Sample initial flags tensor from the training graph set
+
+    Args:
+        graph_list (List[nx.Graph]): list of graphs
+        config (EasyDict): configuration
+        batch_size (Optional[int], optional): batch size. Defaults to None.
+        is_cc (bool, optional): is the objects combinatorial complexes?. Defaults to False.
+
+    Returns:
+        torch.Tensor: flag tensors
+    """
+
+    if batch_size is None:  # get a default one from the config
+        batch_size = config.data.batch_size
+    max_node_num = config.data.max_node_num
+    d_min = config.data.d_min
+    d_max = config.data.d_max
+    if not (is_cc):
+        graph_tensor = graphs_to_tensor(obj_list, max_node_num)
+        idx = np.random.randint(0, len(obj_list), batch_size)
+        flags = node_flags(graph_tensor[idx])
+    else:
+        cc_tensor = ccs_to_tensors(obj_list, max_node_num, d_min, d_max)
+        idx = np.random.randint(0, len(obj_list), batch_size)
+        flags = node_flags(cc_tensor[0][idx])
+    return flags
+
+
+def hodge_laplacian(rank2: torch.Tensor) -> torch.Tensor:
+    """Compute the Hodge Laplacian of a batch of rank2 incidence matrices.
+    H = F @ F.T where F is the rank-2 incidence matrix of a combinatorial complex.
+
+    Args:
+        rank2 (torch.Tensor): batch of rank2 incidence matrices.
+            B x (NC2) x K or B x C x (NC2) x K
+
+    Returns:
+        torch.Tensor: Hodge Laplacian
+            B x (NC2) x (NC2) or B x C x (NC2) x (NC2)
+    """
+    return rank2 @ rank2.transpose(-1, -2)

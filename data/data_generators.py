@@ -23,9 +23,6 @@ from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from src.parsers.parser_generator import ParserGenerator
 
 
-# TODO: MODIFY THIS FILE TO GENERATE YOUR COMBINATORIAL COMPLEXES DATASETS TOO WITH CC_UTILS FUNCTIONS
-
-
 def n_community(
     num_communities: int, max_nodes: int, p_inter: float = 0.05
 ) -> nx.Graph:

@@ -6,7 +6,7 @@ The correctors consist of leveraging score-based MCMC methods.
 """
 
 import abc
-from typing import Callable, Optional, Tuple, Sequence
+from typing import Callable, Optional, Tuple, Sequence, Union
 
 import torch
 import numpy as np
@@ -24,39 +24,60 @@ class Predictor(abc.ABC):
     def __init__(
         self,
         sde: SDE,
-        score_fn: Callable[
-            [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
-            torch.Tensor,
+        score_fn: Union[
+            Callable[
+                [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
+                torch.Tensor,
+            ],
+            Callable[
+                [
+                    torch.Tensor,
+                    torch.Tensor,
+                    torch.Tensor,
+                    Optional[torch.Tensor],
+                    torch.Tensor,
+                ],
+                torch.Tensor,
+            ],
         ],
         probability_flow: bool = False,
+        is_cc: bool = False,
+        d_min: Optional[int] = None,
+        d_max: Optional[int] = None,
     ) -> None:
         """Initialize the Predictor.
 
         Args:
             sde (SDE): the SDE to solve
-            score_fn (Callable[ [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor, ]): the score function
+            score_fn (Union[Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor], Callable[[torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor]]): the score function
             probability_flow (bool, optional): if True, use probability flow sampling. Defaults to False.
+            is_cc (bool, optional): if True, get predictor for combinatorial complexes. Defaults to False.
+            d_min (Optional[int], optional): minimum size of rank-2 cells (if combinatorial complexes). Defaults to None.
+            d_max (Optional[int], optional): maximum size of rank-2 cells (if combinatorial complexes). Defaults to None.
         """
         super().__init__()
         # Initialize the Predictor
         self.sde = sde
         # Compute the reverse SDE/ODE
-        self.rsde = sde.reverse(score_fn, probability_flow)
+        self.rsde = sde.reverse(score_fn, probability_flow, is_cc)
         self.score_fn = score_fn
+        self.is_cc = is_cc
+        self.d_min = d_min
+        self.d_max = d_max
 
     @abc.abstractmethod
     def update_fn(
         self, x: torch.Tensor, t: torch.Tensor, flags: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-        """Update the latent and the adjacencies.
+        """Update function for the predictor class
 
         Args:
-            x (torch.Tensor): _description_
-            t (torch.Tensor): _description_
-            flags (torch.Tensor): _description_
+            x (torch.Tensor): tensor
+            t (torch.Tensor): timestep
+            flags (torch.Tensor): flags
 
         Returns:
-            Tuple[torch.Tensor, torch.Tensor]: _description_
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
         """
         pass
 
@@ -67,22 +88,40 @@ class Corrector(abc.ABC):
     def __init__(
         self,
         sde: SDE,
-        score_fn: Callable[
-            [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
-            torch.Tensor,
+        score_fn: Union[
+            Callable[
+                [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
+                torch.Tensor,
+            ],
+            Callable[
+                [
+                    torch.Tensor,
+                    torch.Tensor,
+                    torch.Tensor,
+                    Optional[torch.Tensor],
+                    torch.Tensor,
+                ],
+                torch.Tensor,
+            ],
         ],
         snr: float,
         scale_eps: float,
         n_steps: int,
+        is_cc: bool = False,
+        d_min: Optional[int] = None,
+        d_max: Optional[int] = None,
     ) -> None:
         """Initialize the Corrector.
 
         Args:
             sde (SDE): the SDE to solve
-            score_fn (Callable[ [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor, ]): the score function
+            score_fn (Union[Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor], Callable[[torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor]]): the score function
             snr (float): signal-to-noise ratio
             scale_eps (float): scale of the noise
             n_steps (int): number of steps
+            is_cc (bool, optional): if True, get corrector for combinatorial complexes. Defaults to False.
+            d_min (Optional[int], optional): minimum size of rank-2 cells (if combinatorial complexes). Defaults to None.
+            d_max (Optional[int], optional): maximum size of rank-2 cells (if combinatorial complexes). Defaults to None.
         """
         super().__init__()
         # Initialize the Corrector
@@ -91,11 +130,24 @@ class Corrector(abc.ABC):
         self.snr = snr
         self.scale_eps = scale_eps
         self.n_steps = n_steps
+        self.is_cc = is_cc
+        self.d_min = d_min
+        self.d_max = d_max
 
     @abc.abstractmethod
     def update_fn(
         self, x: torch.Tensor, t: torch.Tensor, flags: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the corrector class.
+
+        Args:
+            x (torch.Tensor): tensor
+            t (torch.Tensor): timestep
+            flags (torch.Tensor): flags
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
         pass
 
 
@@ -106,26 +158,63 @@ class EulerMaruyamaPredictor(Predictor):
         self,
         obj: str,
         sde: SDE,
-        score_fn: Callable[
-            [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
-            torch.Tensor,
+        score_fn: Union[
+            Callable[
+                [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
+                torch.Tensor,
+            ],
+            Callable[
+                [
+                    torch.Tensor,
+                    torch.Tensor,
+                    torch.Tensor,
+                    Optional[torch.Tensor],
+                    torch.Tensor,
+                ],
+                torch.Tensor,
+            ],
         ],
         probability_flow: bool = False,
+        is_cc: bool = False,
+        d_min: Optional[int] = None,
+        d_max: Optional[int] = None,
     ) -> None:
         """Initialize the Euler-Maruyama predictor.
 
         Args:
-            obj (str): object to update, either "x" or "adj"
+            obj (str): object to update, either "x", "adj", or "rank2"
             sde (SDE): the SDE to solve
-            score_fn (Callable[ [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor, ]): the score function
+            score_fn (Union[Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor], Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor]]): the score function
             probability_flow (bool, optional): if True, use probability flow sampling. Defaults to False.
+            is_cc (bool, optional): if True, get Euler-Maruyama predictor for combinatorial complexes. Defaults to False.
+            d_min (Optional[int], optional): minimum size of rank-2 cells (if combinatorial complexes). Defaults to None.
+            d_max (Optional[int], optional): maximum size of rank-2 cells (if combinatorial complexes). Defaults to None.
         """
-        super().__init__(sde, score_fn, probability_flow)
+        super().__init__(sde, score_fn, probability_flow, is_cc, d_min, d_max)
         self.obj = obj
+        # Pick the right update function
+        if self.is_cc:
+            self.update_fn = self.update_fn_graph
+        else:
+            self.update_fn = self.update_fn_cc
 
-    def update_fn(
+    def update_fn_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: torch.Tensor, t: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the Euler-Maruyama predictor for graphs.
+
+        Args:
+            x (torch.Tensor): node features
+            adj (torch.Tensor): adjacency matrix
+            flags (torch.Tensor): flags
+            t (torch.Tensor): timestep
+
+        Raises:
+            NotImplementedError: raise an error if the object to update is not recognized.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
         dt = -1.0 / self.rsde.N
 
         # Reverse SDE for the node features
@@ -151,6 +240,65 @@ class EulerMaruyamaPredictor(Predictor):
                 f"Object {self.obj} not yet supported. Select from [x, adj]."
             )
 
+    def update_fn_cc(
+        self,
+        x: torch.Tensor,
+        adj: torch.Tensor,
+        rank2: torch.Tensor,
+        flags: torch.Tensor,
+        t: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the Euler-Maruyama predictor for combinatorial complexes.
+
+        Args:
+            x (torch.Tensor): node features
+            adj (torch.Tensor): adjacency matrix
+            rank2 (torch.Tensor): rank-2 incidence matrix
+            flags (torch.Tensor): flags
+            t (torch.Tensor): timestep
+
+        Raises:
+            NotImplementedError: raise an error if the object to update is not recognized.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
+        dt = -1.0 / self.rsde.N
+
+        # Reverse SDE for the node features
+        if self.obj == "x":
+            z = gen_noise(x, flags, sym=False)
+            drift, diffusion = self.rsde.sde(x, adj, rank2, flags, t, is_adj=False)
+            x_mean = x + drift * dt
+            x = x_mean + diffusion[:, None, None] * np.sqrt(-dt) * z
+            return x, x_mean
+
+        # Reverse SDE for the adjacency matrix
+        elif self.obj == "adj":
+            z = gen_noise(adj, flags, sym=True)
+            drift, diffusion = self.rsde.sde(x, adj, rank2, flags, t, is_adj=True)
+            adj_mean = adj + drift * dt
+            adj = adj_mean + diffusion[:, None, None] * np.sqrt(-dt) * z
+
+            return adj, adj_mean
+
+        # Reverse SDE for the rank2 incidence matrix
+        elif self.obj == "rank2":
+            z = gen_noise_rank2(rank2, adj.shape[1], self.d_min, self.d_max, flags)
+            drift, diffusion = self.rsde.sde(
+                x, adj, rank2, flags, t, is_adj=False, is_rank2=True
+            )
+            rank2_mean = rank2 + drift * dt
+            rank2 = rank2_mean + diffusion[:, None, None] * np.sqrt(-dt) * z
+
+            return rank2, rank2_mean
+
+        # Raise error if obj is not recognized
+        else:
+            raise NotImplementedError(
+                f"Object {self.obj} not yet supported. Select from [x, adj, rank2]."
+            )
+
 
 class ReverseDiffusionPredictor(Predictor):
     """Reverse diffusion predictor."""
@@ -159,26 +307,57 @@ class ReverseDiffusionPredictor(Predictor):
         self,
         obj: str,
         sde: SDE,
-        score_fn: Callable[
-            [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
-            torch.Tensor,
+        score_fn: Union[
+            Callable[
+                [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
+                torch.Tensor,
+            ],
+            Callable[
+                [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
+                torch.Tensor,
+            ],
         ],
         probability_flow: bool = False,
+        is_cc: bool = False,
+        d_min: Optional[int] = None,
+        d_max: Optional[int] = None,
     ):
         """Initialize the Reverse Diffusion predictor.
 
         Args:
-            obj (str): object to update, either "x" or "adj"
+            obj (str): object to update, either "x", "adj" or "rank2"
             sde (SDE): the SDE to solve
-            score_fn (Callable[ [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor, ]): the score function
+            score_fn (Union[Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor], Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor]]): the score function
             probability_flow (bool, optional): if True, use probability flow sampling. Defaults to False.
+            is_cc (bool, optional): if True, get Reverse Diffusion predictor for combinatorial complexes. Defaults to False.
+            d_min (Optional[int], optional): minimum size of rank-2 cells (if combinatorial complexes). Defaults to None.
+            d_max (Optional[int], optional): maximum size of rank-2 cells (if combinatorial complexes). Defaults to None.
         """
-        super().__init__(sde, score_fn, probability_flow)
+        super().__init__(sde, score_fn, probability_flow, is_cc, d_min, d_max)
         self.obj = obj
+        # Pick the right update function
+        if self.is_cc:
+            self.update_fn = self.update_fn_graph
+        else:
+            self.update_fn = self.update_fn_cc
 
-    def update_fn(
+    def update_fn_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: torch.Tensor, t: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the Reverse Diffusion predictor for graphs.
+
+        Args:
+            x (torch.Tensor): node features
+            adj (torch.Tensor): adjacency matrix
+            flags (torch.Tensor): flags
+            t (torch.Tensor): timestep
+
+        Raises:
+            NotImplementedError: raise an error if the object to update is not recognized.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
         # Reverse SDE for the node features
         if self.obj == "x":
             f, G = self.rsde.discretize(x, adj, flags, t, is_adj=False)
@@ -201,6 +380,59 @@ class ReverseDiffusionPredictor(Predictor):
                 f"Object {self.obj} not yet supported. Select from [x, adj]."
             )
 
+    def update_fn_cc(
+        self,
+        x: torch.Tensor,
+        adj: torch.Tensor,
+        rank2: torch.Tensor,
+        flags: torch.Tensor,
+        t: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the Reverse Diffusion predictor for combinatorial complexes.
+
+        Args:
+            x (torch.Tensor): node features
+            adj (torch.Tensor): adjacency matrix
+            rank2 (torch.Tensor): rank-2 incidence matrix
+            flags (torch.Tensor): flags
+            t (torch.Tensor): timestep
+
+        Raises:
+            NotImplementedError: raise an error if the object to update is not recognized.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
+        # Reverse SDE for the node features
+        if self.obj == "x":
+            f, G = self.rsde.discretize(x, adj, rank2, flags, t, is_adj=False)
+            z = gen_noise(x, flags, sym=False)
+            x_mean = x - f
+            x = x_mean + G[:, None, None] * z
+            return x, x_mean
+
+        # Reverse SDE for the adjacency matrix
+        elif self.obj == "adj":
+            f, G = self.rsde.discretize(x, adj, rank2, flags, t, is_adj=True)
+            z = gen_noise(adj, flags)
+            adj_mean = adj - f
+            adj = adj_mean + G[:, None, None] * z
+            return adj, adj_mean
+
+        # Reverse SDE for the rank2 incidence matrix
+        elif self.obj == "rank2":
+            f, G = self.rsde.discretize(x, adj, rank2, flags, t)
+            z = gen_noise_rank2(rank2, adj.shape[1], self.d_min, self.d_max, flags)
+            rank2_mean = rank2 - f
+            rank2 = rank2_mean + G[:, None, None] * z
+            return rank2, rank2_mean
+
+        # Raise error if obj is not recognized
+        else:
+            raise NotImplementedError(
+                f"Object {self.obj} not yet supported. Select from [x, adj, rank2]."
+            )
+
 
 class NoneCorrector(Corrector):
     """An empty corrector that does nothing."""
@@ -209,30 +441,68 @@ class NoneCorrector(Corrector):
         self,
         obj: str,
         sde: SDE,
-        score_fn: Callable[
-            [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
-            torch.Tensor,
+        score_fn: Union[
+            Callable[
+                [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
+                torch.Tensor,
+            ],
+            Callable[
+                [
+                    torch.Tensor,
+                    torch.Tensor,
+                    torch.Tensor,
+                    Optional[torch.Tensor],
+                    torch.Tensor,
+                ],
+                torch.Tensor,
+            ],
         ],
         snr: float,
         scale_eps: float,
         n_steps: int,
+        is_cc: bool = False,
+        d_min: Optional[int] = None,
+        d_max: Optional[int] = None,
     ):
         """Initialize the NoneCorrector (an empty corrector that does nothing).
 
         Args:
             obj (str): object to update, either "x" or "adj"
             sde (SDE): the SDE to solve. UNUSED HERE
-            score_fn (Callable[ [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor, ]): the score function. UNUSED HERE
+            score_fn (Union[Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor], Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor]]): the score function. UNUSED HERE
             snr (float): signal-to-noise ratio. UNUSED HERE
             scale_eps (float): scale of the noise. UNUSED HERE
             n_steps (int): number of steps to take. UNUSED HERE
+            is_cc (bool, optional): if True, get NoneCorrector for combinatorial complexes. Defaults to False.
+            d_min (Optional[int], optional): minimum size of rank-2 cells (if combinatorial complexes). Defaults to None.
+            d_max (Optional[int], optional): maximum size of rank-2 cells (if combinatorial complexes). Defaults to None.
         """
+        super().__init__(sde, score_fn, snr, scale_eps, n_steps, is_cc, d_min, d_max)
         self.obj = obj
+        # Pick the right update function
+        if self.is_cc:
+            self.update_fn = self.update_fn_graph
+        else:
+            self.update_fn = self.update_fn_cc
         pass
 
-    def update_fn(
+    def update_fn_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: torch.Tensor, t: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the NoneCorrector for graphs.
+
+        Args:
+            x (torch.Tensor): node features
+            adj (torch.Tensor): adjacency matrix
+            flags (torch.Tensor): flags
+            t (torch.Tensor): timestep
+
+        Raises:
+            NotImplementedError: raise an error if the object to update is not recognized.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
         # Reverse SDE for the node features
         if self.obj == "x":
             return x, x
@@ -247,6 +517,47 @@ class NoneCorrector(Corrector):
                 f"Object {self.obj} not yet supported. Select from [x, adj]."
             )
 
+    def update_fn_cc(
+        self,
+        x: torch.Tensor,
+        adj: torch.Tensor,
+        rank2: torch.Tensor,
+        flags: torch.Tensor,
+        t: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the NoneCorrector for combinatorial complexes.
+
+        Args:
+            x (torch.Tensor): node features
+            adj (torch.Tensor): adjacency matrix
+            rank2 (torch.Tensor): rank-2 incidence matrix
+            flags (torch.Tensor): flags
+            t (torch.Tensor): timestep
+
+        Raises:
+            NotImplementedError: raise an error if the object to update is not recognized.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
+        # Reverse SDE for the node features
+        if self.obj == "x":
+            return x, x
+
+        # Reverse SDE for the adjacency matrix
+        elif self.obj == "adj":
+            return adj, adj
+
+        # Reverse SDE for the rank2 incidence matrix
+        elif self.obj == "rank2":
+            return rank2, rank2
+
+        # Raise error if obj is not recognized
+        else:
+            raise NotImplementedError(
+                f"Object {self.obj} not yet supported. Select from [x, adj, rank2]."
+            )
+
 
 class LangevinCorrector(Corrector):
     """Langevin corrector."""
@@ -255,30 +566,67 @@ class LangevinCorrector(Corrector):
         self,
         obj: str,
         sde: SDE,
-        score_fn: Callable[
-            [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
-            torch.Tensor,
+        score_fn: Union[
+            Callable[
+                [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
+                torch.Tensor,
+            ],
+            Callable[
+                [
+                    torch.Tensor,
+                    torch.Tensor,
+                    torch.Tensor,
+                    Optional[torch.Tensor],
+                    torch.Tensor,
+                ],
+                torch.Tensor,
+            ],
         ],
         snr: float,
         scale_eps: float,
         n_steps: int,
+        is_cc: bool = False,
+        d_min: Optional[int] = None,
+        d_max: Optional[int] = None,
     ):
         """Initialize the Langevin corrector.
 
         Args:
-            obj (str): object to update, either "x" or "adj"
+            obj (str): object to update, either "x", "adj" or "rank2"
             sde (SDE): the SDE to solve
-            score_fn (Callable[ [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor, ]): the score function
+            score_fn (Union[Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor], Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor]]): the score function
             snr (float): signal-to-noise ratio
             scale_eps (float): scale of the noise
             n_steps (int): number of steps to take
+            is_cc (bool, optional): if True, get Langevin corrector for combinatorial complexes. Defaults to False.
+            d_min (Optional[int], optional): minimum size of rank-2 cells (if combinatorial complexes). Defaults to None.
+            d_max (Optional[int], optional): maximum size of rank-2 cells (if combinatorial complexes). Defaults to None.
         """
-        super().__init__(sde, score_fn, snr, scale_eps, n_steps)
+        super().__init__(sde, score_fn, snr, scale_eps, n_steps, is_cc, d_min, d_max)
         self.obj = obj
+        # Pick the right update function
+        if self.is_cc:
+            self.update_fn = self.update_fn_graph
+        else:
+            self.update_fn = self.update_fn_cc
 
-    def update_fn(
+    def update_fn_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: torch.Tensor, t: torch.Tensor
     ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the Langevin corrector for graphs.
+
+        Args:
+            x (torch.Tensor): node features
+            adj (torch.Tensor): adjacency matrix
+            flags (torch.Tensor): flags
+            t (torch.Tensor): timestep
+
+        Raises:
+            NotImplementedError: raise an error if the object to update is not recognized.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
         sde = self.sde
         score_fn = self.score_fn
         n_steps = self.n_steps
@@ -322,6 +670,92 @@ class LangevinCorrector(Corrector):
         else:
             raise NotImplementedError(
                 f"Object {self.obj} not yet supported. Select from [x, adj]."
+            )
+
+    def update_fn_cc(
+        self,
+        x: torch.Tensor,
+        adj: torch.Tensor,
+        rank2: torch.Tensor,
+        flags: torch.Tensor,
+        t: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the Langevin corrector for combinatorial complexes.
+
+        Args:
+            x (torch.Tensor): node features
+            adj (torch.Tensor): adjacency matrix
+            rank2 (torch.Tensor): rank-2 incidence matrix
+            flags (torch.Tensor): flags
+            t (torch.Tensor): timestep
+
+        Raises:
+            NotImplementedError: raise an error if the object to update is not recognized.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
+        sde = self.sde
+        score_fn = self.score_fn
+        n_steps = self.n_steps
+        target_snr = self.snr
+        seps = self.scale_eps
+
+        if isinstance(sde, VPSDE) or isinstance(sde, subVPSDE):
+            timestep = (t * (sde.N - 1) / sde.T).long()
+            alpha = sde.alphas.to(t.device)[timestep]
+        else:
+            alpha = torch.ones_like(t)
+
+        # Reverse SDE for the node features
+        if self.obj == "x":
+            for _ in range(n_steps):
+                grad = score_fn(x, adj, rank2, flags, t)
+                noise = gen_noise(x, flags, sym=False)
+                grad_norm = torch.norm(grad.reshape(grad.shape[0], -1), dim=-1).mean()
+                noise_norm = torch.norm(
+                    noise.reshape(noise.shape[0], -1), dim=-1
+                ).mean()
+                step_size = (target_snr * noise_norm / grad_norm) ** 2 * 2 * alpha
+                x_mean = x + step_size[:, None, None] * grad
+                x = x_mean + torch.sqrt(step_size * 2)[:, None, None] * noise * seps
+            return x, x_mean
+
+        # Reverse SDE for the adjacency matrix
+        elif self.obj == "adj":
+            for _ in range(n_steps):
+                grad = score_fn(x, adj, rank2, flags, t)
+                noise = gen_noise(adj, flags)
+                grad_norm = torch.norm(grad.reshape(grad.shape[0], -1), dim=-1).mean()
+                noise_norm = torch.norm(
+                    noise.reshape(noise.shape[0], -1), dim=-1
+                ).mean()
+                step_size = (target_snr * noise_norm / grad_norm) ** 2 * 2 * alpha
+                adj_mean = adj + step_size[:, None, None] * grad
+                adj = adj_mean + torch.sqrt(step_size * 2)[:, None, None] * noise * seps
+            return adj, adj_mean
+
+        # Reverse SDE for the rank2 incidence matrix
+        elif self.obj == "rank2":
+            for _ in range(n_steps):
+                grad = score_fn(x, adj, rank2, flags, t)
+                noise = gen_noise_rank2(
+                    rank2, adj.shape[1], self.d_min, self.d_max, flags
+                )
+                grad_norm = torch.norm(grad.reshape(grad.shape[0], -1), dim=-1).mean()
+                noise_norm = torch.norm(
+                    noise.reshape(noise.shape[0], -1), dim=-1
+                ).mean()
+                step_size = (target_snr * noise_norm / grad_norm) ** 2 * 2 * alpha
+                rank2_mean = rank2 + step_size[:, None, None] * grad
+                rank2 = (
+                    rank2_mean + torch.sqrt(step_size * 2)[:, None, None] * noise * seps
+                )
+            return rank2, rank2_mean
+
+        else:
+            raise NotImplementedError(
+                f"Object {self.obj} not yet supported. Select from [x, adj, rank2]."
             )
 
 
@@ -527,23 +961,67 @@ def get_pc_sampler(
             corrector_fn = get_corrector(corrector)
 
             # Evaluate the predictor and corrector
-            predictor_obj_x = predictor_fn("x", sde_x, score_fn_x, probability_flow)
+            predictor_obj_x = predictor_fn(
+                "x",
+                sde_x,
+                score_fn_x,
+                probability_flow,
+                is_cc=True,
+                d_min=d_min,
+                d_max=d_max,
+            )
             corrector_obj_x = corrector_fn(
-                "x", sde_x, score_fn_x, snr, scale_eps, n_steps
+                "x",
+                sde_x,
+                score_fn_x,
+                snr,
+                scale_eps,
+                n_steps,
+                is_cc=True,
+                d_min=d_min,
+                d_max=d_max,
             )
 
             predictor_obj_adj = predictor_fn(
-                "adj", sde_adj, score_fn_adj, probability_flow
+                "adj",
+                sde_adj,
+                score_fn_adj,
+                probability_flow,
+                is_cc=True,
+                d_min=d_min,
+                d_max=d_max,
             )
             corrector_obj_adj = corrector_fn(
-                "adj", sde_adj, score_fn_adj, snr, scale_eps, n_steps
+                "adj",
+                sde_adj,
+                score_fn_adj,
+                snr,
+                scale_eps,
+                n_steps,
+                is_cc=True,
+                d_min=d_min,
+                d_max=d_max,
             )
 
             predictor_obj_rank2 = predictor_fn(
-                "rank2", sde_rank2, score_fn_rank2, probability_flow
+                "rank2",
+                sde_rank2,
+                score_fn_rank2,
+                probability_flow,
+                is_cc=True,
+                d_min=d_min,
+                d_max=d_max,
             )
             corrector_obj_rank2 = corrector_fn(
-                "rank2", sde_rank2, score_fn_rank2, snr, scale_eps, n_steps
+                "rank2",
+                sde_rank2,
+                score_fn_rank2,
+                snr,
+                scale_eps,
+                n_steps,
+                is_cc=True,
+                d_min=d_min,
+                d_max=d_max,
             )
 
             with torch.no_grad():
@@ -568,18 +1046,22 @@ def get_pc_sampler(
 
                     _x = x
                     _adj = adj
-                    x, x_mean = corrector_obj_x.update_fn(x, adj, flags, vec_t)
-                    adj, adj_mean = corrector_obj_adj.update_fn(_x, adj, flags, vec_t)
+                    x, x_mean = corrector_obj_x.update_fn(x, adj, rank2, flags, vec_t)
+                    adj, adj_mean = corrector_obj_adj.update_fn(
+                        _x, adj, rank2, flags, vec_t
+                    )
                     rank2, rank2_mean = corrector_obj_rank2.update_fn(
-                        _x, _adj, flags, vec_t
+                        _x, _adj, rank2, flags, vec_t
                     )
 
                     _x = x
                     _adj = adj
-                    x, x_mean = predictor_obj_x.update_fn(x, adj, flags, vec_t)
-                    adj, adj_mean = predictor_obj_adj.update_fn(_x, adj, flags, vec_t)
+                    x, x_mean = predictor_obj_x.update_fn(x, adj, rank2, flags, vec_t)
+                    adj, adj_mean = predictor_obj_adj.update_fn(
+                        _x, adj, rank2, flags, vec_t
+                    )
                     rank2, rank2_mean = predictor_obj_rank2.update_fn(
-                        _x, _adj, flags, vec_t
+                        _x, _adj, rank2, flags, vec_t
                     )
                 print(" ")
                 return (

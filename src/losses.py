@@ -105,7 +105,8 @@ def get_score_fn(
 def get_score_fn_cc(
     sde: SDE, model: torch.nn.Module, train: bool = True, continuous: bool = True
 ) -> Callable[
-    [torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor
+    [torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
+    torch.Tensor,
 ]:
     """Return the score function for the SDE and the model.
 
@@ -122,7 +123,7 @@ def get_score_fn_cc(
         Callable[[torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor], float], torch.Tensor]: score function
     """
 
-    if not(train):  # if not training, set model to eval mode
+    if not (train):  # if not training, set model to eval mode
         model.eval()
     model_fn = model  # alias for model function
 
@@ -236,7 +237,6 @@ def get_sde_loss_fn(
         x: torch.Tensor,
         adj: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
-
         # Get score functions
         score_fn_x = get_score_fn(sde_x, model_x, train=train, continuous=continuous)
         score_fn_adj = get_score_fn(
@@ -300,7 +300,14 @@ def get_sde_loss_fn_cc(
     likelihood_weighting: bool = False,
     eps: float = 1e-5,
 ) -> Callable[
-    [torch.nn.Module, torch.nn.Module, torch.nn.Module, torch.Tensor, torch.Tensor, torch.Tensor],
+    [
+        torch.nn.Module,
+        torch.nn.Module,
+        torch.nn.Module,
+        torch.Tensor,
+        torch.Tensor,
+        torch.Tensor,
+    ],
     Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
 ]:
     """Return the loss function for the SDEs with specific parameters.
@@ -335,7 +342,6 @@ def get_sde_loss_fn_cc(
         adj: torch.Tensor,
         rank2: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-
         # Get score functions
         score_fn_x = get_score_fn_cc(sde_x, model_x, train=train, continuous=continuous)
         score_fn_adj = get_score_fn_cc(
@@ -374,7 +380,9 @@ def get_sde_loss_fn_cc(
         # Compute score functions
         score_x = score_fn_x(perturbed_x, perturbed_adj, perturbed_rank2, flags, t)
         score_adj = score_fn_adj(perturbed_x, perturbed_adj, perturbed_rank2, flags, t)
-        score_rank2 = score_fn_rank2(perturbed_x, perturbed_adj, perturbed_rank2, flags, t)
+        score_rank2 = score_fn_rank2(
+            perturbed_x, perturbed_adj, perturbed_rank2, flags, t
+        )
 
         # Compute losses
         if not (likelihood_weighting):
@@ -384,8 +392,12 @@ def get_sde_loss_fn_cc(
             losses_adj = torch.square(score_adj * std_adj[:, None, None] + z_adj)
             losses_adj = reduce_op(losses_adj.reshape(losses_adj.shape[0], -1), dim=-1)
 
-            losses_rank2 = torch.square(score_rank2 * std_rank2[:, None, None] + z_rank2)
-            losses_rank2 = reduce_op(losses_rank2.reshape(losses_rank2.shape[0], -1), dim=-1)
+            losses_rank2 = torch.square(
+                score_rank2 * std_rank2[:, None, None] + z_rank2
+            )
+            losses_rank2 = reduce_op(
+                losses_rank2.reshape(losses_rank2.shape[0], -1), dim=-1
+            )
 
         else:
             g2_x = sde_x.sde(torch.zeros_like(x), t)[1] ** 2
@@ -399,9 +411,12 @@ def get_sde_loss_fn_cc(
             )
 
             g2_rank2 = sde_rank2.sde(torch.zeros_like(rank2), t)[1] ** 2
-            losses_rank2 = torch.square(score_rank2 + z_rank2 / std_rank2[:, None, None])
+            losses_rank2 = torch.square(
+                score_rank2 + z_rank2 / std_rank2[:, None, None]
+            )
             losses_rank2 = (
-                reduce_op(losses_rank2.reshape(losses_rank2.shape[0], -1), dim=-1) * g2_rank2
+                reduce_op(losses_rank2.reshape(losses_rank2.shape[0], -1), dim=-1)
+                * g2_rank2
             )
 
         return torch.mean(losses_x), torch.mean(losses_adj), torch.mean(losses_rank2)

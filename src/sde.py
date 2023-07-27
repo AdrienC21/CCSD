@@ -115,12 +115,14 @@ class SDE(abc.ABC):
             torch.Tensor,
         ],
         probability_flow: bool = False,
+        is_cc: bool = False,
     ) -> "SDE":
         """Create the reverse-time SDE/ODE (RSDE).
 
         Args:
-            score_fn (Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor]): time-dependent score-based model that takes x and t and returns the score.
+            score_fn (Union[Callable[[torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor], Callable[[torch.Tensor, torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor], torch.Tensor]]): time-dependent score-based model that takes x and t and returns the score.
             probability_flow (bool, optional): If `True`, create the reverse-time ODE used for probability flow sampling. Defaults to False.
+            is_cc (bool, optional): If `True`, create the reverse-time SDE/ODE takes the rank2 incidence matrix as an input. Defaults to False.
 
         Returns:
             SDE: reverse-time SDE/ODE.
@@ -128,83 +130,184 @@ class SDE(abc.ABC):
 
         N = self.N
         T = self.T
+        self.is_cc = is_cc
         sde_fn = self.sde
         discretize_fn = self.discretize
 
         # Build the class for reverse-time SDE
-        class RSDE(self.__class__):
-            """Reverse-time SDE/ODE."""
+        if not (is_cc):
 
-            def __init__(self) -> None:
-                """Initialize the reverse-time SDE/ODE."""
-                self.N = N
-                self.probability_flow = probability_flow
+            class RSDE(self.__class__):
+                """Reverse-time SDE/ODE."""
 
-            @property
-            def T(self) -> int:
-                """Return the final time of the reverse-time SDE/ODE.
+                def __init__(self) -> None:
+                    """Initialize the reverse-time SDE/ODE."""
+                    self.N = N
+                    self.probability_flow = probability_flow
+                    self.is_cc = is_cc
 
-                Returns:
-                    int: final time of the reverse-time SDE/ODE.
-                """
-                return T
+                @property
+                def T(self) -> int:
+                    """Return the final time of the reverse-time SDE/ODE.
 
-            def sde(
-                self,
-                feature: torch.Tensor,
-                x: torch.Tensor,
-                flags: torch.Tensor,
-                t: torch.Tensor,
-                is_adj: bool = True,
-            ) -> Tuple[torch.Tensor, torch.Tensor]:
-                """Returns the drift and diffusion for the reverse SDE/ODE.
+                    Returns:
+                        int: final time of the reverse-time SDE/ODE.
+                    """
+                    return T
 
-                Args:
-                    feature (torch.Tensor): torch tensor.
-                    x (torch.Tensor): torch tensor.
-                    flags (torch.Tensor): flags
-                    t (torch.Tensor): torch float representing the time step (from 0 to `self.T`)
-                    is_adj (bool, optional): True if reverse-SDE for the adjacency matrix. Defaults to True.
+                def sde(
+                    self,
+                    feature: torch.Tensor,
+                    x: torch.Tensor,
+                    flags: torch.Tensor,
+                    t: torch.Tensor,
+                    is_adj: bool = True,
+                ) -> Tuple[torch.Tensor, torch.Tensor]:
+                    """Returns the drift and diffusion for the reverse SDE/ODE.
 
-                Returns:
-                    Tuple[torch.Tensor, torch.Tensor]: drift and diffusion.
-                """
-                drift, diffusion = sde_fn(x, t) if is_adj else sde_fn(feature, t)
-                score = score_fn(feature, x, flags, t)
-                drift = drift - diffusion[:, None, None] ** 2 * score * (
-                    0.5 if self.probability_flow else 1.0
-                )
-                # Set the diffusion function to zero for ODEs.
-                diffusion = 0.0 if self.probability_flow else diffusion
-                return drift, diffusion
+                    Args:
+                        feature (torch.Tensor): torch tensor.
+                        x (torch.Tensor): torch tensor.
+                        flags (torch.Tensor): flags
+                        t (torch.Tensor): torch float representing the time step (from 0 to `self.T`)
+                        is_adj (bool, optional): True if reverse-SDE for the adjacency matrix. Defaults to True.
 
-            def discretize(
-                self,
-                feature: torch.Tensor,
-                x: torch.Tensor,
-                flags: torch.Tensor,
-                t: torch.Tensor,
-                is_adj: bool = True,
-            ) -> Tuple[torch.Tensor, torch.Tensor]:
-                """Create discretized iteration rules for the reverse diffusion sampler.
+                    Returns:
+                        Tuple[torch.Tensor, torch.Tensor]: drift and diffusion.
+                    """
+                    drift, diffusion = sde_fn(x, t) if is_adj else sde_fn(feature, t)
+                    score = score_fn(feature, x, flags, t)
+                    drift = drift - diffusion[:, None, None] ** 2 * score * (
+                        0.5 if self.probability_flow else 1.0
+                    )
+                    # Set the diffusion function to zero for ODEs.
+                    diffusion = 0.0 if self.probability_flow else diffusion
+                    return drift, diffusion
 
-                Args:
-                    feature (torch.Tensor): torch tensor.
-                    x (torch.Tensor): torch tensor.
-                    flags (torch.Tensor): flags
-                    t (torch.Tensor): torch float representing the time step (from 0 to `self.T`)
-                    is_adj (bool, optional): True if reverse-SDE for the adjacency matrix. Defaults to True.
+                def discretize(
+                    self,
+                    feature: torch.Tensor,
+                    x: torch.Tensor,
+                    flags: torch.Tensor,
+                    t: torch.Tensor,
+                    is_adj: bool = True,
+                ) -> Tuple[torch.Tensor, torch.Tensor]:
+                    """Create discretized iteration rules for the reverse diffusion sampler.
 
-                Returns:
-                    Tuple[torch.Tensor, torch.Tensor]: discretized drift and diffusion (f, G).
-                """
-                f, G = discretize_fn(x, t) if is_adj else discretize_fn(feature, t)
-                score = score_fn(feature, x, flags, t)
-                rev_f = f - G[:, None, None] ** 2 * score * (
-                    0.5 if self.probability_flow else 1.0
-                )
-                rev_G = torch.zeros_like(G) if self.probability_flow else G
-                return rev_f, rev_G
+                    Args:
+                        feature (torch.Tensor): torch tensor.
+                        x (torch.Tensor): torch tensor.
+                        flags (torch.Tensor): flags
+                        t (torch.Tensor): torch float representing the time step (from 0 to `self.T`)
+                        is_adj (bool, optional): True if reverse-SDE for the adjacency matrix. Defaults to True.
+
+                    Returns:
+                        Tuple[torch.Tensor, torch.Tensor]: discretized drift and diffusion (f, G).
+                    """
+                    f, G = discretize_fn(x, t) if is_adj else discretize_fn(feature, t)
+                    score = score_fn(feature, x, flags, t)
+                    rev_f = f - G[:, None, None] ** 2 * score * (
+                        0.5 if self.probability_flow else 1.0
+                    )
+                    rev_G = torch.zeros_like(G) if self.probability_flow else G
+                    return rev_f, rev_G
+
+        else:
+
+            class RSDE(self.__class__):
+                """Reverse-time SDE/ODE."""
+
+                def __init__(self) -> None:
+                    """Initialize the reverse-time SDE/ODE."""
+                    self.N = N
+                    self.probability_flow = probability_flow
+                    self.is_cc = is_cc
+
+                @property
+                def T(self) -> int:
+                    """Return the final time of the reverse-time SDE/ODE.
+
+                    Returns:
+                        int: final time of the reverse-time SDE/ODE.
+                    """
+                    return T
+
+                def sde(
+                    self,
+                    feature: torch.Tensor,
+                    x: torch.Tensor,
+                    rank2: torch.Tensor,
+                    flags: torch.Tensor,
+                    t: torch.Tensor,
+                    is_adj: bool = True,
+                    is_rank2: bool = False,
+                ) -> Tuple[torch.Tensor, torch.Tensor]:
+                    """Returns the drift and diffusion for the reverse SDE/ODE.
+
+                    Args:
+                        feature (torch.Tensor): torch tensor.
+                        x (torch.Tensor): torch tensor.
+                        rank2 (torch.Tensor): torch tensor.
+                        flags (torch.Tensor): flags
+                        t (torch.Tensor): torch float representing the time step (from 0 to `self.T`)
+                        is_adj (bool, optional): True if reverse-SDE for the adjacency matrix. Defaults to True.
+                        is_rank2 (bool, optional): True if reverse-SDE for the rank2 incidence matrix. Defaults to False.
+                            is_adj needs to be set on False too.
+
+                    Returns:
+                        Tuple[torch.Tensor, torch.Tensor]: drift and diffusion.
+                    """
+                    if is_adj:
+                        drift, diffusion = sde_fn(x, t)
+                    elif is_rank2:
+                        drift, diffusion = sde_fn(rank2, t)
+                    else:
+                        drift, diffusion = sde_fn(feature, t)
+                    score = score_fn(feature, x, rank2, flags, t)
+                    drift = drift - diffusion[:, None, None] ** 2 * score * (
+                        0.5 if self.probability_flow else 1.0
+                    )
+                    # Set the diffusion function to zero for ODEs.
+                    diffusion = 0.0 if self.probability_flow else diffusion
+                    return drift, diffusion
+
+                def discretize(
+                    self,
+                    feature: torch.Tensor,
+                    x: torch.Tensor,
+                    rank2: torch.Tensor,
+                    flags: torch.Tensor,
+                    t: torch.Tensor,
+                    is_adj: bool = True,
+                    is_rank2: bool = False,
+                ) -> Tuple[torch.Tensor, torch.Tensor]:
+                    """Create discretized iteration rules for the reverse diffusion sampler.
+
+                    Args:
+                        feature (torch.Tensor): torch tensor.
+                        x (torch.Tensor): torch tensor.
+                        rank2 (torch.Tensor): torch tensor.
+                        flags (torch.Tensor): flags
+                        t (torch.Tensor): torch float representing the time step (from 0 to `self.T`)
+                        is_adj (bool, optional): True if reverse-SDE for the adjacency matrix. Defaults to True.
+                        is_rank2 (bool, optional): True if reverse-SDE for the rank2 incidence matrix. Defaults to False.
+                            is_adj needs to be set on False too.
+
+                    Returns:
+                        Tuple[torch.Tensor, torch.Tensor]: discretized drift and diffusion (f, G).
+                    """
+                    if is_adj:
+                        f, G = discretize_fn(x, t)
+                    elif is_rank2:
+                        f, G = discretize_fn(rank2, t)
+                    else:
+                        f, G = discretize_fn(feature, t)
+                    score = score_fn(feature, x, rank2, flags, t)
+                    rev_f = f - G[:, None, None] ** 2 * score * (
+                        0.5 if self.probability_flow else 1.0
+                    )
+                    rev_G = torch.zeros_like(G) if self.probability_flow else G
+                    return rev_f, rev_G
 
         return RSDE()
 

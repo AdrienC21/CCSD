@@ -169,6 +169,7 @@ class AttentionLayer(torch.nn.Module):
         output_dim: int,
         num_heads: int = 4,
         conv: str = "GCN",
+        use_bn: bool = False,
     ) -> None:
         """Initialize the AttentionLayer
 
@@ -182,6 +183,7 @@ class AttentionLayer(torch.nn.Module):
             num_heads (int, optional): number of heads for the Attention. Defaults to 4.
             conv (str, optional): type of convolutional layer, choose from [GCN, MLP].
                 Defaults to "GCN".
+            use_bn (bool, optional): whether to use batch normalization in the MLP. Defaults to False.
         """
 
         super(AttentionLayer, self).__init__()
@@ -205,7 +207,7 @@ class AttentionLayer(torch.nn.Module):
             2 * input_dim,
             self.hidden_dim,
             output_dim,
-            use_bn=False,
+            use_bn=use_bn,
             activate_func=F.elu,
         )
         self.multi_channel = MLP(
@@ -213,7 +215,7 @@ class AttentionLayer(torch.nn.Module):
             input_dim * conv_output_dim,
             self.hidden_dim,
             conv_output_dim,
-            use_bn=False,
+            use_bn=use_bn,
             activate_func=F.elu,
         )
 

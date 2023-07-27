@@ -128,6 +128,8 @@ def init_flags(
         torch.Tensor: flag tensors
     """
 
+    # Old code
+    """
     if batch_size is None:  # get a default one from the config
         batch_size = config.data.batch_size
     max_node_num = config.data.max_node_num
@@ -136,6 +138,11 @@ def init_flags(
     flags = node_flags(graph_tensor[idx])
 
     return flags
+    """
+
+    raise DeprecationWarning(
+        "Use init_flags from the cc_utils instead. For graphs, let the parameter is_cc=False."
+    )
 
 
 def gen_noise(
@@ -288,6 +295,8 @@ def pad_adjs(ori_adj: np.ndarray, node_number: int) -> np.ndarray:
     Returns:
         np.ndarray: Padded adjacency matrix
     """
+    if not (ori_adj.size):  # empty
+        return np.zeros((node_number, node_number), dtype=np.float32)
     a = ori_adj
     ori_len = a.shape[-1]
     if ori_len == node_number:  # same shape

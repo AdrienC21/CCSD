@@ -5,15 +5,17 @@
 """
 
 from collections import defaultdict
-from typing import Tuple
+from typing import Tuple, List
 
 import pytest
 import torch
 import numpy as np
 import networkx as nx
 from rdkit import Chem
+from easydict import EasyDict
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
+from src.utils.mol_utils import mols_to_nx
 from src.utils.graph_utils import pad_adjs
 from src.utils.cc_utils import (
     get_cells,
@@ -34,6 +36,9 @@ from src.utils.cc_utils import (
     ccs_to_tensors,
     cc_to_tensor,
     convert_CC_to_graphs,
+    convert_graphs_to_CCs,
+    init_flags,
+    hodge_laplacian,
 )
 
 
@@ -542,8 +547,8 @@ def test_get_rank2_flags() -> None:
     flags_left, flags_right = get_rank2_flags(rank2, N, d_min, d_max, flags)
     assert flags_left.shape == (1, 6)
     assert flags_right.shape == (1, 4)
-    assert (flags_left == torch.tensor([[1.0, 0.0, 1.0, 0.0, 1.0, 0.0]])).all().item()
-    assert (flags_right == torch.tensor([[0.0, 1.0, 0.0, 0.0]])).all().item()
+    assert torch.allclose(flags_left, torch.tensor([[1.0, 0.0, 1.0, 0.0, 1.0, 0.0]]))
+    assert torch.allclose(flags_right, torch.tensor([[0.0, 1.0, 0.0, 0.0]]))
 
 
 def test_mask_rank2() -> None:
@@ -655,10 +660,10 @@ def test_ccs_to_tensors() -> None:
     As, Fs = ccs_to_tensors(ccs, max_node_num, d_min, d_max)
     assert As.shape == A.shape
     assert As.shape == (3, 10, 10)
-    assert (As == A).all().item()
+    assert torch.allclose(As, A)
     assert Fs.shape == F.shape
     assert Fs.shape == (3, 45, 792)
-    assert (Fs == F).all().item()
+    assert torch.allclose(Fs, F)
 
 
 def test_cc_to_tensor() -> None:
@@ -749,3 +754,136 @@ def test_convert_CC_to_graphs() -> None:
         1: {0: {"bond_type": 1.0, "weight": 1}, 2: {"bond_type": 1.0, "weight": 1}},
         2: {1: {"bond_type": 1.0, "weight": 1}, 0: {"bond_type": 1.0, "weight": 1}},
     }
+
+
+def test_convert_graphs_to_CCs() -> None:
+    """Test convert_graphs_to_CCs function."""
+    mol1 = Chem.MolFromSmiles("Cc1ccccc1")
+    mol2 = Chem.MolFromSmiles("c1cccc2c1CCCC2")
+    mols = [mol1, mol2]
+    graphs = mols_to_nx(mols)
+
+    # Convert to CCS
+    ccs = convert_graphs_to_CCs(graphs)
+    assert isinstance(ccs, list)
+    assert len(ccs) == 2
+    assert all(isinstance(cc, CombinatorialComplex) for cc in ccs)
+    assert ccs[0].cells.hyperedge_dict[0][frozenset({0})] == {"label": "C", "weight": 1}
+    assert ccs[0].cells.hyperedge_dict[1][frozenset({0, 1})] == {
+        "label": 1,
+        "weight": 1,
+    }
+
+    # Convert to CCS but for molecules
+    ccs = convert_graphs_to_CCs(graphs, is_molecule=True)
+    assert ccs[0].cells.hyperedge_dict[0][frozenset({0})] == {"symbol": 6, "weight": 1}
+    assert ccs[0].cells.hyperedge_dict[1][frozenset({0, 1})] == {
+        "bond_type": 1.0,
+        "weight": 1,
+    }
+
+
+def create_sample_graphs(
+    num_graphs: int, num_nodes: int, num_edges: int
+) -> List[nx.Graph]:
+    """Create a list of sample graphs.
+
+    Args:
+        num_graphs (int): number of graphs to create
+        num_nodes (int): number of nodes in each graph
+        num_edges (int): number of edges in each graph
+
+    Returns:
+        List[nx.Graph]: a list of sample graphs
+    """
+    graph_list = []
+    for _ in range(num_graphs):
+        graph = nx.gnm_random_graph(num_nodes, num_edges)
+        graph_list.append(graph)
+    return graph_list
+
+
+def create_sample_ccs(
+    num_ccs: int, num_nodes: int, num_edges: int
+) -> List[CombinatorialComplex]:
+    """Create a list of sample combinatorial complexes.
+
+    Args:
+        num_ccs (int): number of combinatorial complexes to create
+        num_nodes (int): number of nodes in each combinatorial complex
+        num_edges (int): number of edges in each combinatorial complex
+
+    Returns:
+        List[CombinatorialComplex]: a list of sample combinatorial complexes
+    """
+    return convert_graphs_to_CCs(create_sample_graphs(num_ccs, num_nodes, num_edges))
+
+
+def test_init_flags() -> None:
+    """Test the init_flags function (return node flags for each graphs/ccs of the batch)."""
+
+    # Test for graphs
+    num_graphs = 10
+    num_nodes = 8
+    num_edges = 5
+    batch_size = 3
+    config = EasyDict(
+        {
+            "data": {
+                "batch_size": batch_size,
+                "max_node_num": num_nodes,
+                "d_min": 3,
+                "d_max": 4,
+            }
+        }
+    )
+    graph_list = create_sample_graphs(num_graphs, num_nodes, num_edges)
+    flags = init_flags(graph_list, config, batch_size=batch_size)
+    assert flags.shape == (batch_size, num_nodes)
+    assert torch.all((flags == 0) | (flags == 1)).item()
+
+    # Test for combinatorial complexes
+    num_ccs = 10
+    num_nodes = 8
+    num_edges = 5
+    batch_size = 3
+    config = EasyDict(
+        {
+            "data": {
+                "batch_size": batch_size,
+                "max_node_num": num_nodes,
+                "d_min": 3,
+                "d_max": 4,
+            }
+        }
+    )
+    cc_list = create_sample_ccs(num_ccs, num_nodes, num_edges)
+    flags = init_flags(cc_list, config, batch_size=batch_size, is_cc=True)
+    assert flags.shape == (batch_size, num_nodes)
+    assert torch.all((flags == 0) | (flags == 1)).item()
+
+
+def test_hodge_laplacian(create_incidence_1_2_test) -> None:
+    """Test the hodge_laplacian function."""
+    _, _, F = create_incidence_1_2_test
+    F = F.unsqueeze(0)  # add batch dimension
+    H = hodge_laplacian(F)
+    expected_H = torch.tensor(
+        [
+            [
+                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [1.0, 0.0, 2.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0],
+                [0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0],
+            ]
+        ],
+        dtype=torch.float32,
+    )
+    assert H.shape == (1, F.shape[1], F.shape[1])
+    assert torch.allclose(H, expected_H)
