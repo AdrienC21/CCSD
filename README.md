@@ -4,7 +4,7 @@
 
 **CCSD: Score-based Diffusion model to generate Combinatorial Complexes using Stochastic Differential Equations.**
 
-<img src="https://github.com/AdrienC21/CCSD/blob/main/logo.png?raw=true" alt="logo" width="200"/>
+<img src="https://github.com/AdrienC21/CCSD/blob/main/logo.png?raw=true" alt="logo" width="600"/>
 
 CCSD is a score-based diffusion model to generates combinatorial complexes. Generating objects with higher-order structures and relations could improve our ability to learn underlying distributions and thus generating more realistic complex objects.
 
