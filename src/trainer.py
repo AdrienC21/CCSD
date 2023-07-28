@@ -4,12 +4,14 @@
 """trainer.py: code for training the model.
 """
 
+import abc
 import os
 import time
-from typing import Union
+from typing import Optional, Dict, List
 
-import numpy as np
+import pickle
 import torch
+import numpy as np
 from easydict import EasyDict
 from tqdm import tqdm, trange
 
@@ -24,9 +26,58 @@ from src.utils.loader import (
     load_batch,
 )
 from src.utils.logger import Logger, set_log, start_log, train_log
+from src.utils.plot import plot_lc
 
 
-class Trainer(object):
+class Trainer(abc.ABC):
+    """Abstract class for a Trainer."""
+
+    def __init__(self, config: Optional[EasyDict]) -> None:
+        """Initialize the trainer.
+
+        Args:
+            config (Optional[EasyDict], optional): the config object to use. Defaults to None.
+        """
+        super().__init__()
+        self.config = config
+
+    @abc.abstractmethod
+    def train(self, ts: str) -> str:
+        """Train method to load the models, the optimizers, etc, train the model and save the checkpoint.
+
+        Args:
+            ts (str): checkpoint name (usually a timestamp)
+
+        Returns:
+            str: checkpoint name
+        """
+        pass
+
+    def save_learning_curves(self, learning_curves: Dict[str, List[float]]) -> None:
+        """Save the learning curves in a .npy file.
+
+        Args:
+            learning_curves (Dict[str, List[float]]): the learning curves to save
+        """
+        log_name = f"{self.config.config_name}_{self.ckpt}"
+        with open(
+            os.path.join(self.log_dir, f"{log_name}_learning_curves.npy"), "wb"
+        ) as f:
+            pickle.dump(learning_curves, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def plot_learning_curves(self, learning_curves: Dict[str, List[float]]) -> None:
+        """Plot the learning curves.
+
+        Args:
+            learning_curves (Dict[str, List[float]]): the learning curves to plot
+        """
+
+        # Call the plot function from utils
+        log_name = f"{self.config.config_name}_{self.ckpt}"
+        plot_lc(learning_curves, self.log_dir, f"{log_name}_learning_curves")
+
+
+class Trainer_Graph(Trainer):
     """Trainer class for training the model with graphs."""
 
     def __init__(self, config: EasyDict) -> None:
@@ -35,7 +86,7 @@ class Trainer(object):
         Args:
             config (EasyDict): the config object to use
         """
-        super(Trainer, self).__init__()
+        super(Trainer_Graph, self).__init__(config)
 
         # Load general config
         self.config = config
@@ -70,7 +121,8 @@ class Trainer(object):
         self.ema_x = load_ema(self.model_x, decay=self.config.train.ema)
         self.ema_adj = load_ema(self.model_adj, decay=self.config.train.ema)
 
-        logger = Logger(str(os.path.join(self.log_dir, f"{self.ckpt}.log")), mode="a")
+        log_name = f"{self.config.config_name}_{self.ckpt}"
+        logger = Logger(str(os.path.join(self.log_dir, f"{log_name}.log")), mode="a")
         logger.log(f"{self.ckpt}", verbose=False)
         start_log(logger, self.config)
         train_log(logger, self.config)
@@ -188,10 +240,32 @@ class Trainer(object):
                     f"test x: {mean_test_x:.3e} | train x: {mean_train_x:.3e}"
                 )
         print(" ")
+        # -------- Save final model --------
+        torch.save(
+            {
+                "model_config": self.config,
+                "params_x": self.params_x,
+                "params_adj": self.params_adj,
+                "x_state_dict": self.model_x.state_dict(),
+                "adj_state_dict": self.model_adj.state_dict(),
+                "ema_x": self.ema_x.state_dict(),
+                "ema_adj": self.ema_adj.state_dict(),
+            },
+            f"./checkpoints/{self.config.data.data}/{self.ckpt}_final.pth",
+        )
+        # -------- Save learning curves and plots --------
+        learning_curves = {
+            "train_x": self.train_x,
+            "train_adj": self.train_adj,
+            "test_x": self.test_x,
+            "test_adj": self.test_adj,
+        }
+        self.save_learning_curves(learning_curves)
+        self.plot_learning_curves(learning_curves)
         return self.ckpt
 
 
-class Trainer_CC(object):
+class Trainer_CC(Trainer):
     """Trainer class for training the model with combinatorial complexes."""
 
     def __init__(self, config: EasyDict) -> None:
@@ -243,7 +317,8 @@ class Trainer_CC(object):
         self.ema_adj = load_ema(self.model_adj, decay=self.config.train.ema)
         self.ema_rank2 = load_ema(self.model_rank2, decay=self.config.train.ema)
 
-        logger = Logger(str(os.path.join(self.log_dir, f"{self.ckpt}.log")), mode="a")
+        log_name = f"{self.config.config_name}_{self.ckpt}"
+        logger = Logger(str(os.path.join(self.log_dir, f"{log_name}.log")), mode="a")
         logger.log(f"{self.ckpt}", verbose=False)
         start_log(logger, self.config)
         train_log(logger, self.config)
@@ -384,14 +459,41 @@ class Trainer_CC(object):
                     f"test rank2: {mean_test_rank2:.3e} | train rank2: {mean_train_rank2:.3e}"
                 )
         print(" ")
+        # -------- Save final model --------
+        torch.save(
+            {
+                "model_config": self.config,
+                "params_x": self.params_x,
+                "params_adj": self.params_adj,
+                "params_rank2": self.params_rank2,
+                "x_state_dict": self.model_x.state_dict(),
+                "adj_state_dict": self.model_adj.state_dict(),
+                "rank2_state_dict": self.model_rank2.state_dict(),
+                "ema_x": self.ema_x.state_dict(),
+                "ema_adj": self.ema_adj.state_dict(),
+                "ema_rank2": self.ema_rank2.state_dict(),
+            },
+            f"./checkpoints/{self.config.data.data}/{self.ckpt}_final.pth",
+        )
+        # -------- Save learning curves and plots --------
+        learning_curves = {
+            "train_x": self.train_x,
+            "train_adj": self.train_adj,
+            "train_rank2": self.train_rank2,
+            "test_x": self.test_x,
+            "test_adj": self.test_adj,
+            "test_rank2": self.test_rank2,
+        }
+        self.save_learning_curves(learning_curves)
+        self.plot_learning_curves(learning_curves)
         return self.ckpt
 
 
 def get_trainer_from_config(
     config: EasyDict,
-) -> Union[Trainer, Trainer_CC]:
+) -> Trainer:
     if config.is_cc:
-        trainer = Trainer_CC
+        trainer = Trainer_CC(config)
     else:
-        trainer = Trainer
+        trainer = Trainer_Graph(config)
     return trainer

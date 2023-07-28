@@ -1,0 +1,3 @@
+# Description: General configuration file for the project
+
+timezone: "Europe/London"  # timezone to name the output files

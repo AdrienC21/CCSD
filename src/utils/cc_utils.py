@@ -817,13 +817,13 @@ def init_flags(
     if batch_size is None:  # get a default one from the config
         batch_size = config.data.batch_size
     max_node_num = config.data.max_node_num
-    d_min = config.data.d_min
-    d_max = config.data.d_max
     if not (is_cc):
         graph_tensor = graphs_to_tensor(obj_list, max_node_num)
         idx = np.random.randint(0, len(obj_list), batch_size)
         flags = node_flags(graph_tensor[idx])
     else:
+        d_min = config.data.d_min
+        d_max = config.data.d_max
         cc_tensor = ccs_to_tensors(obj_list, max_node_num, d_min, d_max)
         idx = np.random.randint(0, len(obj_list), batch_size)
         flags = node_flags(cc_tensor[0][idx])

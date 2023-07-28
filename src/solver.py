@@ -6,7 +6,7 @@ The correctors consist of leveraging score-based MCMC methods.
 """
 
 import abc
-from typing import Callable, Optional, Tuple, Sequence, Union
+from typing import Callable, Optional, Tuple, Sequence, Union, Any
 
 import torch
 import numpy as np
@@ -66,15 +66,15 @@ class Predictor(abc.ABC):
         self.d_max = d_max
 
     @abc.abstractmethod
-    def update_fn(
-        self, x: torch.Tensor, t: torch.Tensor, flags: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def update_fn(self, *args: Any, **kwargs: Any) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update function for the predictor class
 
         Args:
             x (torch.Tensor): tensor
-            t (torch.Tensor): timestep
+            adj (torch.Tensor): adjacency matrix. Optional.
+            rank2 (torch.Tensor): rank-2 tensor. Optional.
             flags (torch.Tensor): flags
+            t (torch.Tensor): timestep
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
@@ -135,15 +135,15 @@ class Corrector(abc.ABC):
         self.d_max = d_max
 
     @abc.abstractmethod
-    def update_fn(
-        self, x: torch.Tensor, t: torch.Tensor, flags: torch.Tensor
-    ) -> Tuple[torch.Tensor, torch.Tensor]:
+    def update_fn(self, *args: Any, **kwargs: Any) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update function for the corrector class.
 
         Args:
             x (torch.Tensor): tensor
-            t (torch.Tensor): timestep
+            adj (torch.Tensor): adjacency matrix. Optional.
+            rank2 (torch.Tensor): rank-2 tensor. Optional.
             flags (torch.Tensor): flags
+            t (torch.Tensor): timestep
 
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
@@ -192,11 +192,13 @@ class EulerMaruyamaPredictor(Predictor):
         """
         super().__init__(sde, score_fn, probability_flow, is_cc, d_min, d_max)
         self.obj = obj
-        # Pick the right update function
+
+    def update_fn(self, *args: Any, **kwargs: Any) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the Euler-Maruyama predictor."""
         if self.is_cc:
-            self.update_fn = self.update_fn_graph
+            return self.update_fn_cc(*args, **kwargs)
         else:
-            self.update_fn = self.update_fn_cc
+            return self.update_fn_graph(*args, **kwargs)
 
     def update_fn_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: torch.Tensor, t: torch.Tensor
@@ -335,11 +337,17 @@ class ReverseDiffusionPredictor(Predictor):
         """
         super().__init__(sde, score_fn, probability_flow, is_cc, d_min, d_max)
         self.obj = obj
-        # Pick the right update function
+
+    def update_fn(self, *args: Any, **kwargs: Any) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the Reverse Diffusion predictor.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
         if self.is_cc:
-            self.update_fn = self.update_fn_graph
+            return self.update_fn_cc(*args, **kwargs)
         else:
-            self.update_fn = self.update_fn_cc
+            return self.update_fn_graph(*args, **kwargs)
 
     def update_fn_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: torch.Tensor, t: torch.Tensor
@@ -479,12 +487,17 @@ class NoneCorrector(Corrector):
         """
         super().__init__(sde, score_fn, snr, scale_eps, n_steps, is_cc, d_min, d_max)
         self.obj = obj
-        # Pick the right update function
+
+    def update_fn(self, *args: Any, **kwargs: Any) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the NoneCorrector.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
         if self.is_cc:
-            self.update_fn = self.update_fn_graph
+            return self.update_fn_cc(*args, **kwargs)
         else:
-            self.update_fn = self.update_fn_cc
-        pass
+            return self.update_fn_graph(*args, **kwargs)
 
     def update_fn_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: torch.Tensor, t: torch.Tensor
@@ -604,11 +617,17 @@ class LangevinCorrector(Corrector):
         """
         super().__init__(sde, score_fn, snr, scale_eps, n_steps, is_cc, d_min, d_max)
         self.obj = obj
-        # Pick the right update function
+
+    def update_fn(self, *args: Any, **kwargs: Any) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Update function for the Langevin corrector.
+
+        Returns:
+            Tuple[torch.Tensor, torch.Tensor]: updated tensor and mean
+        """
         if self.is_cc:
-            self.update_fn = self.update_fn_graph
+            return self.update_fn_cc(*args, **kwargs)
         else:
-            self.update_fn = self.update_fn_cc
+            return self.update_fn_graph(*args, **kwargs)
 
     def update_fn_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: torch.Tensor, t: torch.Tensor

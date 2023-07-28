@@ -4,10 +4,10 @@
 """sampler.py: code for sampling from the model.
 """
 
+import abc
 import os
 import time
 import math
-from typing import Union
 
 import pickle
 import torch
@@ -58,7 +58,24 @@ from src.utils.cc_utils import (
 from src.utils.mol_utils import is_molecular_config
 
 
-class Sampler(object):
+class Sampler(abc.ABC):
+    """Abstract class for Sampler objects."""
+
+    def __init__(self, config: EasyDict) -> None:
+        """Initialize the sampler.
+
+        Args:
+            config (EasyDict): the config object to use
+        """
+        self.config = config
+
+    @abc.abstractmethod
+    def sample(self) -> None:
+        """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates, saves and plot them."""
+        pass
+
+
+class Sampler_Graph(Sampler):
     """Sampler for generic graph generation tasks"""
 
     def __init__(self, config: EasyDict) -> None:
@@ -67,7 +84,7 @@ class Sampler(object):
         Args:
             config (EasyDict): the config object to use
         """
-        super(Sampler, self).__init__()
+        super(Sampler_Graph, self).__init__(config)
 
         self.config = config
         self.device = load_device()
@@ -85,7 +102,7 @@ class Sampler(object):
         )
 
         self.log_folder_name, self.log_dir, _ = set_log(self.configt, is_train=False)
-        self.log_name = f"{self.config.ckpt}-sample"
+        self.log_name = f"{self.config.config_name}_{self.config.ckpt}-sample_{self.config.current_time}"
         logger = Logger(
             str(os.path.join(self.log_dir, f"{self.log_name}.log")), mode="a"
         )
@@ -165,7 +182,7 @@ class Sampler(object):
         )
 
 
-class Sampler_CC(object):
+class Sampler_CC(Sampler):
     """Sampler for generic combinatorial complexes generation tasks"""
 
     def __init__(self, config: EasyDict) -> None:
@@ -174,7 +191,7 @@ class Sampler_CC(object):
         Args:
             config (EasyDict): the config object to use
         """
-        super(Sampler_CC, self).__init__()
+        super(Sampler_CC, self).__init__(config)
 
         self.config = config
         self.device = load_device()
@@ -192,7 +209,7 @@ class Sampler_CC(object):
         )
 
         self.log_folder_name, self.log_dir, _ = set_log(self.configt, is_train=False)
-        self.log_name = f"{self.config.ckpt}-sample"
+        self.log_name = f"{self.config.config_name}_{self.config.ckpt}-sample_{self.config.current_time}"
         logger = Logger(
             str(os.path.join(self.log_dir, f"{self.log_name}.log")), mode="a"
         )
@@ -312,7 +329,7 @@ class Sampler_CC(object):
         )
 
 
-class Sampler_mol(object):
+class Sampler_mol_Graph(Sampler):
     """Sampler for molecule generation tasks"""
 
     def __init__(self, config: EasyDict) -> None:
@@ -321,7 +338,7 @@ class Sampler_mol(object):
         Args:
             config (EasyDict): the config object to use
         """
-        super(Sampler_mol, self).__init__()
+        super(Sampler_mol_Graph, self).__init__(config)
 
         self.config = config
         self.device = load_device()
@@ -336,7 +353,7 @@ class Sampler_mol(object):
         load_seed(self.config.seed)
 
         self.log_folder_name, self.log_dir, _ = set_log(self.configt, is_train=False)
-        self.log_name = f"{self.config.ckpt}-sample"
+        self.log_name = f"{self.config.config_name}_{self.config.ckpt}-sample_{self.config.current_time}"
         logger = Logger(
             str(os.path.join(self.log_dir, f"{self.log_name}.log")), mode="a"
         )
@@ -452,7 +469,7 @@ class Sampler_mol(object):
         )
 
 
-class Sampler_mol_CC(object):
+class Sampler_mol_CC(Sampler):
     """Sampler for molecule generation tasks with combinatorial complexes"""
 
     def __init__(self, config: EasyDict) -> None:
@@ -461,7 +478,7 @@ class Sampler_mol_CC(object):
         Args:
             config (EasyDict): the config object to use
         """
-        super(Sampler_mol_CC, self).__init__()
+        super(Sampler_mol_CC, self).__init__(config)
 
         self.config = config
         self.device = load_device()
@@ -476,7 +493,7 @@ class Sampler_mol_CC(object):
         load_seed(self.config.seed)
 
         self.log_folder_name, self.log_dir, _ = set_log(self.configt, is_train=False)
-        self.log_name = f"{self.config.ckpt}-sample"
+        self.log_name = f"{self.config.config_name}_{self.config.ckpt}-sample_{self.config.current_time}"
         logger = Logger(
             str(os.path.join(self.log_dir, f"{self.log_name}.log")), mode="a"
         )
@@ -556,7 +573,7 @@ class Sampler_mol_CC(object):
         gen_CC_list = mols_to_cc(gen_mols)
 
         # -------- Save generated molecules --------
-        with open(os.path.join(self.log_dir, f"{self.log_name}.txt"), "a") as f:
+        with open(os.path.join(self.log_dir, f"{self.log_name}_smiles.txt"), "a") as f:
             for smiles in gen_smiles:
                 f.write(f"{smiles}\n")
 
@@ -621,7 +638,7 @@ class Sampler_mol_CC(object):
 
 def get_sampler_from_config(
     config: EasyDict,
-) -> Union[Sampler, Sampler_mol, Sampler_CC, Sampler_mol_CC]:
+) -> Sampler:
     if config.is_cc:
         sampler = (
             Sampler_mol_CC(config)
@@ -630,6 +647,8 @@ def get_sampler_from_config(
         )
     else:
         sampler = (
-            Sampler_mol(config) if is_molecular_config(config) else Sampler(config)
+            Sampler_mol_Graph(config)
+            if is_molecular_config(config)
+            else Sampler_Graph(config)
         )
     return sampler

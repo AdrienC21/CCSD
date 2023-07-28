@@ -9,12 +9,12 @@ The arguments are:
 """
 
 import argparse
-import time
 
+from src.parsers.config import get_config, get_general_config
 from src.parsers.parser import Parser
-from src.parsers.config import get_config
-from src.trainer import get_trainer_from_config
+from src.utils.time_utils import get_time
 from src.sampler import get_sampler_from_config
+from src.trainer import get_trainer_from_config
 
 
 def main(args: argparse.Namespace) -> None:
@@ -27,10 +27,15 @@ def main(args: argparse.Namespace) -> None:
         ValueError: raise and error the experiment type is not one of [train, sample].
     """
 
-    # Current timestamp (name of the experiment)
-    ts = time.strftime("%b%d-%H:%M:%S", time.gmtime())
-    # Get the configuration
+    # Get the configuration and the general configuration
     config = get_config(args.config, args.seed)
+    general_config = get_general_config()
+    # Current timestamp (name of the experiment)
+    timezone = general_config.timezone
+    ts = get_time(timezone)
+    # Add some information to the config
+    config.current_time = ts  # add the timestamp to the config
+    config.config_name = args.config  # add the config name to the config
 
     # -------- Train --------
     if args.type == "train":
@@ -38,7 +43,7 @@ def main(args: argparse.Namespace) -> None:
         trainer = get_trainer_from_config(config)
         ckpt = trainer.train(ts)
         if "sample" in config.keys():  # then sample from the trained model
-            config.ckpt = ckpt
+            config.ckpt = ckpt  # to load the model just trained
             sampler = get_sampler_from_config(config)
             sampler.sample()
 

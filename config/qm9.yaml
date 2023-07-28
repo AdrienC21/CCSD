@@ -1,3 +1,5 @@
+# Description: Adapted configuration file for the QM9 dataset used in GDSS
+
 is_cc: False
 
 data:

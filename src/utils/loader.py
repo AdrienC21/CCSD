@@ -435,8 +435,6 @@ def load_model_params(
     config_m = config.model
     max_feat_num = config.data.max_feat_num
     max_node_num = config.data.max_node_num
-    d_min = config.data.d_min
-    d_max = config.data.d_max
 
     if "GMH" in config_m.x:
         params_x = {
@@ -481,6 +479,9 @@ def load_model_params(
     }
     if not (is_cc):
         return params_x, params_adj
+    # If is_cc, also load rank-2 parameters
+    d_min = config.data.d_min
+    d_max = config.data.d_max
     params_rank2 = {
         "is_cc": config.is_cc,
         "model_type": config_m.rank2,

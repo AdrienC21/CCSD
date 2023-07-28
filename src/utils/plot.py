@@ -29,7 +29,10 @@ options = {"node_size": 2, "edge_color": "black", "linewidths": 1, "width": 0.5}
 
 
 def save_fig(
-    save_dir: Optional[str] = None, title: str = "fig", dpi: int = 300
+    save_dir: Optional[str] = None,
+    title: str = "fig",
+    dpi: int = 300,
+    is_sample: bool = True,
 ) -> None:
     """Function to adjust the figure and save it.
 
@@ -37,13 +40,17 @@ def save_fig(
         save_dir (Optional[str], optional): directory to save the figures. Defaults to None.
         title (str, optional): name of the file. Defaults to "fig".
         dpi (int, optional): DPI (Dots per Inch). Defaults to 300.
+        is_sample (bool, optional): whether the figure is generated during the sample phase. Defaults to True.
     """
     plt.tight_layout()
     plt.subplots_adjust(top=0.85)
     if save_dir is None:
         plt.show()
     else:
-        fig_dir = os.path.join(*["samples", "fig", save_dir])
+        if is_sample:
+            fig_dir = os.path.join(*["samples", "fig", save_dir])
+        else:
+            fig_dir = os.path.join(*[save_dir, "fig"])
         if not os.path.exists(fig_dir):
             os.makedirs(fig_dir)
         plt.savefig(
@@ -258,3 +265,29 @@ def save_molecule_list(
         pickle.dump(obj=gen_mol_list, file=f, protocol=pickle.HIGHEST_PROTOCOL)
     save_dir = "./samples/pkl/{}/{}.pkl".format(log_folder_name, exp_name)
     return save_dir
+
+
+def plot_lc(
+    learning_curves: Dict[str, List[float]],
+    f_dir: str = "./",
+    filename: str = "learning_curves",
+    cols: int = 3,
+) -> None:
+    """Plot the learning curves.
+
+    Args:
+        learning_curves (Dict[str, List[float]]): dictionary containing the learning curves
+        f_dir (str, optional): directory to save the figure. Defaults to "./".
+        filename (str, optional): name of the figure. Defaults to "learning_curves".
+        cols (int, optional): number of columns in the figure. Defaults to 3.
+    """
+    rows = int(math.ceil(len(learning_curves) / cols))
+    figure = plt.figure(figsize=(20, 10))
+    for i, (curve_name, curve) in enumerate(learning_curves.items()):
+        curve_name = curve_name.replace("_", " ")  # make the title more readable
+        ax = plt.subplot(rows, cols, i + 1)
+        ax.plot(curve)
+        ax.title.set_text(curve_name)
+    figure.suptitle("Learning curves")
+
+    save_fig(save_dir=f_dir, title=filename, is_sample=False)
