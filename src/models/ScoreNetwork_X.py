@@ -20,7 +20,12 @@ class ScoreNetworkX(torch.nn.Module):
     Returns the score with respect to the node feature matrix X."""
 
     def __init__(
-        self, max_feat_num: int, depth: int, nhid: int, is_cc: bool = False
+        self,
+        max_feat_num: int,
+        depth: int,
+        nhid: int,
+        use_bn: bool = False,
+        is_cc: bool = False,
     ) -> None:
         """Initialize ScoreNetworkX.
 
@@ -28,6 +33,7 @@ class ScoreNetworkX(torch.nn.Module):
             max_feat_num (int): maximum number of node features (input and output dimension of the network)
             depth (int): number of DenseGCNConv layers
             nhid (int): number of hidden units in DenseGCNConv layers
+            use_bn (bool, optional): True if we use batch normalization in the MLP. Defaults to False.
             is_cc (bool, optional): True if we generate combinatorial complexes. Defaults to False.
         """
 
@@ -37,6 +43,7 @@ class ScoreNetworkX(torch.nn.Module):
         self.nfeat = max_feat_num
         self.depth = depth
         self.nhid = nhid
+        self.use_bn = use_bn
         self.is_cc = is_cc
 
         # Initialize DenseGCNConv layers
@@ -54,7 +61,7 @@ class ScoreNetworkX(torch.nn.Module):
             input_dim=self.fdim,
             hidden_dim=2 * self.fdim,
             output_dim=self.nfeat,
-            use_bn=False,
+            use_bn=self.use_bn,
             activate_func=F.elu,
         )
 
@@ -138,6 +145,7 @@ class ScoreNetworkX_GMH(torch.nn.Module):
         adim: int,
         num_heads: int = 4,
         conv: str = "GCN",
+        use_bn: bool = False,
         is_cc: bool = False,
     ) -> None:
         """Initialize ScoreNetworkX_GMH.
@@ -156,6 +164,7 @@ class ScoreNetworkX_GMH(torch.nn.Module):
             num_heads (int, optional): number of heads for the Attention. Defaults to 4.
             conv (str, optional): type of convolutional layer, choose from [GCN, MLP].
                 Defaults to "GCN".
+            use_bn (bool, optional): True if we use batch normalization in the MLP and the AttentionLayer(s). Defaults to False.
             is_cc (bool, optional): True if we generate combinatorial complexes. Defaults to False.
         """
         super().__init__()
@@ -163,6 +172,7 @@ class ScoreNetworkX_GMH(torch.nn.Module):
         # Initialize parameters
         self.depth = depth
         self.c_init = c_init
+        self.use_bn = use_bn
         self.is_cc = is_cc
 
         # Initialize AttentionLayer layers
@@ -179,18 +189,35 @@ class ScoreNetworkX_GMH(torch.nn.Module):
                         c_hid,
                         num_heads,
                         conv,
+                        self.use_bn,
                     )
                 )
             elif k == (self.depth - 1):  # last layer
                 self.layers.append(
                     AttentionLayer(
-                        num_linears, nhid, adim, nhid, c_hid, c_final, num_heads, conv
+                        num_linears,
+                        nhid,
+                        adim,
+                        nhid,
+                        c_hid,
+                        c_final,
+                        num_heads,
+                        conv,
+                        self.use_bn,
                     )
                 )
             else:  # other layers
                 self.layers.append(
                     AttentionLayer(
-                        num_linears, nhid, adim, nhid, c_hid, c_hid, num_heads, conv
+                        num_linears,
+                        nhid,
+                        adim,
+                        nhid,
+                        c_hid,
+                        c_hid,
+                        num_heads,
+                        conv,
+                        self.use_bn,
                     )
                 )
 
@@ -201,7 +228,7 @@ class ScoreNetworkX_GMH(torch.nn.Module):
             input_dim=fdim,
             hidden_dim=2 * fdim,
             output_dim=max_feat_num,
-            use_bn=False,
+            use_bn=self.use_bn,
             activate_func=F.elu,
         )
 

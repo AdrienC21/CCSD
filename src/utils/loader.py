@@ -429,11 +429,18 @@ def load_model_params(
     Returns:
         Union[Tuple[Dict[str, Any], Dict[str, Any]], Tuple[Dict[str, Any], Dict[str, Any], Dict[str, Any]]]: parameters for x, adj, and rank-2 cells if cc
     """
+
+    assert is_cc == config.is_cc, "is_cc should be the same in config and function call"
+
     config_m = config.model
     max_feat_num = config.data.max_feat_num
+    max_node_num = config.data.max_node_num
+    d_min = config.data.d_min
+    d_max = config.data.d_max
 
     if "GMH" in config_m.x:
         params_x = {
+            "is_cc": is_cc,
             "model_type": config_m.x,
             "max_feat_num": max_feat_num,
             "depth": config_m.depth,
@@ -445,15 +452,19 @@ def load_model_params(
             "adim": config_m.adim,
             "num_heads": config_m.num_heads,
             "conv": config_m.conv,
+            "use_bn": config_m.use_bn,
         }
     else:
         params_x = {
+            "is_cc": is_cc,
             "model_type": config_m.x,
             "max_feat_num": max_feat_num,
             "depth": config_m.depth,
             "nhid": config_m.nhid,
+            "use_bn": config_m.use_bn,
         }
     params_adj = {
+        "is_cc": is_cc,
         "model_type": config_m.adj,
         "max_feat_num": max_feat_num,
         "max_node_num": config.data.max_node_num,
@@ -466,10 +477,25 @@ def load_model_params(
         "adim": config_m.adim,
         "num_heads": config_m.num_heads,
         "conv": config_m.conv,
+        "use_bn": config_m.use_bn,
     }
     if not (is_cc):
         return params_x, params_adj
     params_rank2 = {
+        "is_cc": config.is_cc,
+        "model_type": config_m.rank2,
+        "num_layers_mlp": config_m.num_layers_mlp,
+        "num_layers": config_m.num_layers,
+        "num_linears": config_m.num_linears,
+        "nhid": config_m.nhid,
+        "c_hid": config_m.c_hid,
+        "c_final": config_m.c_final,
+        "cnum": config_m.cnum,
+        "max_node_num": max_node_num,
+        "d_min": d_min,
+        "d_max": d_max,
+        "use_hodge_mask": config_m.use_hodge_mask,
+        "use_bn": config_m.use_bn,
     }
     return params_x, params_adj, params_rank2
 

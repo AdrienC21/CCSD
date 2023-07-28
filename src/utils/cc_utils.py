@@ -460,14 +460,16 @@ def get_N_from_rank2(rank2: torch.Tensor) -> int:
     """Get number of nodes from batch of rank2 incidence matrices
 
     Args:
-        rank2 (torch.Tensor): batch of rank2 incidence matrices.
-            B x (NC2) x K or B x C x (NC2) x K or (NC2) x K
+        rank2 (torch.Tensor): rank2 incidence matrices (raw, batch, or batch and channel).
+            (NC2) x K or B x (NC2) x K or B x C x (NC2) x K
 
     Returns:
         int: number of nodes
     """
     if len(rank2.shape) == 2:  # no batch
         nb_edges = rank2.shape[0]
+    elif len(rank2.shape) == 4:  # batch and channel
+        nb_edges = rank2.shape[2]
     else:
         nb_edges = rank2.shape[1]
     N = int((1 + np.sqrt(1 + 8 * nb_edges)) / 2)
@@ -841,3 +843,46 @@ def hodge_laplacian(rank2: torch.Tensor) -> torch.Tensor:
             B x (NC2) x (NC2) or B x C x (NC2) x (NC2)
     """
     return rank2 @ rank2.transpose(-1, -2)
+
+
+def default_mask(n: int) -> torch.Tensor:
+    """Create default adjacency or Hodge Laplacian mask (no diagonal elements)
+
+    Args:
+        n (int): number of nodes or edges
+
+    Returns:
+        torch.Tensor: default adjacency or Hodge Laplacian mask
+    """
+    return torch.ones([n, n]) - torch.eye(n)
+
+
+def pow_tensor_cc(
+    x: torch.Tensor, cnum: int, hodge_mask: Optional[torch.Tensor] = None
+) -> torch.Tensor:
+    """Create higher order rank-2 incidence matrices from a batch of rank-2 incidence matrices.
+
+    Args:
+        x (torch.Tensor): input tensor of shape B x (NC2) x K
+        cnum (int): number of higher order matrices to create
+            (made with consecutive multiplication of the Hodge Laplacian matrix of x)
+        hodge_mask (Optional[torch.Tensor], optional): optional mask to apply to the Hodge Laplacian.
+            Defaults to None. If None, no mask is applied.
+            shape (NC2) x (NC2) or B x (NC2) x (NC2)
+
+    Returns:
+        torch.Tensor: output higher order matrices of shape B x cnum x (NC2) x K
+    """
+    x_ = x.clone()
+    H = hodge_laplacian(x)
+    if hodge_mask is not None:
+        if len(hodge_mask.shape) == 2:  # make it batched
+            hodge_mask = hodge_mask.unsqueeze(0)
+    H = H * hodge_mask if hodge_mask is not None else H
+    xc = [x.unsqueeze(1)]
+    for _ in range(cnum - 1):
+        x_ = torch.bmm(H, x_)
+        xc.append(x_.unsqueeze(1))
+    xc = torch.cat(xc, dim=1)
+
+    return xc

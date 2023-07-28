@@ -39,6 +39,8 @@ from src.utils.cc_utils import (
     convert_graphs_to_CCs,
     init_flags,
     hodge_laplacian,
+    default_mask,
+    pow_tensor_cc,
 )
 
 
@@ -192,6 +194,31 @@ def create_incidence_1_2_advanced_test() -> (
             f"label_{k}": random_val2[k].item() for k in range(nb_rank2_feat)
         },
     }
+    F = create_incidence_1_2(N, A, d_min, d_max, two_rank_cells)
+    F = torch.tensor(F, dtype=torch.float32)
+    return (X, A, F)
+
+
+@pytest.fixture
+def create_incidence_1_2_test_tiny() -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+    """Create incidence matrices for testing purposes.
+    Tiny version with smaller rank-2 incidence matrix.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: incidence matrices
+    """
+    N = 4
+    nb_feat = 3
+    d_min = 2
+    d_max = 3
+
+    X = np.array([[np.random.random() for _ in range(nb_feat)] for _ in range(N)])
+    X = torch.tensor(X, dtype=torch.float32)
+    A = torch.zeros((N, N), dtype=torch.float32)
+    for i, j in [(0, 1), (1, 2), (2, 3), (0, 3)]:
+        A[i, j] = 1.0
+        A[j, i] = 1.0
+    two_rank_cells = {frozenset((0, 1, 2)): {}, frozenset((2, 3)): {}}
     F = create_incidence_1_2(N, A, d_min, d_max, two_rank_cells)
     F = torch.tensor(F, dtype=torch.float32)
     return (X, A, F)
@@ -560,25 +587,31 @@ def test_mask_rank2() -> None:
     flags = torch.tensor([[1, 1, 0, 1]], dtype=torch.float32)  # remove node 2
     masked = mask_rank2(rank2, N, d_min, d_max, flags)
     assert masked.shape == (1, 6, 4)
-    assert (
-        (
-            masked
-            == torch.tensor(
+    assert torch.allclose(
+        masked,
+        torch.tensor(
+            [
                 [
-                    [
-                        [0.0, 1.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, 0.0],
-                        [0.0, 1.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, 0.0],
-                        [0.0, 1.0, 0.0, 0.0],
-                        [0.0, 0.0, 0.0, 0.0],
-                    ]
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
+                    [0.0, 1.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0],
                 ]
-            )
-        )
-        .all()
-        .item()
+            ]
+        ),
     )
+
+    # Test with channels
+    nb_channels = 3
+    c_rank2 = torch.cat([rank2 for _ in range(nb_channels)], dim=0).unsqueeze(0)
+    c_masked = mask_rank2(c_rank2, N, d_min, d_max, flags)
+    expected_masked = torch.cat([masked for _ in range(nb_channels)], dim=0).unsqueeze(
+        0
+    )
+    assert c_masked.shape == (1, 3, 6, 4)
+    assert torch.allclose(expected_masked, c_masked)
 
 
 def test_gen_noise_rank2() -> None:
@@ -673,37 +706,29 @@ def test_cc_to_tensor() -> None:
     As, Fs = cc_to_tensor(cc, max_node_num=4, d_min=3, d_max=4)
     assert As.shape == (4, 4)
     assert Fs.shape == (6, 5)
-    assert (
-        (
-            As
-            == torch.tensor(
-                [
-                    [0.0, 1.0, 1.0, 0.0],
-                    [1.0, 0.0, 1.0, 0.0],
-                    [1.0, 1.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0, 0.0],
-                ]
-            )
-        )
-        .all()
-        .item()
+    assert torch.allclose(
+        As,
+        torch.tensor(
+            [
+                [0.0, 1.0, 1.0, 0.0],
+                [1.0, 0.0, 1.0, 0.0],
+                [1.0, 1.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0],
+            ]
+        ),
     )
-    assert (
-        (
-            Fs
-            == torch.tensor(
-                [
-                    [1.0, 0.0, 0.0, 0.0, 0.0],
-                    [1.0, 0.0, 0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                    [1.0, 0.0, 0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                    [0.0, 0.0, 0.0, 0.0, 0.0],
-                ]
-            )
-        )
-        .all()
-        .item()
+    assert torch.allclose(
+        Fs,
+        torch.tensor(
+            [
+                [1.0, 0.0, 0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0],
+                [1.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 0.0, 0.0, 0.0],
+            ]
+        ),
     )
 
 
@@ -863,8 +888,14 @@ def test_init_flags() -> None:
     assert torch.all((flags == 0) | (flags == 1)).item()
 
 
-def test_hodge_laplacian(create_incidence_1_2_test) -> None:
-    """Test the hodge_laplacian function."""
+def test_hodge_laplacian(
+    create_incidence_1_2_test: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+) -> None:
+    """Test the hodge_laplacian function.
+
+    Args:
+        create_incidence_1_2_test (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): incidence matrices
+    """
     _, _, F = create_incidence_1_2_test
     F = F.unsqueeze(0)  # add batch dimension
     H = hodge_laplacian(F)
@@ -887,3 +918,86 @@ def test_hodge_laplacian(create_incidence_1_2_test) -> None:
     )
     assert H.shape == (1, F.shape[1], F.shape[1])
     assert torch.allclose(H, expected_H)
+
+
+def test_default_mask() -> None:
+    """Test the default_mask function."""
+    mask = default_mask(3)
+    expected_mask = torch.tensor(
+        [
+            [0.0, 1.0, 1.0],
+            [1.0, 0.0, 1.0],
+            [1.0, 1.0, 0.0],
+        ],
+        dtype=torch.float32,
+    )
+    assert torch.allclose(mask, expected_mask)
+
+
+def test_pow_tensor_cc(
+    create_incidence_1_2_test_tiny: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+) -> None:
+    """Test the pow_tensor_cc function.
+
+    Args:
+        create_incidence_1_2_test_tiny (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): incidence matrices
+    """
+    _, _, F = create_incidence_1_2_test_tiny
+    F = F.unsqueeze(0)  # add batch dimension
+    c = 2
+    # Test without hodge mask
+    res = pow_tensor_cc(F, c, hodge_mask=None)
+    expected_res = torch.tensor(
+        [
+            [
+                [
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                ],
+                [
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                ],
+            ]
+        ],
+        dtype=torch.float32,
+    )
+    assert res.shape == (1, c, F.shape[1], F.shape[2])
+    assert torch.allclose(res, expected_res)
+
+    # Test with hodge mask
+    hodge_mask = default_mask(F.shape[1])
+    res = pow_tensor_cc(F, c, hodge_mask=hodge_mask)
+    expected_res = torch.tensor(
+        [
+            [
+                [
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
+                ],
+                [
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                ],
+            ]
+        ],
+        dtype=torch.float32,
+    )
+    assert res.shape == (1, c, F.shape[1], F.shape[2])
+    assert torch.allclose(res, expected_res)

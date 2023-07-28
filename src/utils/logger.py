@@ -136,10 +136,17 @@ def model_log(logger: Logger, config: EasyDict, is_cc: bool = False) -> None:
         is_cc (bool, optional): True if we are modelling with combinatorial complexes. Defaults to False.
     """
     config_m = config.model
+    line1 = f"({config_m.x})+({config_m.adj}={config_m.conv},{config_m.num_heads})"
+    if is_cc:
+        h_mask = "hodge mask" if config_m.hodge_mask else "no hodge mask"
+        line1 += (
+            f"+({config_m.rank2}={h_mask}, {config_m.num_layers_mlp} {config_m.cnum})"
+        )
+    line1 += "   : "
     model_log = (
-        f"({config_m.x})+({config_m.adj}={config_m.conv},{config_m.num_heads})   : "
+        line1,
         f"depth={config_m.depth} adim={config_m.adim} nhid={config_m.nhid} layers={config_m.num_layers} "
-        f"linears={config_m.num_linears} c=({config_m.c_init} {config_m.c_hid} {config_m.c_final})"
+        f"linears={config_m.num_linears} c=({config_m.c_init} {config_m.c_hid} {config_m.c_final})",
     )
     logger.log(model_log)
 

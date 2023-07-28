@@ -366,6 +366,7 @@ def create_mock_configs() -> Tuple[EasyDict, EasyDict, EasyDict, EasyDict, str]:
                 "c_init": 2,
                 "c_hid": 8,
                 "c_final": 4,
+                "use_bn": False,
             },
             "train": {
                 "name": "test",
@@ -391,7 +392,11 @@ def create_mock_configs() -> Tuple[EasyDict, EasyDict, EasyDict, EasyDict, str]:
         "beta_max": 1.0,
         "num_scales": 1000,
     }
+    config_train_cc.is_cc = True
     config_train_cc.model.rank2 = "ScoreNetworkF"
+    config_train_cc.model.num_layers_mlp = 2
+    config_train_cc.model.cnum = 3
+    config_train_cc.model.use_hodge_mask = True
     config_train_cc.data.d_min = 3
     config_train_cc.data.d_max = 4
 

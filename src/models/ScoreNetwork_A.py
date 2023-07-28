@@ -11,7 +11,13 @@ import torch
 import torch.nn.functional as F
 
 from src.models.layers import DenseGCNConv, MLP
-from src.utils.graph_utils import mask_adjs, pow_tensor, mask_x, node_feature_to_matrix
+from src.utils.graph_utils import (
+    mask_adjs,
+    pow_tensor,
+    mask_x,
+    node_feature_to_matrix,
+)
+from src.utils.cc_utils import default_mask
 from src.models.attention import AttentionLayer
 
 
@@ -138,7 +144,7 @@ class BaselineNetwork(torch.nn.Module):
             adim (int): UNUSED HERE. attention dimension (except for the first layer).
             num_heads (int, optional): UNUSED HERE. number of heads for the Attention. Defaults to 4.
             conv (str, optional): UNUSED HERE. type of convolutional layer, choose from [GCN, MLP]. Defaults to "GCN".
-            use_bn (bool, optional): whether to use batch normalization in the MLP. Defaults to False.
+            use_bn (bool, optional): whether to use batch normalization in the MLP and the BaselineNetworkLayer(s). Defaults to False.
             is_cc (bool, optional): True if we generate combinatorial complexes. Defaults to False.
         """
 
@@ -206,9 +212,7 @@ class BaselineNetwork(torch.nn.Module):
             activate_func=F.elu,
         )
         # Initialize the mask
-        self.mask = torch.ones([self.max_node_num, self.max_node_num]) - torch.eye(
-            self.max_node_num
-        )
+        self.mask = default_mask(self.max_node_num)
         self.mask.unsqueeze_(0)
 
         # Pick the right forward function
@@ -311,7 +315,7 @@ class ScoreNetworkA(BaselineNetwork):
             adim (int): attention dimension (except for the first layer).
             num_heads (int, optional): number of heads for the Attention. Defaults to 4.
             conv (str, optional): type of convolutional layer, choose from [GCN, MLP]. Defaults to "GCN".
-            use_bn (bool, optional): whether to use batch normalization in the MLP. Defaults to False.
+            use_bn (bool, optional): whether to use batch normalization in the MLP and the AttentionLayer(s). Defaults to False.
             is_cc (bool, optional): True if we generate combinatorial complexes. Defaults to False.
         """
 
@@ -395,9 +399,7 @@ class ScoreNetworkA(BaselineNetwork):
             activate_func=F.elu,
         )
         # Initialize the mask
-        self.mask = torch.ones([self.max_node_num, self.max_node_num]) - torch.eye(
-            self.max_node_num
-        )
+        self.mask = default_mask(self.max_node_num)
         self.mask.unsqueeze_(0)
 
         # Pick the right forward function
