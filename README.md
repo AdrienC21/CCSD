@@ -1,8 +1,6 @@
 # CCSD - Combinatorial Complex Score-based Diffusion Model using Stochastic Differential Equations
 
-<p align="center">
-  <img src="https://github.com/AdrienC21/CCSD/blob/main/logo.png?raw=true" alt="CCSD_logo" width="600"/>
-</p>
+<p align="center"><img src="https://github.com/AdrienC21/CCSD/blob/main/logo.png?raw=true" alt="CCSD_logo" width="600"/></p>
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
@@ -29,7 +27,7 @@ Complex object generation is a challenging problem with application in various f
 
 If you find this project interesting, we would appreciate your support by leaving a star ⭐ on this [GitHub repository](https://github.com/AdrienC21/CCSD).
 
-**Alpha version**
+Code still in **Alpha version!**
 
 **Author:** Adrien Carrel
 
