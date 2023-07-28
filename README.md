@@ -59,7 +59,7 @@ For detailed information on using CCSD, refer to the documentation:
 
 ## Usage
 
-To use CCSD, follow the steps outlined below: 
+To use CCSD, follow the steps outlined below:
 
 - [To be completed]
 
