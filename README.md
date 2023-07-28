@@ -1,59 +1,106 @@
-# CCSD - Combinatorial Complex Score-based Diffusion model using stochastic differential equations
+# CCSD - Combinatorial Complex Score-based Diffusion Model using Stochastic Differential Equations
+
+<p align="center">
+  <img src="https://github.com/AdrienC21/CCSD/blob/main/logo.png?raw=true" alt="CCSD_logo" width="600"/>
+</p>
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
-**CCSD: Score-based Diffusion model to generate Combinatorial Complexes using Stochastic Differential Equations.**
+**CCSD** is a sophisticated score-based diffusion model designed to generate Combinatorial Complexes using Stochastic Differential Equations. This cutting-edge approach enables the generation of complex objects with higher-order structures and relations, thereby enhancing our ability to learn underlying distributions and produce more realistic objects.
 
-![alt text](https://github.com/AdrienC21/CCSD/blob/main/logo.png?raw=true)
+## Table of Contents
 
-CCSD is a score-based diffusion model to generates combinatorial complexes. Generating objects with higher-order structures and relations could improve our ability to learn underlying distributions and thus generating more realistic complex objects.
+- [CCSD - Combinatorial Complex Score-based Diffusion Model using Stochastic Differential Equations](#ccsd---combinatorial-complex-score-based-diffusion-model-using-stochastic-differential-equations)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Installation](#installation)
+  - [Dependencies](#dependencies)
+  - [Documentation](#documentation)
+  - [Usage](#usage)
+  - [Why CCSD?](#why-ccsd)
+  - [Testing](#testing)
+  - [Citation](#citation)
+  - [Acknowledgement](#acknowledgement)
+  - [License](#license)
 
-TO COMPLETE
+## Introduction
 
-If you like this project, please leave a star ⭐ on GitHub !
+Complex object generation is a challenging problem with application in various fields such as drug discovery. The CCSD model offers a novel approach to tackle this problem by leveraging Diffusion Models and Stochastic Differential Equations to generate Combinatorial Complexes (CC). This topological structure generalizes the different mathematical stuctures used in Topological/Geometric Deep Learning to represent complex objects with higher-order structures and relations. The integration of the higher-order domain during the generation enhances the learning of the underlying distribution of the data and thus, allows for better data generation.
 
-Alpha version.
+If you find this project interesting, we would appreciate your support by leaving a star ⭐ on this [GitHub repository](https://github.com/AdrienC21/CCSD).
 
-Author: Adrien Carrel.
+**Alpha version**
+
+**Author:** Adrien Carrel
 
 ## Installation
 
-Clone or fork this repository.
+To get started with CCSD, you can clone or fork this repository to your local machine.
+
+```bash
+git clone https://github.com/AdrienC21/CCSD.git
+```
+
+- [To be completed]
 
 ## Dependencies
 
-CCSD requires:
+CCSD requires the following dependencies:
 
-- to complete
+- [To be completed]
+
+Please make sure you have the required dependencies installed before using CCSD.
 
 ## Documentation
 
-TODO
+For detailed information on using CCSD, refer to the documentation:
+
+- [To be completed]
 
 ## Usage
 
-TODO
+To use CCSD, follow the steps outlined below: 
+
+- [To be completed]
+
+1. [Step 1]
+
+2. [Step 2]
+
+3. [Step 3]
 
 ## Why CCSD?
 
-TODO
+CCSD stands out from traditional complex object generation models due to the following key advantages:
+
+- *Combinatorial Complexes:* The model generates Combinatorial Complexes, enabling the synthesis of complex objects with rich structures and relationships.
+
+- *Score-Based Diffusion:* CCSD utilizes score-based diffusion techniques, allowing for efficient, high-quality and state-of-the-art complex object generation.
+
+- *Enhanced "Realism":* By incorporating higher-order structures, the generated objects are more representative of the underlying data distribution.
+
+- [To be completed]
 
 ## Testing
 
-Run the command below to run many automatic tests on most of the functions.
+To ensure the correctness and robustness of CCSD and to allow researchers to build upon this tool, we have provided an extensive test suite. To run the tests, execute the following command:
 
-```bat
+```bash
 pytest tests/ -W ignore::DeprecationWarning
 ```
 
 ## Citation
 
-TODO (and complete CITATION.cff)
+If you use CCSD in your research or work, please consider citing it using the following BibTeX entry:
+
+```bibtex
+[To be completed, and complete the citation information in the CITATION.cff file provided in the repository.]
+```
 
 ## Acknowledgement
 
-Logo created using the icon: "topology" icon by VectorsLab from Noun Project CC BY 3.0.
+Logo created by me using the icon: "topology" icon by VectorsLab from Noun Project CC BY 3.0.
 
 ## License
 
-[MIT](https://choosealicense.com/licenses/mit/)
+CCSD is licensed under the [MIT License](https://choosealicense.com/licenses/mit/). Feel free to use and modify the code as per the terms of the license.
