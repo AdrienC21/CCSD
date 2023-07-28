@@ -216,6 +216,26 @@ class MLP(torch.nn.Module):
                 for _ in range(num_layers - 1):
                     self.batch_norms.append(torch.nn.BatchNorm1d(hidden_dim))
 
+        self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        """Reset the parameters of the MLP layer.
+        Initialize them with Glorot uniform initialization for the weight and zeros for the bias.
+        """
+        if self.linear_or_not:
+            # Linear model
+            glorot(self.linear.weight)
+            zeros(self.linear.bias)
+        else:
+            # MLP model
+            for layer in range(self.num_layers - 1):
+                # Reset the linear layer
+                glorot(self.linears[layer].weight)
+                zeros(self.linears[layer].bias)
+                # Reset batch normalization layer
+                if self.use_bn:
+                    self.batch_norms[layer].reset_parameters()
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """Forward pass of the MLP layer.
 
@@ -246,3 +266,18 @@ class MLP(torch.nn.Module):
                 h = self.activate_func(h)
             # Apply the final layer
             return self.linears[self.num_layers - 1](h)
+
+    def __repr__(self) -> str:
+        """Return a string representation of the MLP layer.
+
+        Returns:
+            str: string representation of the MLP layer
+        """
+        return "{}(layers={}, dim=({}, {}, {}), batch_norm={})".format(
+            self.__class__.__name__,
+            self.num_layers,
+            self.input_dim,
+            self.hidden_dim,
+            self.output_dim,
+            self.use_bn,
+        )

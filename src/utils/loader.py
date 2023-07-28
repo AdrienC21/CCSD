@@ -292,10 +292,14 @@ def load_loss_fn(
         )
     else:
         sde_rank2 = load_sde(config.sde.rank2)
+        d_min = config.data.d_min
+        d_max = config.data.d_max
         loss_fn = get_sde_loss_fn_cc(
             sde_x,
             sde_adj,
             sde_rank2,
+            d_min=d_min,
+            d_max=d_max,
             train=True,
             reduce_mean=reduce_mean,
             continuous=True,

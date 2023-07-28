@@ -25,7 +25,7 @@ from src.utils.loader import (
     load_loss_fn,
     load_batch,
 )
-from src.utils.logger import Logger, set_log, start_log, train_log
+from src.utils.logger import Logger, set_log, start_log, train_log, model_parameters_log
 from src.utils.plot import plot_lc
 
 
@@ -91,6 +91,7 @@ class Trainer_Graph(Trainer):
         # Load general config
         self.config = config
         self.log_folder_name, self.log_dir, self.ckpt_dir = set_log(self.config)
+        self.is_cc = self.config.is_cc
 
         # Load training config
         self.seed = load_seed(self.config.seed)
@@ -126,6 +127,7 @@ class Trainer_Graph(Trainer):
         logger.log(f"{self.ckpt}", verbose=False)
         start_log(logger, self.config)
         train_log(logger, self.config)
+        model_parameters_log(logger, [self.model_x, self.model_adj])
 
         self.loss_fn = load_loss_fn(self.config)
 
@@ -145,7 +147,7 @@ class Trainer_Graph(Trainer):
             for _, train_b in enumerate(self.train_loader):
                 self.optimizer_x.zero_grad()
                 self.optimizer_adj.zero_grad()
-                x, adj = load_batch(train_b, self.device)
+                x, adj = load_batch(train_b, self.device, is_cc=self.is_cc)
                 loss_subject = (x, adj)
 
                 loss_x, loss_adj = self.loss_fn(
@@ -178,7 +180,7 @@ class Trainer_Graph(Trainer):
             self.model_x.eval()
             self.model_adj.eval()
             for _, test_b in enumerate(self.test_loader):
-                x, adj = load_batch(test_b, self.device)
+                x, adj = load_batch(test_b, self.device, is_cc=self.is_cc)
                 loss_subject = (x, adj)
 
                 with torch.no_grad():
@@ -274,18 +276,19 @@ class Trainer_CC(Trainer):
         Args:
             config (EasyDict): the config object to use
         """
-        super(Trainer_CC, self).__init__()
+        super(Trainer_CC, self).__init__(config)
 
         # Load general config
         self.config = config
         self.log_folder_name, self.log_dir, self.ckpt_dir = set_log(self.config)
+        self.is_cc = self.config.is_cc
 
         # Load training config
         self.seed = load_seed(self.config.seed)
         self.device = load_device()
         self.train_loader, self.test_loader = load_data(self.config, is_cc=True)
         self.params_x, self.params_adj, self.params_rank2 = load_model_params(
-            self.config, is_CC=True
+            self.config, is_cc=True
         )
 
     def train(self, ts: str) -> str:
@@ -322,6 +325,7 @@ class Trainer_CC(Trainer):
         logger.log(f"{self.ckpt}", verbose=False)
         start_log(logger, self.config)
         train_log(logger, self.config)
+        model_parameters_log(logger, [self.model_x, self.model_adj])
 
         self.loss_fn = load_loss_fn(self.config, is_cc=True)
 
@@ -345,7 +349,7 @@ class Trainer_CC(Trainer):
                 self.optimizer_x.zero_grad()
                 self.optimizer_adj.zero_grad()
                 self.optimizer_rank2.zero_grad()
-                x, adj, rank2 = load_batch(train_b, self.device)
+                x, adj, rank2 = load_batch(train_b, self.device, is_cc=self.is_cc)
                 loss_subject = (x, adj, rank2)
 
                 loss_x, loss_adj, loss_rank2 = self.loss_fn(
@@ -387,7 +391,7 @@ class Trainer_CC(Trainer):
             self.model_adj.eval()
             self.model_rank2.eval()
             for _, test_b in enumerate(self.test_loader):
-                x, adj, rank2 = load_batch(test_b, self.device, is_cc=True)
+                x, adj, rank2 = load_batch(test_b, self.device, is_cc=self.is_cc)
                 loss_subject = (x, adj, rank2)
 
                 with torch.no_grad():

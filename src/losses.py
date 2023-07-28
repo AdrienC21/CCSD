@@ -294,6 +294,8 @@ def get_sde_loss_fn_cc(
     sde_x: SDE,
     sde_adj: SDE,
     sde_rank2: SDE,
+    d_min: int,
+    d_max: int,
     train: bool = True,
     reduce_mean: bool = False,
     continuous: bool = True,
@@ -316,6 +318,8 @@ def get_sde_loss_fn_cc(
         sde_x (SDE): SDE for node features
         sde_adj (SDE): SDE for adjacency matrix
         sde_rank2 (SDE): SDE for rank-2 incidence tensor
+        d_min (int): minimum size of the rank-2 cells
+        d_max (int): maximum size of the rank-2 cells
         train (bool, optional): whether or not we are training the model. Defaults to True.
         reduce_mean (bool, optional): if True, we reduce the loss by first taking the mean along the last axis. Defaults to False.
         continuous (bool, optional): if the SDE is continuous. Defaults to True.
@@ -371,11 +375,13 @@ def get_sde_loss_fn_cc(
         perturbed_adj = mask_adjs(perturbed_adj, flags)
 
         # Sample noise for the rank2 incidence matrix
-        z_rank2 = gen_noise_rank2(rank2, flags)
+        z_rank2 = gen_noise_rank2(rank2, adj.shape[-1], d_min, d_max, flags)
         mean_rank2, std_rank2 = sde_rank2.marginal_prob(rank2, t)
         # Perturb rank2 matrix
         perturbed_rank2 = mean_rank2 + std_rank2[:, None, None] * z_rank2
-        perturbed_rank2 = mask_rank2(perturbed_rank2, flags)
+        perturbed_rank2 = mask_rank2(
+            perturbed_rank2, adj.shape[-1], d_min, d_max, flags
+        )
 
         # Compute score functions
         score_x = score_fn_x(perturbed_x, perturbed_adj, perturbed_rank2, flags, t)

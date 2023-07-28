@@ -180,7 +180,7 @@ def get_transform_fn(
 
         else:
             d_min = kwargs["d_min"]
-            d_max = kwargs["d_min"]
+            d_max = kwargs["d_max"]
 
             def transform(
                 data: Tuple[np.ndarray, np.ndarray],

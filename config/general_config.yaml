@@ -1,3 +1,4 @@
 # Description: General configuration file for the project
 
 timezone: "Europe/London"  # timezone to name the output files
+print_initial: True  # print an initial message with logo and current experiment

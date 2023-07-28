@@ -24,7 +24,7 @@ DIC_MOL_CONV = {0: "C", 1: "N", 2: "O", 3: "F"}
 
 
 def get_cells(
-    N: int, d_min: int = 3, d_max: int = 9
+    N: int, d_min: int, d_max: int
 ) -> Tuple[
     List[FrozenSet[int]],
     Dict[FrozenSet[int], int],
@@ -42,8 +42,8 @@ def get_cells(
 
     Args:
         N (int): maximum number of nodes
-        d_min (int, optional): minimum size of rank-2 cells. Defaults to 3.
-        d_max (int, optional): maximum size of rank-2 cells. Defaults to 9.
+        d_min (int, optional): minimum size of rank-2 cells.
+        d_max (int, optional): maximum size of rank-2 cells.
 
     Returns:
         Tuple[List[FrozenSet[int]], Dict[FrozenSet[int], int], Dict[int, List[int]], List[FrozenSet[int]], Dict[FrozenSet[int], int], Dict[int, List[int]]]: list of all rank-2 cells, dictionary mapping rank-2 cells to a column index in the incidence matrix, dictionary mapping nodes to a list of column indices in the incidence matrix, dictionary mapping edges to a row index in the incidence matrix and a dictionary mapping nodes to a list of row indices in the incidence matrix
@@ -138,16 +138,16 @@ def cc_from_incidence(
     incidence_matrices: Optional[
         Union[List[Optional[np.ndarray]], List[Optional[torch.Tensor]]]
     ],
-    d_min: int = 3,
-    d_max: int = 6,
+    d_min: int,
+    d_max: int,
     is_molecule: bool = False,
 ) -> CombinatorialComplex:
     """Convert (pseudo)-incidence matrices to a combinatorial complex (CC).
 
     Args:
         incidence_matrices (Optional[Union[List[Optional[np.ndarray]], List[Optional[torch.Tensor]]]]): list of incidence matrices [X, A, F]
-        d_min (int, optional): minimum size of rank-2 cells. Defaults to 3.
-        d_max (int, optional): maximum size of rank-2 cells. Defaults to 6.
+        d_min (int, optional): minimum size of rank-2 cells.
+        d_max (int, optional): maximum size of rank-2 cells.
         is_molecule (bool, optional): whether the CC is a molecule. Defaults to False.
 
     Raises:

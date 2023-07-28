@@ -12,6 +12,7 @@ import argparse
 
 from src.parsers.config import get_config, get_general_config
 from src.parsers.parser import Parser
+from src.utils.print import initial_print
 from src.utils.time_utils import get_time
 from src.sampler import get_sampler_from_config
 from src.trainer import get_trainer_from_config
@@ -30,6 +31,11 @@ def main(args: argparse.Namespace) -> None:
     # Get the configuration and the general configuration
     config = get_config(args.config, args.seed)
     general_config = get_general_config()
+
+    # Print the initial message
+    if general_config.print_initial:
+        initial_print(args)
+
     # Current timestamp (name of the experiment)
     timezone = general_config.timezone
     ts = get_time(timezone)

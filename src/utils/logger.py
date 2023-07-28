@@ -5,8 +5,9 @@
 """
 
 import os
-from typing import Optional, Any, Tuple
+from typing import Optional, Any, Tuple, List
 
+import torch
 from easydict import EasyDict
 
 
@@ -198,3 +199,30 @@ def sample_log(logger: Logger, config: EasyDict) -> None:
         )
     logger.log(sample_log)
     logger.log(100 * "-")
+
+
+def get_nb_parameters(model: torch.nn.Module) -> int:
+    """Get the number of parameters of the model.
+
+    Args:
+        model (torch.nn.Module): model.
+
+    Returns:
+        int: number of parameters of the model.
+    """
+
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+def model_parameters_log(models: List[torch.nn.Module]) -> None:
+    """Print the number of parameters of the models.
+
+    Args:
+        models (List[torch.nn.Module]): list of models.
+    """
+
+    print(100 * "-")
+    print("\nNumber of parameters:\n")
+    for model in models:
+        print(f"\t{model.__class__.__name__}: {get_nb_parameters(model)}\n")
+    print(100 * "-")
