@@ -1,4 +1,7 @@
 # Description: General configuration file for the project
 
+use_wandb: True  # use wandb to log the experiments
+project_name: "CCSD"  # name of the project in wandb
+entity: "a-carrel"  # name of the entity in wandb
 timezone: "Europe/London"  # timezone to name the output files
 print_initial: True  # print an initial message with logo and current experiment

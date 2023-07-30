@@ -146,6 +146,14 @@ class SDE(abc.ABC):
                     self.probability_flow = probability_flow
                     self.is_cc = is_cc
 
+                def __repr__(self) -> str:
+                    """Return the string representation of the reverse-time SDE/ODE.
+
+                    Returns:
+                        str: string representation of the reverse-time SDE/ODE.
+                    """
+                    return f"{self.__class__.__name__}(N={self.N}, probability_flow={probability_flow}, T={self.T})"
+
                 @property
                 def T(self) -> int:
                     """Return the final time of the reverse-time SDE/ODE.
@@ -222,6 +230,14 @@ class SDE(abc.ABC):
                     self.N = N
                     self.probability_flow = probability_flow
                     self.is_cc = is_cc
+
+                def __repr__(self) -> str:
+                    """Return the string representation of the reverse-time SDE/ODE.
+
+                    Returns:
+                        str: string representation of the reverse-time SDE/ODE.
+                    """
+                    return f"{self.__class__.__name__}(N={self.N}, probability_flow={probability_flow}, T={self.T})"
 
                 @property
                 def T(self) -> int:
@@ -336,6 +352,14 @@ class VPSDE(SDE):
         self.alphas_cumprod = torch.cumprod(self.alphas, dim=0)
         self.sqrt_alphas_cumprod = torch.sqrt(self.alphas_cumprod)
         self.sqrt_1m_alphas_cumprod = torch.sqrt(1.0 - self.alphas_cumprod)
+
+    def __repr__(self) -> str:
+        """Return the string representation of the SDE.
+
+        Returns:
+            str: string representation of the SDE.
+        """
+        return f"{self.__class__.__name__}(N={self.N}, beta_min={self.beta_0}, beta_max={self.beta_1})"
 
     @property
     def T(self) -> int:
@@ -486,6 +510,14 @@ class VESDE(SDE):
             torch.linspace(np.log(self.sigma_min), np.log(self.sigma_max), N)
         )
         self.N = N
+
+    def __repr__(self) -> str:
+        """Return the string representation of the SDE.
+
+        Returns:
+            str: string representation of the SDE.
+        """
+        return f"{self.__class__.__name__}(N={self.N}, beta_min={self.beta_0}, beta_max={self.beta_1})"
 
     @property
     def T(self) -> int:
@@ -642,6 +674,14 @@ class subVPSDE(SDE):
         self.N = N
         self.discrete_betas = torch.linspace(beta_min / N, beta_max / N, N)
         self.alphas = 1.0 - self.discrete_betas
+
+    def __repr__(self) -> str:
+        """Return the string representation of the SDE.
+
+        Returns:
+            str: string representation of the SDE.
+        """
+        return f"{self.__class__.__name__}(N={self.N}, beta_min={self.beta_0}, beta_max={self.beta_1})"
 
     @property
     def T(self) -> int:

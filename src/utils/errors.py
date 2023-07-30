@@ -4,6 +4,7 @@
 """errors.py: contains custom exceptions.
 """
 
+
 class SymmetryError(Exception):
     """Exception raised for when a matrix is not symmetric.
 
@@ -19,3 +20,11 @@ class SymmetryError(Exception):
         """
         self.message = message
         super().__init__(self.message)
+
+    def __repr__(self) -> str:
+        """Return the string representation of the SymmetryError class.
+
+        Returns:
+            str: the string representation of the SymmetryError class
+        """
+        return f"SymmetryError(message={self.message})"

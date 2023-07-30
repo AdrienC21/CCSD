@@ -45,3 +45,7 @@ class ParserPreprocess:
             raise SystemExit("Unknown argument(s): {}".format(unparsed))
 
         return args
+
+    def __repr__(self) -> str:
+        """Return the string representation of the parser."""
+        return self.__class__.__name__

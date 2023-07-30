@@ -241,6 +241,25 @@ class ScoreNetworkF(torch.nn.Module):
             layer.reset_parameters()
         self.final.reset_parameters()
 
+    def __repr__(self) -> str:
+        """Representation of the model."""
+        return (
+            f"{self.__class__.__name__}("
+            f"num_layers_mlp={self.num_layers_mlp}, "
+            f"num_layers={self.num_layers}, "
+            f"num_linears={self.num_linears}, "
+            f"nhid={self.nhid}, "
+            f"c_hid={self.c_hid}, "
+            f"c_final={self.c_final}, "
+            f"cnum={self.cnum}, "
+            f"max_node_num={self.max_node_num}, "
+            f"d_min={self.d_min}, "
+            f"d_max={self.d_max}, "
+            f"use_hodge_mask={self.use_hodge_mask}, "
+            f"use_bn={self.use_bn}, "
+            f"is_cc={self.is_cc})"
+        )
+
     def forward(
         self,
         x: torch.Tensor,

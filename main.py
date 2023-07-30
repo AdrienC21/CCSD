@@ -10,6 +10,8 @@ The arguments are:
 
 import argparse
 
+import wandb
+
 from src.parsers.config import get_config, get_general_config
 from src.parsers.parser import Parser
 from src.utils.print import initial_print
@@ -45,9 +47,23 @@ def main(args: argparse.Namespace) -> None:
 
     # -------- Train --------
     if args.type == "train":
+        # Initialize wandb
+        if general_config.use_wandb:
+            run_name = f"{args.config}_{ts}"
+            wandb.init(
+                project=general_config.project_name,
+                entity=general_config.entity,
+                config=config,
+                name=run_name,
+            )
+            wandb.run.name = run_name
+            wandb.run.save()
+            wandb.config.update(config)
         # Train the model
         trainer = get_trainer_from_config(config)
         ckpt = trainer.train(ts)
+        # Finish wandb
+        wandb.finish()
         if "sample" in config.keys():  # then sample from the trained model
             config.ckpt = ckpt  # to load the model just trained
             sampler = get_sampler_from_config(config)

@@ -47,6 +47,10 @@ class AbstractVectorizer(BaseEstimator, TransformerMixin):
     def vertex_transform(self, graph):
         raise NotImplementedError("Should have implemented this")
 
+    def __repr__(self) -> str:
+        """Return the name of the representation of the class."""
+        return self.__class__.__name__
+
 
 def run_dill_encoded(what):
     """Use dill as replacement for pickle to enable multiprocessing on instance methods"""

@@ -29,6 +29,14 @@ class Logger:
             self.mode = mode
         self.lock = lock
 
+    def __repr__(self) -> str:
+        """Return the string representation of the Logger class.
+
+        Returns:
+            str: the string representation of the Logger class
+        """
+        return f"Logger(filepath={self.filepath}, mode={self.mode})"
+
     def log(self, str: str, verbose: bool = True) -> None:
         """Log a string to the file and optionally print it
 
@@ -214,15 +222,22 @@ def get_nb_parameters(model: torch.nn.Module) -> int:
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
-def model_parameters_log(models: List[torch.nn.Module]) -> None:
-    """Print the number of parameters of the models.
+def model_parameters_log(logger: Logger, models: List[torch.nn.Module]) -> None:
+    """Print the number of parameters of the models and the total number of parameters.
 
     Args:
+        logger (Logger): Logger object
         models (List[torch.nn.Module]): list of models.
     """
 
-    print(100 * "-")
-    print("\nNumber of parameters:\n")
-    for model in models:
-        print(f"\t{model.__class__.__name__}: {get_nb_parameters(model)}\n")
-    print(100 * "-")
+    model_parameters = [
+        (model.__class__.__name__, get_nb_parameters(model)) for model in models
+    ]
+    total_parameters = sum(nb_param for _, nb_param in model_parameters)
+
+    logger.log(100 * "-")
+    logger.log("\nNumber of parameters:\n")
+    for model_name, nb_param in model_parameters:
+        logger.log(f"\t{model_name}: {nb_param}\n")
+    logger.log(f"\nTotal: {total_parameters}\n")
+    logger.log(100 * "-")

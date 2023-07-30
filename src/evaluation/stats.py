@@ -287,7 +287,7 @@ def edge_list_reindexed(G: nx.Graph) -> List[Tuple[int, int]]:
         idx += 1
 
     edges = []
-    for (u, v) in G.edges():
+    for u, v in G.edges():
         edges.append((id2idx[str(u)], id2idx[str(v)]))
     return edges
 
@@ -304,7 +304,7 @@ def orca(graph: nx.Graph) -> np.ndarray:
     tmp_file_path = os.path.join(ORCA_DIR, f"tmp-{random.random():.4f}.txt")
     f = open(tmp_file_path, "w")
     f.write(str(graph.number_of_nodes()) + " " + str(graph.number_of_edges()) + "\n")
-    for (u, v) in edge_list_reindexed(graph):
+    for u, v in edge_list_reindexed(graph):
         f.write(str(u) + " " + str(v) + "\n")
     f.close()
 

@@ -39,6 +39,14 @@ class ExponentialMovingAverage:
         self.shadow_params = [p.clone().detach() for p in parameters if p.requires_grad]
         self.collected_params = []
 
+    def __repr__(self) -> str:
+        """Return the string representation of the EMA class.
+
+        Returns:
+            str: the string representation of the EMA class
+        """
+        return f"ExponentialMovingAverage(decay={self.decay}, num_updates={self.num_updates}, shadow_params={self.shadow_params}, collected_params={self.collected_params})"
+
     def update(self, parameters: torch.nn.parameter.Parameter) -> None:
         """Update currently maintained parameters.
         Call this every time the parameters are updated, such as the result of

@@ -54,6 +54,20 @@ class Attention(torch.nn.Module):
         )
         self.activation = torch.tanh
 
+    def __repr__(self) -> str:
+        """Representation of the Attention layer
+
+        Returns:
+            str: representation of the Attention layer
+        """
+        return (
+            f"{self.__class__.__name__}("
+            f"num_heads={self.num_heads}, "
+            f"attn_dim={self.attn_dim}, "
+            f"out_dim={self.out_dim}, "
+            f"conv={self.conv})"
+        )
+
     def forward(
         self,
         x: torch.Tensor,
@@ -218,6 +232,15 @@ class AttentionLayer(torch.nn.Module):
             use_bn=use_bn,
             activate_func=F.elu,
         )
+
+    def __repr__(self) -> str:
+        """Representation of the AttentionLayer
+
+        Returns:
+            str: representation of the AttentionLayer
+        """
+
+        return f"{self.__class__.__name__}({self.attn_dim}, {self.hidden_dim}, {self.attn_dim})"
 
     def forward(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor]

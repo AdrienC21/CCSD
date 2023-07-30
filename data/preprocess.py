@@ -16,7 +16,7 @@ import pandas as pd
 from data.utils.data_frame_parser import DataFrameParser
 from data.utils.numpytupledataset import NumpyTupleDataset
 from data.utils.smile_to_graph import GGNNPreprocessor
-from parsers.parser_preprocess import ParserPreprocess
+from src.parsers.parser_preprocess import ParserPreprocess
 
 
 def preprocess(args: argparse.Namespace, print_elapsed_time: bool = True) -> None:

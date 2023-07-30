@@ -11,6 +11,7 @@ from typing import Optional, Dict, List
 
 import pickle
 import torch
+import wandb
 import numpy as np
 from easydict import EasyDict
 from tqdm import tqdm, trange
@@ -98,6 +99,14 @@ class Trainer_Graph(Trainer):
         self.device = load_device()
         self.train_loader, self.test_loader = load_data(self.config)
         self.params_x, self.params_adj = load_model_params(self.config)
+
+    def __repr__(self) -> str:
+        """Return the string representation of the Trainer_Graph class.
+
+        Returns:
+            str: the string representation of the Trainer_Graph class
+        """
+        return f"{self.__class__.__name__}(is_cc={self.is_cc})"
 
     def train(self, ts: str) -> str:
         """Train method to load the models, the optimizers, etc, train the model and save the checkpoint.
@@ -204,11 +213,24 @@ class Trainer_Graph(Trainer):
             mean_test_adj = np.mean(self.test_adj)
 
             # -------- Log losses --------
+            # Logger
             logger.log(
                 f"{epoch+1:03d} | {time.time()-t_start:.2f}s | "
                 f"test x: {mean_test_x:.3e} | test adj: {mean_test_adj:.3e} | "
                 f"train x: {mean_train_x:.3e} | train adj: {mean_train_adj:.3e} | ",
                 verbose=False,
+            )
+
+            # Wandb
+            wandb.log(
+                {
+                    "epoch": epoch + 1,
+                    "time": time.time() - t_start,
+                    "test_x_loss": mean_test_x,
+                    "test_adj_loss": mean_test_adj,
+                    "train_x_loss": mean_train_x,
+                    "train_adj_loss": mean_train_adj,
+                }
             )
 
             # -------- Save checkpoints --------
@@ -291,6 +313,14 @@ class Trainer_CC(Trainer):
             self.config, is_cc=True
         )
 
+    def __repr__(self) -> str:
+        """Return the string representation of the Trainer_CC class.
+
+        Returns:
+            str: the string representation of the Trainer_CC class
+        """
+        return f"{self.__class__.__name__}(is_cc={self.is_cc})"
+
     def train(self, ts: str) -> str:
         """Train method to load the models, the optimizers, etc, train the model and save the checkpoint.
 
@@ -325,7 +355,7 @@ class Trainer_CC(Trainer):
         logger.log(f"{self.ckpt}", verbose=False)
         start_log(logger, self.config)
         train_log(logger, self.config)
-        model_parameters_log(logger, [self.model_x, self.model_adj])
+        model_parameters_log(logger, [self.model_x, self.model_adj, self.model_rank2])
 
         self.loss_fn = load_loss_fn(self.config, is_cc=True)
 

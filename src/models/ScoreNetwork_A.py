@@ -71,6 +71,22 @@ class BaselineNetworkLayer(torch.nn.Module):
             activate_func=F.elu,
         )
 
+    def __repr__(self) -> str:
+        """Representation of the BaselineNetworkLayer.
+
+        Returns:
+            str: representation of the BaselineNetworkLayer
+        """
+        return (
+            f"{self.__class__.__name__}("
+            f"num_linears={self.mlp.num_linears}, "
+            f"conv_input_dim={self.convs[0].in_channels}, "
+            f"conv_output_dim={self.convs[0].out_channels}, "
+            f"input_dim={len(self.convs)}, "
+            f"output_dim={self.mlp.out_dim}, "
+            f"use_bn={self.use_bn})"
+        )
+
     def forward(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor]
     ) -> Tuple[torch.Tensor, torch.Tensor]:
@@ -220,6 +236,27 @@ class BaselineNetwork(torch.nn.Module):
             self.forward = self.forward_graph
         else:
             self.forward = self.forward_cc
+
+    def __repr__(self) -> str:
+        """Representation of the BaselineNetwork.
+
+        Returns:
+            str: representation of the BaselineNetwork
+        """
+
+        return (
+            f"{self.__class__.__name__}("
+            f"max_feat_num={self.nfeat}, "
+            f"max_node_num={self.max_node_num}, "
+            f"nhid={self.nhid}, "
+            f"num_layers={self.num_layers}, "
+            f"num_linears={self.num_linears}, "
+            f"c_init={self.c_init}, "
+            f"c_hid={self.c_hid}, "
+            f"c_final={self.c_final}, "
+            f"use_bn={self.use_bn}, "
+            f"is_cc={self.is_cc})"
+        )
 
     def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor] = None
@@ -407,6 +444,29 @@ class ScoreNetworkA(BaselineNetwork):
             self.forward = self.forward_graph
         else:
             self.forward = self.forward_cc
+
+    def __repr__(self) -> str:
+        """Representation of the ScoreNetworkA model.
+
+        Returns:
+            str: representation of the ScoreNetworkA model
+        """
+        return (
+            f"{self.__class__.__name__}("
+            f"max_feat_num={self.max_feat_num}, "
+            f"max_node_num={self.max_node_num}, "
+            f"nhid={self.nhid}, "
+            f"num_layers={self.num_layers}, "
+            f"num_linears={self.num_linears}, "
+            f"c_init={self.c_init}, "
+            f"c_hid={self.c_hid}, "
+            f"c_final={self.c_final}, "
+            f"adim={self.adim}, "
+            f"num_heads={self.num_heads}, "
+            f"conv={self.conv}, "
+            f"use_bn={self.use_bn}, "
+            f"is_cc={self.is_cc})"
+        )
 
     def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor] = None

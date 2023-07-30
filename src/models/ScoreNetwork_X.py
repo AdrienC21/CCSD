@@ -74,6 +74,15 @@ class ScoreNetworkX(torch.nn.Module):
         else:
             self.forward = self.forward_cc
 
+    def __repr__(self) -> str:
+        """String representation of the model.
+
+        Returns:
+            str: string representation of the model
+        """
+
+        return f"{self.__class__.__name__}(depth={self.depth}, nhid={self.nhid}, use_bn={self.use_bn}, is_cc={self.is_cc})"
+
     def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor]
     ) -> torch.Tensor:
@@ -240,6 +249,14 @@ class ScoreNetworkX_GMH(torch.nn.Module):
             self.forward = self.forward_graph
         else:
             self.forward = self.forward_cc
+
+    def __repr__(self) -> str:
+        """String representation of the ScoreNetworkX_GMH model.
+
+        Returns:
+            str: string representation
+        """
+        return f"{self.__class__.__name__}(depth={self.depth}, c_init={self.c_init}, use_bn={self.use_bn}, is_cc={self.is_cc})"
 
     def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor]

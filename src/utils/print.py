@@ -56,6 +56,5 @@ def initial_print(
 
     # Print the initial message
     print(ascii_logo)
-    print("\n")
     print(100 * "-")
     print(experiment_desc)

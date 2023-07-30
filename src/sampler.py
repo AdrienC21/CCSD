@@ -90,6 +90,10 @@ class Sampler_Graph(Sampler):
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
 
+    def __repr__(self) -> str:
+        """Return the string representation of the sampler."""
+        return self.__class__.__name__
+
     def sample(self) -> None:
         """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates, saves and plot them."""
         # -------- Load checkpoint --------
@@ -196,6 +200,10 @@ class Sampler_CC(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
+
+    def __repr__(self) -> str:
+        """Return the string representation of the sampler."""
+        return self.__class__.__name__
 
     def sample(self) -> None:
         """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates, saves and plot them."""
@@ -344,6 +352,10 @@ class Sampler_mol_Graph(Sampler):
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
 
+    def __repr__(self) -> str:
+        """Return the string representation of the sampler."""
+        return self.__class__.__name__
+
     def sample(self) -> None:
         """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates and saves them."""
         # -------- Load checkpoint --------
@@ -483,6 +495,10 @@ class Sampler_mol_CC(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
+
+    def __repr__(self) -> str:
+        """Return the string representation of the sampler."""
+        return self.__class__.__name__
 
     def sample(self) -> None:
         """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates and saves them."""

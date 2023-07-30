@@ -141,6 +141,7 @@ data/qm9_kekulized.npz
 samples/
 logs_train/
 logs_sample/
+wandb/
 
 # images
 notes.txt

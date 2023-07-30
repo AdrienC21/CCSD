@@ -193,6 +193,10 @@ class EulerMaruyamaPredictor(Predictor):
         super().__init__(sde, score_fn, probability_flow, is_cc, d_min, d_max)
         self.obj = obj
 
+    def __repr__(self) -> str:
+        """Representation of the Euler-Maruyama predictor."""
+        return f"{self.__class__.__name__}(obj={self.obj}, sde={self.sde.__class__.__name__}, probability_flow={self.probability_flow}, is_cc={self.is_cc}, d_min={self.d_min}, d_max={self.d_max})"
+
     def update_fn(self, *args: Any, **kwargs: Any) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update function for the Euler-Maruyama predictor."""
         if self.is_cc:
@@ -337,6 +341,10 @@ class ReverseDiffusionPredictor(Predictor):
         """
         super().__init__(sde, score_fn, probability_flow, is_cc, d_min, d_max)
         self.obj = obj
+
+    def __repr__(self) -> str:
+        """Representation of the Reverse Diffusion predictor."""
+        return f"{self.__class__.__name__}(obj={self.obj}, sde={self.sde.__class__.__name__}, probability_flow={self.probability_flow}, is_cc={self.is_cc}, d_min={self.d_min}, d_max={self.d_max})"
 
     def update_fn(self, *args: Any, **kwargs: Any) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update function for the Reverse Diffusion predictor.
@@ -488,6 +496,10 @@ class NoneCorrector(Corrector):
         super().__init__(sde, score_fn, snr, scale_eps, n_steps, is_cc, d_min, d_max)
         self.obj = obj
 
+    def __repr__(self) -> str:
+        """Representation of the None corrector."""
+        return f"{self.__class__.__name__}(obj={self.obj}, sde={self.sde.__class__.__name__}, snr={self.snr}, scale_eps={self.scale_eps}, n_steps={self.n_steps}, is_cc={self.is_cc}, d_min={self.d_min}, d_max={self.d_max})"
+
     def update_fn(self, *args: Any, **kwargs: Any) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update function for the NoneCorrector.
 
@@ -617,6 +629,10 @@ class LangevinCorrector(Corrector):
         """
         super().__init__(sde, score_fn, snr, scale_eps, n_steps, is_cc, d_min, d_max)
         self.obj = obj
+
+    def __repr__(self) -> str:
+        """Representation of the Langevin corrector."""
+        return f"{self.__class__.__name__}(obj={self.obj}, sde={self.sde.__class__.__name__}, snr={self.snr}, scale_eps={self.scale_eps}, n_steps={self.n_steps}, is_cc={self.is_cc}, d_min={self.d_min}, d_max={self.d_max})"
 
     def update_fn(self, *args: Any, **kwargs: Any) -> Tuple[torch.Tensor, torch.Tensor]:
         """Update function for the Langevin corrector.

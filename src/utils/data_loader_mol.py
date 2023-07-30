@@ -116,6 +116,14 @@ class MolDataset(Dataset):
         """
         return self.transform(self.mols[idx])
 
+    def __repr__(self) -> str:
+        """Return the string representation of the MolDataset class.
+
+        Returns:
+            str: the string representation of the MolDataset class
+        """
+        return self.__class__.__name__
+
 
 def get_transform_fn(
     dataset: str,

@@ -45,7 +45,6 @@ class DataFrameParser(object):
         ] = None,
         logger: Optional[logging.Logger] = None,
     ):
-
         super(DataFrameParser, self).__init__()
         if isinstance(labels, str):
             labels = [

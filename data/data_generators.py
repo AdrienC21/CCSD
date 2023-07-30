@@ -136,6 +136,14 @@ class GraphGenerator:
             graph = self.corrupt_func(self.corrupt_func)
         return graph
 
+    def __repr__(self) -> str:
+        """Return string representation of graph generator.
+
+        Returns:
+            str: string representation of graph generator
+        """
+        return f"GraphGenerator({self.possible_params})"
+
 
 def gen_graph_list(
     graph_type: str = "grid",

@@ -98,6 +98,16 @@ class DenseGCNConv(torch.nn.Module):
         glorot(self.weight)
         zeros(self.bias)
 
+    def __repr__(self) -> str:
+        """Return a string representation of the DenseGCNConv layer.
+
+        Returns:
+            str: string representation of the DenseGCNConv layer
+        """
+        return "{}({}, {})".format(
+            self.__class__.__name__, self.in_channels, self.out_channels
+        )
+
     def forward(
         self,
         x: torch.Tensor,
@@ -142,16 +152,6 @@ class DenseGCNConv(torch.nn.Module):
             out = out * mask.view(B, N, 1).to(x.dtype)
 
         return out
-
-    def __repr__(self) -> str:
-        """Return a string representation of the DenseGCNConv layer.
-
-        Returns:
-            str: string representation of the DenseGCNConv layer
-        """
-        return "{}({}, {})".format(
-            self.__class__.__name__, self.in_channels, self.out_channels
-        )
 
 
 class MLP(torch.nn.Module):
