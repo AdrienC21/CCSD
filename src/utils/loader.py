@@ -573,7 +573,9 @@ def load_model_from_ckpt(
     model.load_state_dict(state_dict)
     if isinstance(device, list):
         assert len(device) > 0, "At least one device must be provided"
-        assert all((isinstance(dev, int) or isinstance(dev, torch.device)) for dev in device), "Device(s) must be device ids (integers or torch.device objects)"
+        assert all(
+            (isinstance(dev, int) or isinstance(dev, torch.device)) for dev in device
+        ), "Device(s) must be device ids (integers or torch.device objects)"
         if len(device) > 1:
             model = torch.nn.DataParallel(model, device_ids=device)
         if isinstance(device[0], int):

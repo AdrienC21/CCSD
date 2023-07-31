@@ -10,10 +10,9 @@ from src.utils.models_utils import get_model_device
 
 
 def test_get_model_device() -> None:
-    """Test the get_model_device function
-    """
+    """Test the get_model_device function"""
     model = torch.nn.Sequential(torch.nn.Linear(8, 8))  # create a dummy model
-    
+
     # Test CPU
     model = model.to("cpu")
     assert get_model_device(model) == "cpu"
