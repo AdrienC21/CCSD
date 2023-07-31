@@ -311,12 +311,11 @@ def test_load_loss_fn(mock_load_sde: Any) -> None:
     assert callable(loss_fn)
 
     # Test with is_cc=True
-    config_cc = EasyDict(
-        {
-            "train": {"reduce_mean": False, "eps": 1e-6},
-            "sde": {"x": {}, "adj": {}, "rank2": {}},
-        }
-    )
+    config_cc = EasyDict(config.copy())
+    config_cc.sde.rank2 = {}
+    config_cc.data = {}
+    config_cc.data.d_min = 3
+    config_cc.data.d_max = 9
     loss_fn_cc = load_loss_fn(config_cc, is_cc=True)
     assert callable(loss_fn_cc)
 
