@@ -554,7 +554,7 @@ def load_ckpt(
 def load_model_from_ckpt(
     params: Dict[str, Any],
     state_dict: Dict[str, Any],
-    device: Union[str, List[str], List[int]],
+    device: Union[str, List[torch.device], List[int]],
 ) -> Union[torch.nn.Module, torch.nn.DataParallel]:
     """Load the model from the checkpoint
 
@@ -572,12 +572,17 @@ def load_model_from_ckpt(
         state_dict = {k[7:]: v for k, v in state_dict.items()}
     model.load_state_dict(state_dict)
     if isinstance(device, list):
+        assert len(device) > 0, "At least one device must be provided"
+        assert all((isinstance(dev, int) or isinstance(dev, torch.device)) for dev in device), "Device(s) must be device ids (integers or torch.device objects)"
         if len(device) > 1:
             model = torch.nn.DataParallel(model, device_ids=device)
-        new_device = f"cuda:{device[0]}" if "cuda" not in device[0] else device[0]
+        if isinstance(device[0], int):
+            new_device = torch.device(f"cuda:{device[0]}")
+        else:
+            new_device = device[0]
         model = model.to(new_device)
     else:
-        model = model.to(device)
+        model = model.to(device)  # "cpu" or "cuda"
     return model
 
 

@@ -32,6 +32,7 @@ from src.utils.loader import (
     load_model_from_ckpt,
     load_eval_settings,
 )
+from src.utils.models_utils import get_model_device
 
 
 @pytest.fixture
@@ -571,11 +572,13 @@ def test_load_model_from_ckpt() -> None:
         .item()
     )
 
-    # Test with DataParallel (if cuda is available)
+    # Test with cuda if available. If multiple devices, test DataParallel
     if torch.cuda.is_available():
-        device = ["cuda:0", "cuda:1"]
-        model_dp = load_model_from_ckpt(params, state_dict, device)
-        assert isinstance(model_dp, torch.nn.DataParallel)
+        device = [torch.device(f"cuda:{i}") for i in range(torch.cuda.device_count())]
+        model = load_model_from_ckpt(params, state_dict, device)
+        if len(device) > 1:
+            assert isinstance(model, torch.nn.DataParallel)
+        assert get_model_device(model) == "cuda"
 
 
 def test_load_eval_settings() -> None:
