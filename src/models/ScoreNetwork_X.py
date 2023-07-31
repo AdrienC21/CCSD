@@ -74,6 +74,9 @@ class ScoreNetworkX(torch.nn.Module):
         else:
             self.forward = self.forward_cc
 
+        # Reset the parameters
+        self.reset_parameters()
+
     def __repr__(self) -> str:
         """String representation of the model.
 
@@ -82,6 +85,15 @@ class ScoreNetworkX(torch.nn.Module):
         """
 
         return f"{self.__class__.__name__}(depth={self.depth}, nhid={self.nhid}, use_bn={self.use_bn}, is_cc={self.is_cc})"
+
+    def reset_parameters(self) -> None:
+        """Reset the parameters of the model."""
+
+        # Reset the parameters of the DenseGCNConv layers
+        for layer in self.layers:
+            layer.reset_parameters()
+        # Reset the parameters of the final MLP layer
+        self.final.reset_parameters()
 
     def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor]
@@ -250,6 +262,9 @@ class ScoreNetworkX_GMH(torch.nn.Module):
         else:
             self.forward = self.forward_cc
 
+        # Reset the parameters
+        self.reset_parameters()
+
     def __repr__(self) -> str:
         """String representation of the ScoreNetworkX_GMH model.
 
@@ -257,6 +272,14 @@ class ScoreNetworkX_GMH(torch.nn.Module):
             str: string representation
         """
         return f"{self.__class__.__name__}(depth={self.depth}, c_init={self.c_init}, use_bn={self.use_bn}, is_cc={self.is_cc})"
+
+    def reset_parameters(self) -> None:
+        """Reset the parameters of the ScoreNetworkX_GMH model."""
+        # Reset the parameters of the AttentionLayer layers
+        for attn in self.layers:
+            attn.reset_parameters()
+        # Reset the parameters of the final MLP
+        self.final.reset_parameters()
 
     def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor]

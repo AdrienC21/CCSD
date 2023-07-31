@@ -54,6 +54,9 @@ class Attention(torch.nn.Module):
         )
         self.activation = torch.tanh
 
+        # Reset the parameters of the GNNs
+        self.reset_parameters()
+
     def __repr__(self) -> str:
         """Representation of the Attention layer
 
@@ -67,6 +70,12 @@ class Attention(torch.nn.Module):
             f"out_dim={self.out_dim}, "
             f"conv={self.conv})"
         )
+
+    def reset_parameters(self) -> None:
+        """Reset the parameters of the Attention layer"""
+        self.gnn_q.reset_parameters()
+        self.gnn_k.reset_parameters()
+        self.gnn_v.reset_parameters()
 
     def forward(
         self,
@@ -233,6 +242,9 @@ class AttentionLayer(torch.nn.Module):
             activate_func=F.elu,
         )
 
+        # Reset the parameters
+        self.reset_parameters()
+
     def __repr__(self) -> str:
         """Representation of the AttentionLayer
 
@@ -241,6 +253,15 @@ class AttentionLayer(torch.nn.Module):
         """
 
         return f"{self.__class__.__name__}({self.attn_dim}, {self.hidden_dim}, {self.attn_dim})"
+
+    def reset_parameters(self) -> None:
+        """Reset the parameters of the AttentionLayer"""
+        # Reset the MLPs
+        self.mlp.reset_parameters()
+        self.multi_channel.reset_parameters()
+        # Reset the attention layers
+        for attn in self.attn:
+            attn.reset_parameters()
 
     def forward(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor]

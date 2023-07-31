@@ -64,6 +64,7 @@ class HodgeNetworkLayer(torch.nn.Module):
 
     def reset_parameters(self) -> None:
         """Reset the parameters of the HodgeNetworkLayer."""
+        # Reset the parameters of the MLP layer
         self.layer.reset_parameters()
 
     def forward(
@@ -237,8 +238,10 @@ class ScoreNetworkF(torch.nn.Module):
 
     def reset_parameters(self) -> None:
         """Reset the parameters of the model."""
+        # Reset the HodgeNetworkLayer layers
         for layer in self.layers:
             layer.reset_parameters()
+        # Reset the final MLP
         self.final.reset_parameters()
 
     def __repr__(self) -> str:

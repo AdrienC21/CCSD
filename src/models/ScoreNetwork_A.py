@@ -71,6 +71,9 @@ class BaselineNetworkLayer(torch.nn.Module):
             activate_func=F.elu,
         )
 
+        # Reset the parameters
+        self.reset_parameters()
+
     def __repr__(self) -> str:
         """Representation of the BaselineNetworkLayer.
 
@@ -86,6 +89,14 @@ class BaselineNetworkLayer(torch.nn.Module):
             f"output_dim={self.mlp.out_dim}, "
             f"use_bn={self.use_bn})"
         )
+
+    def reset_parameters(self) -> None:
+        """Reset the parameters of the BaselineNetworkLayer."""
+        # Reset the parameters of the DenseGCNConv layers, the MLPs, and the multi-channel MLP
+        for conv in self.convs:
+            conv.reset_parameters()
+        self.mlp.reset_parameters()
+        self.multi_channel.reset_parameters()
 
     def forward(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor]
@@ -237,6 +248,9 @@ class BaselineNetwork(torch.nn.Module):
         else:
             self.forward = self.forward_cc
 
+        # Reset the parameters
+        self.reset_parameters()
+
     def __repr__(self) -> str:
         """Representation of the BaselineNetwork.
 
@@ -257,6 +271,15 @@ class BaselineNetwork(torch.nn.Module):
             f"use_bn={self.use_bn}, "
             f"is_cc={self.is_cc})"
         )
+
+    def reset_parameters(self) -> None:
+        """Reset the parameters of the BaselineNetwork."""
+
+        # Reset the parameters of the BaselineNetworkLayer layers
+        for layer in self.layers:
+            layer.reset_parameters()
+        # Reset the parameters of the final MLP
+        self.final.reset_parameters()
 
     def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor] = None
@@ -445,6 +468,9 @@ class ScoreNetworkA(BaselineNetwork):
         else:
             self.forward = self.forward_cc
 
+        # Reset the parameters
+        self.reset_parameters()
+
     def __repr__(self) -> str:
         """Representation of the ScoreNetworkA model.
 
@@ -467,6 +493,14 @@ class ScoreNetworkA(BaselineNetwork):
             f"use_bn={self.use_bn}, "
             f"is_cc={self.is_cc})"
         )
+
+    def reset_parameters(self) -> None:
+        """Reset the parameters of the model."""
+        # Reset the parameters of the AttentionLayer layers
+        for attn in self.layers:
+            attn.reset_parameters()
+        # Reset the parameters of the final MLP
+        self.final.reset_parameters()
 
     def forward_graph(
         self, x: torch.Tensor, adj: torch.Tensor, flags: Optional[torch.Tensor] = None
