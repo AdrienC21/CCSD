@@ -460,7 +460,7 @@ class VPSDE(SDE):
         Returns:
             Tuple[torch.Tensor, torch.Tensor]: discretized drift and diffusion (f, G).
         """
-        timestep = (t * (self.N - 1) / self.T).long()
+        timestep = (t * (self.N - 1) / self.T).long().to("cpu")
         beta = self.discrete_betas.to(x.device)[timestep]
         alpha = self.alphas.to(x.device)[timestep]
         sqrt_beta = torch.sqrt(beta)
@@ -622,10 +622,10 @@ class VESDE(SDE):
             Tuple[torch.Tensor, torch.Tensor]: drift and diffusion of the discretized SDE.
         """
 
-        timestep = (t * (self.N - 1) / self.T).long()
+        timestep = (t * (self.N - 1) / self.T).long().to("cpu")
         sigma = self.discrete_sigmas.to(t.device)[timestep]
         adjacent_sigma = torch.where(
-            timestep == 0,
+            timestep.to(t.device) == 0,
             torch.zeros_like(t),
             self.discrete_sigmas[timestep - 1].to(t.device),
         )

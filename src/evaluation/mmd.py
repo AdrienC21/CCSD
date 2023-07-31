@@ -257,6 +257,72 @@ def compute_emd(
     return disc(samples1, samples2, kernel, *args, **kwargs), [samples1[0], samples2[0]]
 
 
+def preprocess(X: np.ndarray, max_len: int, is_hist: bool) -> np.ndarray:
+    """Preprocess function for the kernel_compute function below
+
+    Args:
+        X (np.ndarray): input array
+        max_len (int): max row length of the new array
+        is_hist (bool): if the input array is an histogram
+
+    Returns:
+        np.ndarray: preprocessed output array
+    """
+    X_p = np.zeros((len(X), max_len))
+    for i in range(len(X)):
+        X_p[i, :len(X[i])] = X[i]
+
+    if is_hist:
+        row_sum = np.sum(X_p, axis=1)
+        X_p = X_p / row_sum[:, None]
+
+    return X_p
+
+
+def kernel_compute(
+    X: List[nx.Graph],
+    Y: Optional[List[nx.Graph]] = None,
+    is_hist: bool = True,
+    metric: str = "linear",
+    n_jobs: Optional[int] = None,
+) -> np.ndarray:
+    """Function to compute the kernel matrix with list of graphs as inputs and
+    a custom metric
+
+    Adapted from https://github.com/idea-iitd/graphgen/blob/master/metrics/mmd.py
+
+    Args:
+        X (List[nx.Graph]): samples 1 (list of graphs)
+        Y (Optional[List[nx.Graph]], optional): samples 2 (list of graphs). Defaults to None.
+        is_hist (bool, optional): whether of not the input should be histograms (NOT IMPLEMENTED). Defaults to True.
+        metric (str, optional): metric. Defaults to "linear".
+        n_jobs (Optional[int], optional): number of jobs for parallel computing. Defaults to None.
+
+    Returns:
+        np.ndarray: kernel matrix
+    """
+
+    if metric == "nspdk":
+        X = vectorize(X, complexity=4, discrete=True)
+
+        if Y is not None:
+            Y = vectorize(Y, complexity=4, discrete=True)
+
+        return pairwise_kernels(X, Y, metric="linear", n_jobs=n_jobs)
+
+    else:
+        max_len = max([len(x) for x in X])
+        if Y is not None:
+            max_len = max(max_len, max([len(y) for y in Y]))
+
+        X = preprocess(X, max_len, is_hist)
+
+        if Y is not None:
+            Y = preprocess(Y, max_len, is_hist)
+
+        return pairwise_kernels(X, Y, metric=metric, n_jobs=n_jobs)
+
+
 def compute_nspdk_mmd(
     samples1: List[nx.Graph],
     samples2: List[nx.Graph],
@@ -276,32 +342,6 @@ def compute_nspdk_mmd(
         is_hist (bool, optional): whether of not the input should be histograms (NOT IMPLEMENTED). Defaults to True.
         n_jobs (Optional[int], optional): number of jobs for parallel computing. Defaults to None.
     """
-
-    def kernel_compute(
-        X: List[nx.Graph],
-        Y: Optional[List[nx.Graph]] = None,
-        is_hist: bool = True,
-        metric: str = "linear",
-        n_jobs: Optional[int] = None,
-    ) -> np.ndarray:
-        """Function to compute the kernel matrix with list of graphs as inputs and
-        a custom metric
-
-        Args:
-            X (List[nx.Graph]): samples 1 (list of graphs)
-            Y (Optional[List[nx.Graph]], optional): samples 2 (list of graphs). Defaults to None.
-            is_hist (bool, optional): whether of not the input should be histograms (NOT IMPLEMENTED). Defaults to True.
-            metric (str, optional): metric. Defaults to "linear".
-            n_jobs (Optional[int], optional): number of jobs for parallel computing. Defaults to None.
-
-        Returns:
-            np.ndarray: kernel matrix
-        """
-        X = vectorize(X, complexity=4, discrete=True)
-        if Y is not None:
-            Y = vectorize(Y, complexity=4, discrete=True)
-        # pairwise_kernels(X, Y, metric="linear", n_jobs=n_jobs)
-        return pairwise_kernels(X, Y, metric=metric, n_jobs=n_jobs)
 
     X = kernel_compute(samples1, is_hist=is_hist, metric=metric, n_jobs=n_jobs)
     Y = kernel_compute(samples2, is_hist=is_hist, metric=metric, n_jobs=n_jobs)

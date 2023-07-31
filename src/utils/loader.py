@@ -589,12 +589,12 @@ def load_model_from_ckpt(
 
 
 def load_eval_settings(
-    data: Any, orbit_on: bool = True
+    data: str, orbit_on: bool = True
 ) -> Tuple[List[str], Dict[str, Callable[[np.ndarray, np.ndarray], float]]]:
     """Load the evaluation settings from the configuration
 
     Args:
-        data (Any): dataset to use. UNUSED HERE.
+        data (str): dataset to use. UNUSED HERE.
         orbit_on (bool, optional): whether to use orbit distance. UNUSED HERE. Defaults to True.
 
     Returns:
