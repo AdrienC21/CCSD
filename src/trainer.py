@@ -295,7 +295,7 @@ class Trainer_Graph(Trainer):
                 f"{self.config.config_name}_{self.ckpt}_learning_curves.png",
             )
             wandb.log({"Learning Curves": wandb.Image(img_path)})
-        return self.ckpt
+        return f"{self.ckpt}_final"
 
 
 class Trainer_CC(Trainer):
@@ -538,7 +538,7 @@ class Trainer_CC(Trainer):
                 f"{self.config.config_name}_{self.ckpt}_learning_curves.png",
             )
             wandb.log({"Learning Curves": wandb.Image(img_path)})
-        return self.ckpt
+        return f"{self.ckpt}_final"
 
 
 def get_trainer_from_config(

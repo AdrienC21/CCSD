@@ -1,4 +1,4 @@
-# Description: Adapted configuration file for the QM9 dataset used in GDSS
+# Description: Test (low number of epochs) Adapted configuration file for the QM9 dataset used in GDSS
 
 is_cc: False
 
@@ -39,9 +39,9 @@ model:
 
 train:
   name: test
-  num_epochs: 300
+  num_epochs: 5
   save_interval: 100
-  print_interval: 50
+  print_interval: 1
   reduce_mean: False
   lr: 0.005
   lr_schedule: True
@@ -50,3 +50,20 @@ train:
   grad_norm: 1.0
   lr_decay: 0.999
   eps: 1.0e-5
+
+# Sampling after the training
+
+sampler:
+  predictor: Reverse
+  corrector: Langevin
+  snr: 0.2
+  scale_eps: 0.7
+  n_steps: 1
+
+sample:
+  n_samples: 10000  # param only for mol datasets
+  use_ema: False
+  noise_removal: True
+  probability_flow: False
+  eps: 1.0e-4
+  seed: 42

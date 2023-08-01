@@ -52,7 +52,7 @@ train:
   name: test
   num_epochs: 300
   save_interval: 100
-  print_interval: 1000
+  print_interval: 50
   reduce_mean: False
   lr: 0.005
   lr_schedule: True

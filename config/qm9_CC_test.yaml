@@ -1,6 +1,6 @@
-# Description: Adapted configuration file for the QM9 dataset used in GDSS
+# Description: Test (low number of epochs) Configuration file for the QM9 dataset with combinatorial complexes used in our work CDSS
 
-is_cc: False
+is_cc: True
 
 data:
   data: QM9
@@ -9,6 +9,8 @@ data:
   max_node_num: 9
   max_feat_num: 4
   init: atom
+  d_min: 3
+  d_max: 9
 
 sde:
   x:
@@ -21,10 +23,16 @@ sde:
     beta_min: 0.1
     beta_max: 1.0
     num_scales: 1000
+  rank2:
+    type: VE
+    beta_min: 0.1
+    beta_max: 1.0
+    num_scales: 1000
 
 model:
   x: ScoreNetworkX
   adj: ScoreNetworkA
+  rank2: ScoreNetworkF
   conv: GCN
   num_heads: 4
   depth: 2
@@ -36,12 +44,15 @@ model:
   c_hid: 8
   c_final: 4
   use_bn: False
+  use_hodge_mask: True
+  cnum: 4
+  num_layers_mlp: 2
 
 train:
   name: test
-  num_epochs: 300
+  num_epochs: 5
   save_interval: 100
-  print_interval: 50
+  print_interval: 1
   reduce_mean: False
   lr: 0.005
   lr_schedule: True
@@ -50,3 +61,20 @@ train:
   grad_norm: 1.0
   lr_decay: 0.999
   eps: 1.0e-5
+
+# Sampling after the training
+
+sampler:
+  predictor: Reverse
+  corrector: Langevin
+  snr: 0.2
+  scale_eps: 0.7
+  n_steps: 1
+
+sample:
+  n_samples: 10000  # param only for mol datasets
+  use_ema: False
+  noise_removal: True
+  probability_flow: False
+  eps: 1.0e-4
+  seed: 42

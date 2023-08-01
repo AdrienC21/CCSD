@@ -92,7 +92,7 @@ class Sampler_Graph(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
-        self.n_sample = None
+        self.n_samples = None
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -156,7 +156,7 @@ class Sampler_Graph(Sampler):
             t_start = time.time()
 
             self.init_flags = init_flags(
-                self.train_graph_list, self.configt, self.n_sample
+                self.train_graph_list, self.configt, self.n_samples
             ).to(self.device0)
 
             x, adj, _ = self.sampling_fn(self.model_x, self.model_adj, self.init_flags)
@@ -219,7 +219,7 @@ class Sampler_CC(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
-        self.n_sample = None
+        self.n_samples = None
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -298,7 +298,7 @@ class Sampler_CC(Sampler):
             t_start = time.time()
 
             self.init_flags = init_flags(
-                self.train_CC_list, self.configt, self.n_sample, is_cc=True
+                self.train_CC_list, self.configt, self.n_samples, is_cc=True
             ).to(self.device0)
 
             x, adj, rank2, _ = self.sampling_fn(
@@ -394,7 +394,7 @@ class Sampler_mol_Graph(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
-        self.n_sample = self.config.sample.n_sample
+        self.n_samples = self.config.sample.n_samples
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -447,7 +447,7 @@ class Sampler_mol_Graph(Sampler):
             self.test_graph_list = pickle.load(f)  # for NSPDK MMD
 
         self.init_flags = init_flags(
-            self.train_graph_list, self.configt, self.n_sample
+            self.train_graph_list, self.configt, self.n_samples
         ).to(self.device0)
         x, adj, _ = self.sampling_fn(self.model_x, self.model_adj, self.init_flags)
 
@@ -592,8 +592,8 @@ class Sampler_mol_CC(Sampler):
         self.device = load_device()
         self.device0 = (
             self.device[0] if isinstance(self.device, list) else self.device
-        )  #
-        self.n_sample = self.config.sample.n_sample
+        )
+        self.n_samples = self.config.sample.n_samples
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -657,7 +657,7 @@ class Sampler_mol_CC(Sampler):
             self.test_graph_list = pickle.load(f)  # for NSPDK MMD
 
         self.init_flags = init_flags(
-            self.train_CC_list, self.configt, self.n_sample, is_cc=True
+            self.train_CC_list, self.configt, self.n_samples, is_cc=True
         ).to(self.device0)
         x, adj, rank2, _ = self.sampling_fn(
             self.model_x, self.model_adj, self.model_rank2, self.init_flags
