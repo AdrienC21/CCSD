@@ -175,6 +175,11 @@ class Sampler_Graph(Sampler):
         )
         logger.log(f"MMD_full {result_dict}", verbose=False)
         logger.log(100 * "=")
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add scores to wandb
+            wandb.log(result_dict)
 
         # -------- Save samples & Plot --------
         # Graphs
@@ -324,6 +329,11 @@ class Sampler_CC(Sampler):
         )
         logger.log(f"MMD_full {result_dict}", verbose=False)
         logger.log(100 * "=")
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add scores to wandb
+            wandb.log(result_dict)
 
         # -------- Save samples & Plot --------
         # Ccs
@@ -487,6 +497,19 @@ class Sampler_mol_Graph(Sampler):
             logger.log(f"{metric}: {scores[metric]}")
         logger.log(f"NSPDK MMD: {scores_nspdk}")
         logger.log(100 * "=")
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add scores to wandb
+            wandb.log(
+                {
+                    "validity": scores["valid"],
+                    f"unique@{len(gen_smiles)}": scores[f"unique@{len(gen_smiles)}"],
+                    "FCD/Test": scores["FCD/Test"],
+                    "Novelty": scores["Novelty"],
+                    "NSPDK MMD": scores_nspdk,
+                }
+            )
 
         # -------- Save samples & Plot --------
         # Graphs
@@ -688,6 +711,19 @@ class Sampler_mol_CC(Sampler):
             logger.log(f"{metric}: {scores[metric]}")
         logger.log(f"NSPDK MMD: {scores_nspdk}")
         logger.log(100 * "=")
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add scores to wandb
+            wandb.log(
+                {
+                    "validity": scores["valid"],
+                    f"unique@{len(gen_smiles)}": scores[f"unique@{len(gen_smiles)}"],
+                    "FCD/Test": scores["FCD/Test"],
+                    "Novelty": scores["Novelty"],
+                    "NSPDK MMD": scores_nspdk,
+                }
+            )
 
         # -------- Save samples & Plot --------
         # Ccs
