@@ -103,7 +103,7 @@ def plot_graphs_list(
         ax.title.set_text(title_str)
     figure.suptitle(title)
 
-    save_fig(save_dir=save_dir, title=title)
+    save_fig(save_dir=save_dir, title=title, is_sample=True)
 
 
 def save_graph_list(
@@ -182,7 +182,7 @@ def plot_cc_list(
         ax.title.set_text(title_str)
     figure.suptitle(title)
 
-    save_fig(save_dir=save_dir, title=title)
+    save_fig(save_dir=save_dir, title=title, is_sample=True)
 
 
 def save_cc_list(
@@ -243,7 +243,7 @@ def plot_molecule_list(
         ax.title.set_text(title_str)
     figure.suptitle(title)
 
-    save_fig(save_dir=save_dir, title=title)
+    save_fig(save_dir=save_dir, title=title, is_sample=True)
 
 
 def save_molecule_list(

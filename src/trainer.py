@@ -286,6 +286,15 @@ class Trainer_Graph(Trainer):
         }
         self.save_learning_curves(learning_curves)
         self.plot_learning_curves(learning_curves)
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(
+                os.path.join(*[self.log_dir, "fig"]),
+                f"{self.config.config_name}_{self.ckpt}_learning_curves.png",
+            )
+            wandb.log({"Learning Curves": wandb.Image(img_path)})
         return self.ckpt
 
 
@@ -520,6 +529,15 @@ class Trainer_CC(Trainer):
         }
         self.save_learning_curves(learning_curves)
         self.plot_learning_curves(learning_curves)
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(
+                os.path.join(*[self.log_dir, "fig"]),
+                f"{self.config.config_name}_{self.ckpt}_learning_curves.png",
+            )
+            wandb.log({"Learning Curves": wandb.Image(img_path)})
         return self.ckpt
 
 

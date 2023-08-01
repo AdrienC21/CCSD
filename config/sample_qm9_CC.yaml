@@ -18,6 +18,7 @@ sampler:
   n_steps: 1
 
 sample:
+  n_samples: 10000  # param only for mol datasets
   use_ema: False
   noise_removal: True
   probability_flow: False

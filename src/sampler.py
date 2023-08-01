@@ -11,6 +11,7 @@ import math
 
 import pickle
 import torch
+import wandb
 from easydict import EasyDict
 from moses.metrics.metrics import get_all_metrics
 
@@ -89,6 +90,7 @@ class Sampler_Graph(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
+        self.n_sample = None
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -151,9 +153,9 @@ class Sampler_Graph(Sampler):
         for r in range(num_sampling_rounds):
             t_start = time.time()
 
-            self.init_flags = init_flags(self.train_graph_list, self.configt).to(
-                self.device0
-            )
+            self.init_flags = init_flags(
+                self.train_graph_list, self.configt, self.n_sample
+            ).to(self.device0)
 
             x, adj, _ = self.sampling_fn(self.model_x, self.model_adj, self.init_flags)
 
@@ -173,6 +175,7 @@ class Sampler_Graph(Sampler):
         logger.log(100 * "=")
 
         # -------- Save samples & Plot --------
+        # Graphs
         save_dir = save_graph_list(
             self.log_folder_name, self.log_name + "_graphs", gen_graph_list
         )
@@ -184,6 +187,15 @@ class Sampler_Graph(Sampler):
             max_num=16,
             save_dir=self.log_folder_name,
         )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(
+                os.path.join(*["samples", "fig", self.log_folder_name]),
+                f"{self.config.ckpt}_graphs.png",
+            )
+            wandb.log({"Generated Graphs": wandb.Image(img_path)})
 
 
 class Sampler_CC(Sampler):
@@ -200,6 +212,7 @@ class Sampler_CC(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
+        self.n_sample = None
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -278,7 +291,7 @@ class Sampler_CC(Sampler):
             t_start = time.time()
 
             self.init_flags = init_flags(
-                self.train_CC_list, self.configt, is_cc=True
+                self.train_CC_list, self.configt, self.n_sample, is_cc=True
             ).to(self.device0)
 
             x, adj, rank2, _ = self.sampling_fn(
@@ -311,7 +324,7 @@ class Sampler_CC(Sampler):
         logger.log(100 * "=")
 
         # -------- Save samples & Plot --------
-        # ccs
+        # Ccs
         save_dir = save_cc_list(
             self.log_folder_name, self.log_name + "_ccs", gen_CC_list
         )
@@ -323,7 +336,16 @@ class Sampler_CC(Sampler):
             max_num=16,
             save_dir=self.log_folder_name,
         )
-        # graphs
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(
+                os.path.join(*["samples", "fig", self.log_folder_name]),
+                f"{self.config.ckpt}_ccs.png",
+            )
+            wandb.log({"Generated Combinatorial Complexes": wandb.Image(img_path)})
+        # Graphs
         save_dir = save_graph_list(
             self.log_folder_name, self.log_name + "_graphs", gen_graph_list
         )
@@ -335,6 +357,15 @@ class Sampler_CC(Sampler):
             max_num=16,
             save_dir=self.log_folder_name,
         )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(
+                os.path.join(*["samples", "fig", self.log_folder_name]),
+                f"{self.config.ckpt}_graphs.png",
+            )
+            wandb.log({"Generated Graphs": wandb.Image(img_path)})
 
 
 class Sampler_mol_Graph(Sampler):
@@ -351,6 +382,7 @@ class Sampler_mol_Graph(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
+        self.n_sample = self.config.sample.n_sample
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -402,9 +434,9 @@ class Sampler_mol_Graph(Sampler):
         with open(f"data/{self.configt.data.data.lower()}_test_nx.pkl", "rb") as f:
             self.test_graph_list = pickle.load(f)  # for NSPDK MMD
 
-        self.init_flags = init_flags(self.train_graph_list, self.configt, 10000).to(
-            self.device0
-        )
+        self.init_flags = init_flags(
+            self.train_graph_list, self.configt, self.n_sample
+        ).to(self.device0)
         x, adj, _ = self.sampling_fn(self.model_x, self.model_adj, self.init_flags)
 
         samples_int = quantize_mol(adj)
@@ -455,7 +487,7 @@ class Sampler_mol_Graph(Sampler):
         logger.log(100 * "=")
 
         # -------- Save samples & Plot --------
-        # graphs
+        # Graphs
         save_dir = save_graph_list(
             self.log_folder_name, self.log_name + "_mol_graphs", gen_graph_list
         )
@@ -467,7 +499,16 @@ class Sampler_mol_Graph(Sampler):
             max_num=16,
             save_dir=self.log_folder_name,
         )
-        # molecules
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(
+                os.path.join(*["samples", "fig", self.log_folder_name]),
+                f"{self.config.ckpt}_mol_graphs.png",
+            )
+            wandb.log({"Generated Mol Graphs": wandb.Image(img_path)})
+        # Molecules
         save_dir = save_molecule_list(
             self.log_folder_name, self.log_name + "_mols", gen_mols
         )
@@ -479,6 +520,15 @@ class Sampler_mol_Graph(Sampler):
             max_num=16,
             save_dir=self.log_folder_name,
         )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(
+                os.path.join(*["samples", "fig", self.log_folder_name]),
+                f"{self.config.ckpt}_mols.png",
+            )
+            wandb.log({"Generated Molecules": wandb.Image(img_path)})
 
 
 class Sampler_mol_CC(Sampler):
@@ -494,7 +544,10 @@ class Sampler_mol_CC(Sampler):
 
         self.config = config
         self.device = load_device()
-        self.device0 = self.device[0] if isinstance(self.device, list) else self.device
+        self.device0 = (
+            self.device[0] if isinstance(self.device, list) else self.device
+        )  #
+        self.n_sample = self.config.sample.n_sample
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -558,7 +611,7 @@ class Sampler_mol_CC(Sampler):
             self.test_graph_list = pickle.load(f)  # for NSPDK MMD
 
         self.init_flags = init_flags(
-            self.train_CC_list, self.configt, 10000, is_cc=True
+            self.train_CC_list, self.configt, self.n_sample, is_cc=True
         ).to(self.device0)
         x, adj, rank2, _ = self.sampling_fn(
             self.model_x, self.model_adj, self.model_rank2, self.init_flags
@@ -614,7 +667,7 @@ class Sampler_mol_CC(Sampler):
         logger.log(100 * "=")
 
         # -------- Save samples & Plot --------
-        # ccs
+        # Ccs
         save_dir = save_cc_list(
             self.log_folder_name, self.log_name + "_mol_ccs", gen_CC_list
         )
@@ -626,7 +679,16 @@ class Sampler_mol_CC(Sampler):
             max_num=16,
             save_dir=self.log_folder_name,
         )
-        # graphs
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(
+                os.path.join(*["samples", "fig", self.log_folder_name]),
+                f"{self.config.ckpt}_mol_ccs.png",
+            )
+            wandb.log({"Generated Mol Combinatorial Complexes": wandb.Image(img_path)})
+        # Graphs
         save_dir = save_graph_list(
             self.log_folder_name, self.log_name + "_mol_graphs", gen_graph_list
         )
@@ -638,7 +700,16 @@ class Sampler_mol_CC(Sampler):
             max_num=16,
             save_dir=self.log_folder_name,
         )
-        # molecules
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(
+                os.path.join(*["samples", "fig", self.log_folder_name]),
+                f"{self.config.ckpt}_mol_graphs.png",
+            )
+            wandb.log({"Generated Mol Graphs": wandb.Image(img_path)})
+        # Molecules
         save_dir = save_molecule_list(
             self.log_folder_name, self.log_name + "_mols", gen_mols
         )
@@ -650,6 +721,15 @@ class Sampler_mol_CC(Sampler):
             max_num=16,
             save_dir=self.log_folder_name,
         )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(
+                os.path.join(*["samples", "fig", self.log_folder_name]),
+                f"{self.config.ckpt}_mols.png",
+            )
+            wandb.log({"Generated Molecules": wandb.Image(img_path)})
 
 
 def get_sampler_from_config(

@@ -270,7 +270,7 @@ def preprocess(X: np.ndarray, max_len: int, is_hist: bool) -> np.ndarray:
     """
     X_p = np.zeros((len(X), max_len))
     for i in range(len(X)):
-        X_p[i, :len(X[i])] = X[i]
+        X_p[i, : len(X[i])] = X[i]
 
     if is_hist:
         row_sum = np.sum(X_p, axis=1)

@@ -43,7 +43,9 @@ def main(args: argparse.Namespace) -> None:
     ts = get_time(timezone)
     # Add some information to the config
     config.current_time = ts  # add the timestamp to the config
+    config.experiment_type = args.type  # add the experiment type to the config
     config.config_name = args.config  # add the config name to the config
+    config.general_config = general_config  # add the general config to the config
 
     # -------- Train --------
     if args.type == "train":
@@ -62,12 +64,12 @@ def main(args: argparse.Namespace) -> None:
         # Train the model
         trainer = get_trainer_from_config(config)
         ckpt = trainer.train(ts)
-        # Finish wandb
-        wandb.finish()
         if "sample" in config.keys():  # then sample from the trained model
             config.ckpt = ckpt  # to load the model just trained
             sampler = get_sampler_from_config(config)
             sampler.sample()
+        # Finish wandb
+        wandb.finish()
 
     # -------- Generation --------
     elif args.type == "sample":
