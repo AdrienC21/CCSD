@@ -7,17 +7,22 @@
 import math
 import os
 import warnings
-from typing import List, Optional, Union, Dict, Any
+from typing import List, Optional, Union, Dict, Any, FrozenSet
 
+import kaleido  # import kaleido FIRST to avoid any conflicts
+import imageio.v3 as imageio
 import matplotlib
+import plotly
 import pickle
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
+import plotly.graph_objs as go
 import hypernetx as hnx  # to visalize CC of dim 2
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from rdkit import Chem
-from rdkit.Chem import Draw
+from rdkit.Chem import AllChem, Draw
+from tqdm import tqdm
 
 
 warnings.filterwarnings(
@@ -101,6 +106,7 @@ def plot_graphs_list(
         pos = nx.spring_layout(G)
         nx.draw(G, pos, with_labels=False, **options)
         ax.title.set_text(title_str)
+        ax.set_axis_off()
     figure.suptitle(title)
 
     save_fig(save_dir=save_dir, title=title, is_sample=True)
@@ -180,6 +186,7 @@ def plot_cc_list(
         hnx.drawing.draw(H, with_edge_labels=False, with_node_labels=False, ax=ax)
         title_str = f"n={v}, e={e}, f={f}"
         ax.title.set_text(title_str)
+        ax.set_axis_off()
     figure.suptitle(title)
 
     save_fig(save_dir=save_dir, title=title, is_sample=True)
@@ -241,6 +248,7 @@ def plot_molecule_list(
         ax.imshow(mol_img)
         title_str = f"{Chem.MolToSmiles(mol)}"
         ax.title.set_text(title_str)
+        ax.set_axis_off()
     figure.suptitle(title)
 
     save_fig(save_dir=save_dir, title=title, is_sample=True)
@@ -291,3 +299,224 @@ def plot_lc(
     figure.suptitle("Learning curves")
 
     save_fig(save_dir=f_dir, title=filename, is_sample=False)
+
+
+def plot_3D_molecule(
+    molecule: Chem.Mol,
+    atomic_radii: Optional[Dict[str, float]] = None,
+    cpk_colors: Optional[Dict[str, str]] = None,
+) -> plotly.graph_objs.Figure:
+    """Creates a 3D plot of the molecule.
+
+    Args:
+        molecule (Chem.Mol): The RDKit molecule to plot.
+        atomic_radii (Optional[Dict[str, float]], optional): Dictionary mapping atomic symbols to atomic radii. Defaults to None.
+        cpk_colors (Optional[Dict[str, str]], optional): Dictionary mapping atomic symbols to CPK colors. Defaults to None.
+
+    Returns:
+        plotly.graph_objs.Figure: The 3D plotly figure of the molecule.
+    """
+    # Default atomic radii from https://en.wikipedia.org/wiki/Atomic_radii_of_the_elements_(data_page)
+    if atomic_radii is None:
+        atomic_radii = {"C": 0.77, "F": 0.71, "H": 0.38, "N": 0.75, "O": 0.73}
+    # Default CPK colors from https://en.wikipedia.org/wiki/CPK_coloring
+    if cpk_colors is None:
+        cpk_colors = {"C": "black", "F": "green", "H": "white", "N": "blue", "O": "red"}
+
+    # Generate 3D coordinates if not already present
+    if not molecule.GetNumConformers():
+        AllChem.EmbedMolecule(molecule, AllChem.ETKDG())
+
+    atom_symbols = [atom.GetSymbol() for atom in molecule.GetAtoms()]
+    atom_positions = molecule.GetConformer().GetPositions()
+    x_coordinates = [pos[0] for pos in atom_positions]
+    y_coordinates = [pos[1] for pos in atom_positions]
+    z_coordinates = [pos[2] for pos in atom_positions]
+    radii = [atomic_radii.get(symbol, 1.0) for symbol in atom_symbols]
+
+    # Get atom colors
+    colors = [cpk_colors.get(symbol, "gray") for symbol in atom_symbols]
+
+    def get_bonds() -> Dict[FrozenSet[int], float]:
+        """Generates a set of bonds from the RDKit molecule
+
+        Returns:
+            Dict[FrozenSet[int], float]: A dictionary mapping pairs of atom indices to bond lengths.
+        """
+        bonds = dict()
+        for bond in molecule.GetBonds():
+            i = bond.GetBeginAtomIdx()
+            j = bond.GetEndAtomIdx()
+            dist = np.linalg.norm(
+                np.array(atom_positions[i]) - np.array(atom_positions[j])
+            )
+            bonds[frozenset([i, j])] = dist
+        return bonds
+
+    def atom_trace() -> go.Scatter3d:
+        """Creates an atom trace for the plot
+
+        Returns:
+            go.Scatter3d: The atom trace
+        """
+        # Use radii information to adjust atom sizes
+        markers = dict(
+            color=colors,
+            line=dict(color="lightgray", width=2),
+            size=[r * 10 for r in radii],  # Multiply by 10 for better visibility
+            symbol="circle",
+            opacity=0.8,
+        )
+        trace = go.Scatter3d(
+            x=x_coordinates,
+            y=y_coordinates,
+            z=z_coordinates,
+            mode="markers",
+            marker=markers,
+            text=atom_symbols,
+            name="",
+        )
+        return trace
+
+    def bond_trace() -> go.Scatter3d:
+        """Creates a bond trace for the plot
+
+        Returns:
+            go.Scatter3d: The bond trace
+        """
+        trace = go.Scatter3d(
+            x=[],
+            y=[],
+            z=[],
+            hoverinfo="none",
+            mode="lines",
+            marker=dict(color="grey", size=7, opacity=1),
+        )
+        for i, j in bonds.keys():
+            trace["x"] += (x_coordinates[i], x_coordinates[j], None)
+            trace["y"] += (y_coordinates[i], y_coordinates[j], None)
+            trace["z"] += (z_coordinates[i], z_coordinates[j], None)
+        return trace
+
+    # Get the bonds
+    bonds = get_bonds()
+
+    # Create annotations
+    zipped = zip(range(len(atom_symbols)), x_coordinates, y_coordinates, z_coordinates)
+    annotations_id = [
+        dict(
+            text=num, x=x, y=y, z=z, showarrow=False, yshift=15, font=dict(color="blue")
+        )
+        for num, x, y, z in zipped
+    ]
+
+    annotations_length = []
+    for (i, j), dist in bonds.items():
+        x_middle, y_middle, z_middle = (
+            np.array(atom_positions[i]) + np.array(atom_positions[j])
+        ) / 2
+        annotation = dict(
+            text=f"{dist:.2f}",
+            x=x_middle,
+            y=y_middle,
+            z=z_middle,
+            showarrow=False,
+            yshift=15,
+        )
+        annotations_length.append(annotation)
+
+    # Atom indices & Bond lengths
+    annotations = annotations_id + annotations_length
+
+    # Create the layout
+    data = [atom_trace(), bond_trace()]
+    axis_params = dict(
+        showgrid=False,
+        showbackground=False,
+        showticklabels=False,
+        zeroline=False,
+        titlefont=dict(color="white"),
+    )
+    layout = dict(
+        scene=dict(
+            xaxis=axis_params,
+            yaxis=axis_params,
+            zaxis=axis_params,
+            annotations=annotations,
+        ),
+        margin=dict(r=0, l=0, b=0, t=0),
+        showlegend=False,
+    )
+
+    # Create the figure
+    fig = go.Figure(data=data, layout=layout)
+    return fig
+
+
+def rotate_molecule_animation(
+    figure: plotly.graph_objs.Figure,
+    filedir: str,
+    filename: str,
+    duration: float = 1.0,
+    frames: int = 30,
+    rotations_per_sec: float = 1.0,
+    overwrite: bool = False,
+    engine: str = "kaleido",
+) -> None:
+    """Creates an animated GIF of the molecule rotating.
+
+    Args:
+        figure (plotly.graph_objs.Figure): The 3D plotly figure of the molecule.
+        filedir (str): The directory to save the animated GIF.
+        filename (str): The filename of the output animated GIF.
+        duration (float, optional): Duration of the animation in seconds. Defaults to 1.0.
+        frames (int, optional): Number of frames in the animation. Defaults to 30.
+        rotations_per_sec (float, optional): Number of rotations per second. Defaults to 1.0.
+        overwrite (bool, optional): If True, overwrite the file if it already exists. Defaults to False.
+        engine (str, optional): engine to use for the .write_image plotly method. Defaults to "kaleido".
+    """
+    # Remove .gif extension if provided
+    if filename.lower().endswith(".gif"):
+        filename = filename[:-4]
+
+    if not overwrite:
+        # Check if the file already exists
+        if os.path.isfile(os.path.join(filedir, f"{filename}.gif")):
+            raise FileExistsError(
+                f"{filename}.gif already exists. Set overwrite=True to overwrite the file."
+            )
+
+    # Create the animation frames
+    animation_figures = []
+    print("Creating the animation ...")
+    for i in range(int(duration * frames)):
+        layout = figure.layout
+        layout["scene"]["camera"]["eye"] = dict(
+            x=2 * np.sin(2 * np.pi * i * rotations_per_sec / frames),
+            y=2 * np.cos(2 * np.pi * i * rotations_per_sec / frames),
+            z=1,
+        )
+        fig = go.Figure(data=figure.data, layout=layout)
+        animation_figures.append(fig)
+
+    # Write the images to disk
+    print("Saving the images ...")
+    for i in tqdm(range(len(animation_figures))):
+        fig = animation_figures[i]
+        fig.write_image(f"{filename}_{i}.png", engine=engine)
+
+    # Create the GIF
+    print("Loading the images ...")
+    images = []
+    for i in tqdm(range(int(duration * frames))):
+        images.append(imageio.imread(f"{filename}_{i}.png"))
+    print("Creating the gif ...")
+    imageio.imwrite(
+        os.path.join(filedir, f"{filename}.gif"), images, duration=1 / frames, loop=0
+    )
+
+    # Delete the images
+    print("Deleting the images ...")
+    for i in range(int(duration * frames)):
+        if os.path.exists(f"{filename}_{i}.png"):
+            os.remove(f"{filename}_{i}.png")

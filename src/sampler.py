@@ -41,6 +41,8 @@ from src.utils.plot import (
     save_cc_list,
     plot_molecule_list,
     save_molecule_list,
+    plot_3D_molecule,
+    rotate_molecule_animation,
 )
 from src.evaluation.stats import eval_graph_list
 from src.utils.mol_utils import (
@@ -529,6 +531,27 @@ class Sampler_mol_Graph(Sampler):
                 f"{self.config.ckpt}_mols.png",
             )
             wandb.log({"Generated Molecules": wandb.Image(img_path)})
+        # 3D Molecule
+        molecule = gen_mols[0]
+        mol_3d = plot_3D_molecule(molecule)
+        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filename = f"{self.config.ckpt}_mols_3d.gif"
+        rotate_molecule_animation(
+            mol_3d,
+            filedir=filedir,
+            filename=filename,
+            duration=1.0,
+            frames=30,
+            rotations_per_sec=1.0,
+            overwrite=True,
+            engine="kaleido",
+        )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(filedir, filename)
+            wandb.log({"Generated Molecules 3D": wandb.Image(img_path)})
 
 
 class Sampler_mol_CC(Sampler):
@@ -730,6 +753,27 @@ class Sampler_mol_CC(Sampler):
                 f"{self.config.ckpt}_mols.png",
             )
             wandb.log({"Generated Molecules": wandb.Image(img_path)})
+        # 3D Molecule
+        molecule = gen_mols[0]
+        mol_3d = plot_3D_molecule(molecule)
+        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filename = f"{self.config.ckpt}_mols_3d.gif"
+        rotate_molecule_animation(
+            mol_3d,
+            filedir=filedir,
+            filename=filename,
+            duration=1.0,
+            frames=30,
+            rotations_per_sec=1.0,
+            overwrite=True,
+            engine="kaleido",
+        )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(filedir, filename)
+            wandb.log({"Generated Molecule 3D": wandb.Image(img_path)})
 
 
 def get_sampler_from_config(
