@@ -429,14 +429,7 @@ def eval_graph_list(
     kernels: Optional[
         Dict[
             str,
-            Callable[
-                [
-                    List[nx.Graph],
-                    List[nx.Graph],
-                    Optional[Callable[[np.ndarray, np.ndarray], float]],
-                ],
-                float,
-            ],
+            Callable[[np.ndarray, np.ndarray], float],
         ]
     ] = None,
 ) -> Dict[str, float]:
@@ -446,7 +439,7 @@ def eval_graph_list(
         graph_ref_list (List[nx.Graph]): reference list of networkx graphs to be evaluated
         graph_pred_list (List[nx.Graph]): target list of networkx graphs to be evaluated
         methods (Optional[List[str]], optional): methods to be evaluated. Defaults to None.
-        kernels (Optional[Dict[str, Callable[[List[nx.Graph], List[nx.Graph], Optional[Callable[[np.ndarray, np.ndarray], float]]], float]]], optional): kernels to be used for each methods. Defaults to None.
+        kernels (Optional[Dict[str, Callable[[np.ndarray, np.ndarray], float]]], optional): kernels to be used for each methods. Defaults to None.
 
     Returns:
         Dict[str, float]: dictionary mapping method names to their corresponding scores

@@ -11,8 +11,10 @@ import torch.nn.functional as F
 import networkx as nx
 import numpy as np
 from easydict import EasyDict
+from rdkit import Chem
 
 from src.utils.errors import SymmetryError
+from src.utils.mol_utils import bond_decoder
 
 
 def mask_x(x: torch.Tensor, flags: Optional[torch.Tensor] = None) -> torch.Tensor:
@@ -387,3 +389,23 @@ def node_feature_to_matrix(x: torch.Tensor) -> torch.Tensor:
     x_pair = torch.cat([x_b, x_b.transpose(1, 2)], dim=-1)  # B x N x N x 2F
 
     return x_pair
+
+
+def nxs_to_mols(graphs: List[nx.Graph]) -> List[Chem.Mol]:
+    """Convert a list of nx graphs to a list of rdkit molecules
+
+    Args:
+        graphs (List[nx.Graph]): list of nx graphs
+
+    Returns:
+        List[Chem.Mol]: list of rdkit molecules
+    """
+    mols = []
+    for g in graphs:
+        mol = Chem.RWMol()
+        for node, symbol in g.nodes.data("label"):
+            mol.AddAtom(Chem.Atom(symbol))
+        for atom_a, atom_b, bond_type in g.edges.data("label"):
+            mol.AddBond(atom_a, atom_b, bond_decoder[bond_type])
+        mols.append(mol)
+    return mols

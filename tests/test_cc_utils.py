@@ -15,6 +15,7 @@ from rdkit import Chem
 from easydict import EasyDict
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
+from src.evaluation.mmd import gaussian_emd
 from src.utils.mol_utils import mols_to_nx
 from src.utils.graph_utils import pad_adjs
 from src.utils.cc_utils import (
@@ -41,6 +42,11 @@ from src.utils.cc_utils import (
     hodge_laplacian,
     default_mask,
     pow_tensor_cc,
+    is_empty_cc,
+    rank2_distrib_worker,
+    rank2_distrib_stats,
+    eval_CC_list,
+    load_cc_eval_settings,
 )
 
 
@@ -1001,3 +1007,151 @@ def test_pow_tensor_cc(
     )
     assert res.shape == (1, c, F.shape[1], F.shape[2])
     assert torch.allclose(res, expected_res)
+
+
+def test_is_empty_cc_empty_complex() -> None:
+    """Test is_empty_cc on an empty complex."""
+    cc = CombinatorialComplex()  # empty combinatorial complex
+    assert is_empty_cc(cc) is True
+
+
+def test_is_empty_cc_non_empty_complex() -> None:
+    """Test is_empty_cc on a non-empty complex."""
+    cc = CombinatorialComplex()
+    cc.add_cell((0,), rank=0)  # make it non-empty
+    assert is_empty_cc(cc) is False
+
+
+def test_rank2_distrib_worker(
+    create_incidence_1_2_test: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+) -> None:
+    """Test rank2_distrib_worker on a CombinatorialComplex with rank-2 cells.
+
+    Args:
+        create_incidence_1_2_test: A tuple of torch.Tensors representing the incidence matrices of a CombinatorialComplex.
+    """
+    X, A, F = create_incidence_1_2_test
+    d_min = 3
+    d_max = 4
+    cc = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)
+
+    result = rank2_distrib_worker(cc, d_min, d_max)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (d_max - d_min + 1,)
+    assert np.all(result >= 0)
+    assert np.sum(result) == len(cc.cells.hyperedge_dict.get(2, {}))
+    assert (result == np.array([1.0, 1.0])).all()
+
+
+def test_rank2_distrib_stats(
+    create_incidence_1_2_test: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+) -> None:
+    """Test rank2_distrib_stats on a CombinatorialComplex with rank-2 cells.
+
+    Args:
+        create_incidence_1_2_test (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): A tuple of torch.Tensors
+    """
+    # Create some test CombinatorialComplex instances
+    X, A, F = create_incidence_1_2_test
+    d_min = 3
+    d_max = 4
+    # CCs with different rank2_distrib:
+    cc1 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [1., 1.]
+    cc2 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [2., 1.]
+    cc3 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [3., 1.]
+    cc4 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [3., 2.]
+
+    # Add some cells to the CombinatorialComplex instances
+    cc2.add_cell(frozenset((0, 1, 2)), rank=2)
+    cc3.add_cell(frozenset((0, 1, 2)), rank=2)
+    cc4.add_cell(frozenset((0, 1, 2)), rank=2)
+    cc3.add_cell(frozenset((0, 2, 3)), rank=2)
+    cc4.add_cell(frozenset((0, 2, 3)), rank=2)
+    cc4.add_cell(frozenset((1, 2, 3, 4)), rank=2)
+
+    # Create the lists of CombinatorialComplex instances
+    cc_ref_list = [cc1, cc2]
+    cc_pred_list = [cc3, cc4]
+
+    # Compute the statistics
+    result = rank2_distrib_stats(cc_ref_list, cc_pred_list, d_min, d_max)
+    assert isinstance(result, float)
+    assert result == 0.008230171666159913
+
+
+def test_eval_CC_list(
+    create_incidence_1_2_test: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+) -> None:
+    """Test eval_CC_list with default methods and kernels.
+
+    Args:
+        create_incidence_1_2_test: A tuple of torch.Tensors representing the incidence matrices of a CombinatorialComplex.
+    """
+    # Create some test CombinatorialComplex instances
+    X, A, F = create_incidence_1_2_test
+    d_min = 3
+    d_max = 4
+    # CCs with different rank2_distrib:
+    cc1 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [1., 1.]
+    cc2 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [2., 1.]
+    cc3 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [3., 1.]
+    cc4 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [3., 2.]
+
+    # Add some cells to the CombinatorialComplex instances
+    cc2.add_cell(frozenset((0, 1, 2)), rank=2)
+    cc3.add_cell(frozenset((0, 1, 2)), rank=2)
+    cc4.add_cell(frozenset((0, 1, 2)), rank=2)
+    cc3.add_cell(frozenset((0, 2, 3)), rank=2)
+    cc4.add_cell(frozenset((0, 2, 3)), rank=2)
+    cc4.add_cell(frozenset((1, 2, 3, 4)), rank=2)
+
+    # Create the lists of CombinatorialComplex instances
+    cc_ref_list = [cc1, cc2]
+    cc_pred_list = [cc3, cc4]
+
+    # Call the function with default methods and kernels
+    result = eval_CC_list(
+        cc_ref_list,
+        cc_pred_list,
+        d_min,
+        d_max,
+        methods=["rank2_distrib"],
+        kernels={
+            "rank2_distrib": gaussian_emd,
+        },
+    )
+    assert isinstance(result, dict)
+    assert "rank2_distrib" in result
+    assert isinstance(result["rank2_distrib"], float)
+    assert result["rank2_distrib"] == 0.00823  # statistics round to 6 digits
+
+    # Try calling the function with an invalid method
+    with pytest.raises(KeyError):
+        eval_CC_list(
+            cc_ref_list,
+            cc_pred_list,
+            d_min,
+            d_max,
+            methods=["invalid_method"],
+            kernels={},
+        )
+
+
+def test_load_cc_eval_settings() -> None:
+    """Test load_cc_eval_settings."""
+    # Call the function to get the output
+    methods, kernels = load_cc_eval_settings()
+
+    # Define the expected values for methods and kernels
+    expected_methods = ["rank2_distrib"]
+    expected_kernels = {
+        "rank2_distrib": gaussian_emd,
+    }
+
+    # Check if the returned values match the expected values
+    assert (
+        methods == expected_methods
+    ), f"Expected methods: {expected_methods}, but got {methods}"
+    assert (
+        kernels == expected_kernels
+    ), f"Expected kernels: {expected_kernels}, but got {kernels}"

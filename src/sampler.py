@@ -33,7 +33,7 @@ from src.utils.loader import (
     load_sampling_fn,
     load_eval_settings,
 )
-from src.utils.graph_utils import adjs_to_graphs, quantize, quantize_mol
+from src.utils.graph_utils import adjs_to_graphs, quantize, quantize_mol, nxs_to_mols
 from src.utils.plot import (
     plot_graphs_list,
     save_graph_list,
@@ -57,6 +57,8 @@ from src.utils.cc_utils import (
     convert_CC_to_graphs,
     mols_to_cc,
     init_flags,
+    eval_CC_list,
+    load_cc_eval_settings,
 )
 from src.utils.mol_utils import is_molecular_config
 
@@ -169,17 +171,20 @@ class Sampler_Graph(Sampler):
         gen_graph_list = gen_graph_list[: len(self.test_graph_list)]
 
         # -------- Evaluation --------
+        # Eval graphs
         methods, kernels = load_eval_settings(self.config.data.data)
-        result_dict = eval_graph_list(
+        result_dict_graph = eval_graph_list(
             self.test_graph_list, gen_graph_list, methods=methods, kernels=kernels
         )
-        logger.log(f"MMD_full {result_dict}", verbose=False)
+        logger.log(
+            f"MMD_full {result_dict_graph}", verbose=False
+        )  # verbose=False cause already printed
         logger.log(100 * "=")
         if (
             self.config.experiment_type == "train"
         ) and self.config.general_config.use_wandb:
             # add scores to wandb
-            wandb.log(result_dict)
+            wandb.log(result_dict_graph)
 
         # -------- Save samples & Plot --------
         # Graphs
@@ -323,17 +328,31 @@ class Sampler_CC(Sampler):
         self.test_graph_list = convert_CC_to_graphs(self.test_CC_list)
         gen_graph_list = convert_CC_to_graphs(gen_CC_list)
 
+        # Eval graphs
         methods, kernels = load_eval_settings(self.config.data.data)
-        result_dict = eval_graph_list(
+        result_dict_graph = eval_graph_list(
             self.test_graph_list, gen_graph_list, methods=methods, kernels=kernels
         )
-        logger.log(f"MMD_full {result_dict}", verbose=False)
+
+        # Eval CCs
+        methods, kernels = load_cc_eval_settings()
+        result_dict_CC = eval_CC_list(
+            self.test_CC_list, gen_CC_list, methods=methods, kernels=kernels
+        )
+
+        logger.log(
+            f"MMD_full {result_dict_graph}", verbose=False
+        )  # verbose=False cause already printed
+        logger.log(
+            f"CCs eval {result_dict_CC}", verbose=False
+        )  # verbose=False cause already printed
         logger.log(100 * "=")
         if (
             self.config.experiment_type == "train"
         ) and self.config.general_config.use_wandb:
             # add scores to wandb
-            wandb.log(result_dict)
+            wandb.log(result_dict_graph)
+            wandb.log(result_dict_CC)
 
         # -------- Save samples & Plot --------
         # Ccs
@@ -479,6 +498,7 @@ class Sampler_mol_Graph(Sampler):
                 f.write(f"{smiles}\n")
 
         # -------- Evaluation --------
+        # Eval molecules
         scores = get_all_metrics(
             gen=gen_smiles,
             k=len(gen_smiles),
@@ -491,6 +511,14 @@ class Sampler_mol_Graph(Sampler):
             self.test_graph_list, gen_graph_list, methods=["nspdk"]
         )["nspdk"]
 
+        # Eval graphs
+        methods, kernels = load_eval_settings(self.config.data.data)
+        result_dict_graph = eval_graph_list(
+            self.test_graph_list, gen_graph_list, methods=methods, kernels=kernels
+        )
+        logger.log(
+            f"MMD_full {result_dict_graph}", verbose=False
+        )  # verbose=False cause already printed
         logger.log(f"Number of molecules: {num_mols}")
         logger.log(f"validity w/o correction: {num_mols_wo_correction / num_mols}")
         for metric in ["valid", f"unique@{len(gen_smiles)}", "FCD/Test", "Novelty"]:
@@ -510,6 +538,7 @@ class Sampler_mol_Graph(Sampler):
                     "NSPDK MMD": scores_nspdk,
                 }
             )
+            wandb.log(result_dict_graph)
 
         # -------- Save samples & Plot --------
         # Graphs
@@ -590,9 +619,7 @@ class Sampler_mol_CC(Sampler):
 
         self.config = config
         self.device = load_device()
-        self.device0 = (
-            self.device[0] if isinstance(self.device, list) else self.device
-        )
+        self.device0 = self.device[0] if isinstance(self.device, list) else self.device
         self.n_samples = self.config.sample.n_samples
 
     def __repr__(self) -> str:
@@ -656,6 +683,11 @@ class Sampler_mol_CC(Sampler):
         with open(f"data/{self.configt.data.data.lower()}_test_nx.pkl", "rb") as f:
             self.test_graph_list = pickle.load(f)  # for NSPDK MMD
 
+        # Create test_CC_list based on test_graph_list via a conversion to molecules
+        test_mol_list = nxs_to_mols(self.test_graph_list)
+        self.test_cc_list = mols_to_cc(test_mol_list)
+
+        # Generate samples
         self.init_flags = init_flags(
             self.train_CC_list, self.configt, self.n_samples, is_cc=True
         ).to(self.device0)
@@ -693,6 +725,7 @@ class Sampler_mol_CC(Sampler):
                 f.write(f"{smiles}\n")
 
         # -------- Evaluation --------
+        # Eval molecules
         scores = get_all_metrics(
             gen=gen_smiles,
             k=len(gen_smiles),
@@ -705,6 +738,24 @@ class Sampler_mol_CC(Sampler):
             self.test_graph_list, gen_graph_list, methods=["nspdk"]
         )["nspdk"]
 
+        # Eval graphs
+        methods, kernels = load_eval_settings(self.config.data.data)
+        result_dict_graph = eval_graph_list(
+            self.test_graph_list, gen_graph_list, methods=methods, kernels=kernels
+        )
+
+        # Eval CCs
+        methods, kernels = load_cc_eval_settings()
+        result_dict_CC = eval_CC_list(
+            self.test_CC_list, gen_CC_list, methods=methods, kernels=kernels
+        )
+
+        logger.log(
+            f"MMD_full {result_dict_graph}", verbose=False
+        )  # verbose=False cause already printed
+        logger.log(
+            f"CCs Eval {result_dict_CC}", verbose=False
+        )  # verbose=False cause already printed
         logger.log(f"Number of molecules: {num_mols}")
         logger.log(f"validity w/o correction: {num_mols_wo_correction / num_mols}")
         for metric in ["valid", f"unique@{len(gen_smiles)}", "FCD/Test", "Novelty"]:
@@ -724,6 +775,8 @@ class Sampler_mol_CC(Sampler):
                     "NSPDK MMD": scores_nspdk,
                 }
             )
+            wandb.log(result_dict_graph)
+            wandb.log(result_dict_CC)
 
         # -------- Save samples & Plot --------
         # Ccs

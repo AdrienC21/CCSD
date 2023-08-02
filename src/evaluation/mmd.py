@@ -37,11 +37,11 @@ def emd(x: np.ndarray, y: np.ndarray, distance_scaling: float = 1.0) -> float:
         float: EMD value
     """
     # Convert histogram values x and y to float, and make them equal len
-    x = x.astype(np.float)
-    y = y.astype(np.float)
+    x = x.astype(np.float64)
+    y = y.astype(np.float64)
     support_size = max(len(x), len(y))  # support of the two vectors
     # Diagonal-constant matrix
-    d_mat = toeplitz(range(support_size)).astype(np.float)
+    d_mat = toeplitz(range(support_size)).astype(np.float64)
     distance_mat = d_mat / distance_scaling
     x, y = process_tensor(x, y)
     # Calculate EMD
@@ -98,8 +98,8 @@ def gaussian(x: np.ndarray, y: np.ndarray, sigma: float = 1.0) -> float:
     """
 
     # Convert histogram values x and y to float, and make them equal len
-    x = x.astype(np.float)
-    y = y.astype(np.float)
+    x = x.astype(np.float64)
+    y = y.astype(np.float64)
     x, y = process_tensor(x, y)
     dist = np.linalg.norm(x - y, 2)
     return np.exp(-dist * dist / (2 * sigma * sigma))
@@ -120,8 +120,8 @@ def gaussian_tv(x: np.ndarray, y: np.ndarray, sigma: float = 1.0) -> float:
     """
 
     # Convert histogram values x and y to float, and make them equal len
-    x = x.astype(np.float)
-    y = y.astype(np.float)
+    x = x.astype(np.float64)
+    y = y.astype(np.float64)
     x, y = process_tensor(x, y)
 
     dist = np.abs(x - y).sum() / 2.0

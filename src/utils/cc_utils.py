@@ -4,7 +4,8 @@
 """cc_utils.py: utility functions for combinatorial complex data (flag masking, conversions, etc.).
 """
 
-from typing import List, Tuple, Dict, FrozenSet, Optional, Union, Any
+import concurrent.futures
+from typing import List, Tuple, Dict, FrozenSet, Optional, Union, Any, Callable
 from itertools import combinations
 from collections import defaultdict
 from math import comb
@@ -14,10 +15,13 @@ import numpy as np
 import networkx as nx
 from rdkit import Chem
 from easydict import EasyDict
+from datetime import datetime
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
 from src.utils.graph_utils import pad_adjs, node_flags, graphs_to_tensor
 from src.utils.mol_utils import bond_decoder, SYMBOL_TO_AN, AN_TO_SYMBOL
+from src.evaluation.stats import PRINT_TIME
+from src.evaluation.mmd import compute_mmd, gaussian_emd, gaussian, gaussian_tv
 
 
 DIC_MOL_CONV = {0: "C", 1: "N", 2: "O", 3: "F"}
@@ -886,3 +890,158 @@ def pow_tensor_cc(
     xc = torch.cat(xc, dim=1)
 
     return xc
+
+
+def is_empty_cc(cc: CombinatorialComplex) -> bool:
+    """Check if a combinatorial complex is empty
+
+    Args:
+        cc (CombinatorialComplex): combinatorial complex
+
+    Returns:
+        bool: whether the combinatorial complex is empty
+    """
+    return cc.number_of_cells() == 0
+
+
+def rank2_distrib_worker(
+    CC: CombinatorialComplex, d_min: int, d_max: int
+) -> np.ndarray:
+    """Function for computing the rank-2 cell histogram of a combinatorial complex.
+
+    Returns:
+        np.ndarray: rank-2 cell histogram
+        d_min (int): minimum dimension of the rank-2 cells
+        d_max (int): maximum dimension of the rank-2 cells
+    """
+    rank2_cells = CC.cells.hyperedge_dict.get(2, {})
+    rank2_distrib = np.zeros(d_max - d_min + 1)
+    for cell in rank2_cells:
+        length = len(cell)
+        if (d_min <= length) and (length <= d_max):
+            rank2_distrib[length - d_min] += 1
+    return rank2_distrib
+
+
+def rank2_distrib_stats(
+    cc_ref_list: List[CombinatorialComplex],
+    cc_pred_list: List[CombinatorialComplex],
+    d_min: int,
+    d_max: int,
+    kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
+    is_parallel: bool = True,
+) -> float:
+    """Compute the MMD distance between the nummber of rank-2 cells distributions of two unordered sets of combinatorial complexes.
+
+    Args:
+        cc_ref_list (List[CombinatorialComplex]): reference list of toponetx combinatorial complexes to be evaluated
+        cc_pred_list (List[CombinatorialComplex]): target list of toponetx combinatorial complexes to be evaluated
+        d_min (int): minimum dimension of the rank-2 cells
+        d_max (int): maximum dimension of the rank-2 cells
+        kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
+        is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
+
+    Returns:
+        float: MMD distance
+    """
+
+    sample_ref = []
+    sample_pred = []
+    # Remove empty CCs if generated
+    cc_pred_list_remove_empty = [cc for cc in cc_pred_list if not is_empty_cc(cc)]
+
+    prev = datetime.now()
+    if is_parallel:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for rank2_distrib_hist in executor.map(
+                lambda cc: rank2_distrib_worker(cc, d_min, d_max), cc_ref_list
+            ):
+                sample_ref.append(rank2_distrib_hist)
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            for rank2_distrib_hist in executor.map(
+                lambda cc: rank2_distrib_worker(cc, d_min, d_max),
+                cc_pred_list_remove_empty,
+            ):
+                sample_pred.append(rank2_distrib_hist)
+
+    else:
+        for i in range(len(cc_ref_list)):
+            rank2_distrib_temp = rank2_distrib_worker(cc_ref_list[i], d_min, d_max)
+            sample_ref.append(rank2_distrib_temp)
+        for i in range(len(cc_pred_list_remove_empty)):
+            rank2_distrib_temp = rank2_distrib_worker(
+                cc_pred_list_remove_empty[i], d_min, d_max
+            )
+            sample_pred.append(rank2_distrib_temp)
+    # Compute MMD
+    mmd_dist = compute_mmd(sample_ref, sample_pred, kernel=kernel)
+    elapsed = datetime.now() - prev
+    if PRINT_TIME:
+        print("Time computing degree mmd: ", elapsed)
+    return mmd_dist
+
+
+# Dictionary mapping method names to functions to compute different MMD distances
+CC_METHOD_NAME_TO_FUNC = {
+    "rank2_distrib": rank2_distrib_stats,
+}
+
+
+def eval_CC_list(
+    cc_ref_list: List[CombinatorialComplex],
+    cc_pred_list: List[CombinatorialComplex],
+    d_min: int,
+    d_max: int,
+    methods: Optional[List[str]] = None,
+    kernels: Optional[Dict[str, Callable[[np.ndarray, np.ndarray], float]]] = None,
+) -> Dict[str, float]:
+    """Evaluate generated generic combinatorial complexes against a reference set of combinatorial complexes using a set of methods and their corresponding kernels.
+
+    Args:
+        cc_ref_list (List[CombinatorialComplex]): reference list of toponetx combinatorial complexes to be evaluated
+        cc_pred_list (List[CombinatorialComplex]): target list of toponetx combinatorial complexes to be evaluated
+        d_min (int): minimum dimension of the rank-2 cells
+        d_max (int): maximum dimension of the rank-2 cells
+        methods (Optional[List[str]], optional): methods to be evaluated. Defaults to None.
+        kernels (Optional[Dict[str, Callable[[np.ndarray, np.ndarray], float]]], optional): kernels to be used for each methods. Defaults to None.
+
+    Returns:
+        Dict[str, float]: dictionary mapping method names to their corresponding scores
+    """
+    if methods is None:  # by default, evaluate the methods ["rank2_distrib"]
+        methods = ["rank2_distrib"]
+    results = {}
+    for method in methods:
+        results[method] = round(
+            CC_METHOD_NAME_TO_FUNC[method](
+                cc_ref_list, cc_pred_list, d_min, d_max, kernels[method]
+            ),
+            6,
+        )
+        print(
+            "\033[91m"
+            + f"{method:9s}"
+            + "\033[0m"
+            + " : "
+            + "\033[94m"
+            + f"{results[method]:.6f}"
+            + "\033[0m"
+        )
+    return results
+
+
+def load_cc_eval_settings() -> (
+    Tuple[List[str], Dict[str, Callable[[np.ndarray, np.ndarray], float]]]
+):
+    """Load the methods and kernels to be used for evaluating combinatorial complexes.
+
+    Returns:
+        Tuple[List[str], Dict[str, Callable[[np.ndarray, np.ndarray], float]]]: methods and kernels to be used for evaluating combinatorial complexes
+    """
+    # Methods to use (from [rank2_distrib], see utils/cc_utils.py)
+    methods = ["rank2_distrib"]
+    # Kernels to use for each method (from [gaussian, gaussian_emd, gaussian_tv], see evaluation/mmd.py)
+    kernels = {
+        "rank2_distrib": gaussian_emd,
+    }
+    return methods, kernels

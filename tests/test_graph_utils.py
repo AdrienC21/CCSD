@@ -10,7 +10,7 @@ import torch
 import pytest
 import networkx as nx
 import numpy as np
-from easydict import EasyDict
+from rdkit import Chem
 
 from src.utils.errors import SymmetryError
 from src.utils.graph_utils import (
@@ -28,6 +28,7 @@ from src.utils.graph_utils import (
     graphs_to_tensor,
     graphs_to_adj,
     node_feature_to_matrix,
+    nxs_to_mols,
 )
 
 
@@ -419,3 +420,43 @@ def test_node_feature_to_matrix() -> None:
         dtype=torch.float32,
     )
     assert torch.allclose(result, expected_result)
+
+
+def test_nxs_to_mols() -> None:
+    """Test the nxs_to_mols function."""
+    g = nx.Graph()
+    # Add edge labels
+    for atom_a, atom_b, bond_type in [
+        (0, 1, 2),
+        (1, 2, 1),
+        (2, 3, 1),
+        (2, 5, 1),
+        (2, 8, 1),
+        (3, 4, 1),
+        (3, 8, 1),
+        (4, 5, 1),
+        (5, 6, 1),
+        (6, 7, 1),
+        (7, 8, 1),
+    ]:
+        g.add_edge(atom_a, atom_b, label=bond_type)
+    # Add node labels
+    for node, symbol in [
+        (0, "O"),
+        (1, "C"),
+        (2, "C"),
+        (3, "C"),
+        (4, "C"),
+        (5, "C"),
+        (6, "C"),
+        (7, "C"),
+        (8, "N"),
+    ]:
+        g.nodes[node]["label"] = symbol
+    # To undirected
+    g = g.to_undirected()
+    # Convert graph to mol
+    mol = nxs_to_mols([g])[0]
+    # Check if the molecule is correct by comparing the smiles
+    smiles = Chem.MolToSmiles(mol)
+    assert smiles == "O=CC12C3CCN1CC32"
