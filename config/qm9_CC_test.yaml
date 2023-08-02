@@ -31,7 +31,7 @@ sde:
 
 model:
   x: ScoreNetworkX
-  adj: ScoreNetworkA
+  adj: ScoreNetworkA_CC
   rank2: ScoreNetworkF
   conv: GCN
   num_heads: 4

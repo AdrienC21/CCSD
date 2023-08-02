@@ -1045,3 +1045,59 @@ def load_cc_eval_settings() -> (
         "rank2_distrib": gaussian_emd,
     }
     return methods, kernels
+
+
+def adj_to_hodgedual(adj: torch.Tensor) -> torch.Tensor:
+    """Convert a batch and channels of adjacency matrices to a batch and channels of Hodge dual adjacency matrices.
+
+    Args:
+        adj (torch.Tensor): adjacency matrices (B x C x N x N)
+
+    Returns:
+        torch.Tensor: Hodge dual adjacency matrices (B x C x (NC2) x (NC2))
+    """
+    # Get shapes
+    batch_size, channels, N, _ = adj.shape
+    hodgedual_size = (N * (N - 1)) // 2
+    # Extract diagonal coefficients that become diagonal coefficients of Hodge dual
+    upper_triangle = torch.triu(adj, diagonal=1)
+    diag = torch.masked_select(upper_triangle, upper_triangle != 0)
+    # Reshape to (B x C x (NC2))
+    diag = diag.reshape(batch_size, channels, hodgedual_size)
+    # Convert to Hodge dual
+    hodgedual = torch.diag_embed(diag)
+    hodgedual = hodgedual.to(adj.device)
+    return hodgedual
+
+
+def hodgedual_to_adj(hodgedual: torch.Tensor) -> torch.Tensor:
+    """Convert a batch and channels of Hodge dual adjacency matrices to a batch and channels of adjacency matrices.
+
+    Args:
+        hodgedual (torch.Tensor): Hodge dual adjacency matrices (B x C x (NC2) x (NC2))
+
+    Returns:
+        torch.Tensor: adjacency matrices (B x C x N x N)
+    """
+    # Get shapes
+    batch_size, channels, hodgedual_size, _ = hodgedual.shape
+    N = int(
+        (1 + (1 + 8 * hodgedual_size) ** 0.5) / 2
+    )  # solve (N*(N-1))/2 = hodgedual_size
+
+    # Extract diagonal coefficients from Hodge dual along dimensions (NC2) x (NC2)
+    diag = hodgedual.diagonal(dim1=2, dim2=3)
+
+    # Reshape to (B x C x N x N)
+    rows, cols = torch.tril_indices(N, N, offset=-1)  # indices of lower triangle
+    # Sort to go from (0,1) ... (0,N-1), (1,2) etc.
+    sorted_index = sorted(zip(rows, cols), key=lambda pair: (pair[1], pair[0]))
+    rows, cols = zip(*sorted_index)
+    # Convert to tensors
+    rows, cols = torch.tensor(rows, device="cpu"), torch.tensor(cols, device="cpu")
+    # Create adjacency matrices
+    adj = torch.zeros(batch_size, channels, N, N, device=hodgedual.device)
+    adj[:, :, rows, cols] = diag
+    adj[:, :, cols, rows] = diag  # symmetrize the adjacency matrices (undirected)
+
+    return adj

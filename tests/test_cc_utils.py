@@ -47,6 +47,8 @@ from src.utils.cc_utils import (
     rank2_distrib_stats,
     eval_CC_list,
     load_cc_eval_settings,
+    adj_to_hodgedual,
+    hodgedual_to_adj,
 )
 
 
@@ -1155,3 +1157,65 @@ def test_load_cc_eval_settings() -> None:
     assert (
         kernels == expected_kernels
     ), f"Expected kernels: {expected_kernels}, but got {kernels}"
+
+
+@pytest.fixture
+def create_batch_channel_adj_tensor() -> torch.Tensor:
+    """Create a batch of channel adjacency tensors for testing purposes.
+    The adjacency matrices are 4x4 matrices with 1 channel and 1 batch dimension and are symmetric.
+
+    Returns:
+        torch.Tensor: A batch of channel adjacency tensors.
+    """
+    batch_size = 1
+    channels = 1
+    # Starting from a 4x4 adjacency matrix
+    adj = torch.tensor(
+        [[0, 2, 3, 4], [0, 0, 7, 8], [0, 0, 0, 12], [0, 0, 0, 0]],
+        dtype=torch.float32,
+    )
+    adj = adj + adj.transpose(-1, -2)
+    # Add channels
+    adj = adj.unsqueeze(0)
+    adj = torch.cat([adj for _ in range(channels)], dim=0)
+    # Add batch dimension
+    adj = adj.unsqueeze(0)
+    adj = torch.cat([adj for _ in range(batch_size)], dim=0)
+
+    return adj
+
+
+def test_adj_to_hodgedual(create_batch_channel_adj_tensor: torch.Tensor) -> None:
+    """Test adj_to_hodgedual.
+
+    Args:
+        create_batch_channel_adj_tensor: A batch of channel adjacency tensors.
+    """
+    hodgedual = adj_to_hodgedual(create_batch_channel_adj_tensor)
+    expected_hodgedual = torch.tensor(
+        [
+            [
+                [
+                    [2.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 3.0, 0.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 4.0, 0.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 7.0, 0.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 8.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 12.0],
+                ]
+            ]
+        ]
+    )
+    assert torch.allclose(hodgedual, expected_hodgedual)
+
+
+def test_hodgedual_to_adj(create_batch_channel_adj_tensor: torch.Tensor) -> None:
+    """Test hodgedual_to_adj.
+
+    Args:
+        create_batch_channel_adj_tensor (torch.Tensor): A batch of channel adjacency tensors.
+    """
+    original_adj = create_batch_channel_adj_tensor
+    hodgedual = adj_to_hodgedual(original_adj)
+    adj = hodgedual_to_adj(hodgedual)
+    assert torch.allclose(original_adj, adj)
