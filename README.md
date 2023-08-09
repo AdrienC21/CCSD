@@ -137,7 +137,7 @@ pytest tests/ -W ignore::DeprecationWarning
 If you use CCSD in your research or work, please consider citing it using the following BibTeX entry:
 
 ```bibtex
-[To be completed, and complete the citation information in the CITATION.cff file provided in the repository.]
+Carrel, A. (2023). CCSD - Combinatorial Complex Score-based Diffusion model using stochastic differential equations. (Version 1.0.0) [Computer software]. https://github.com/AdrienC21/CCSD
 ```
 
 ## Acknowledgement

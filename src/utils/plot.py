@@ -14,6 +14,7 @@ import imageio.v3 as imageio
 import matplotlib
 import plotly
 import pickle
+import torch
 import networkx as nx
 import numpy as np
 import matplotlib.pyplot as plt
@@ -23,6 +24,9 @@ from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from rdkit import Chem
 from rdkit.Chem import AllChem, Draw
 from tqdm import tqdm
+
+from src.utils.graph_utils import quantize, adjs_to_graphs
+from src.utils.mol_utils import construct_mol
 
 
 warnings.filterwarnings(
@@ -512,7 +516,7 @@ def rotate_molecule_animation(
         images.append(imageio.imread(f"{filename}_{i}.png"))
     print("Creating the gif ...")
     imageio.imwrite(
-        os.path.join(filedir, f"{filename}.gif"), images, duration=1 / frames, loop=0
+        os.path.join(filedir, f"{filename}.gif"), images, duration=(1 / frames), loop=0
     )
 
     # Delete the images
@@ -520,3 +524,110 @@ def rotate_molecule_animation(
     for i in range(int(duration * frames)):
         if os.path.exists(f"{filename}_{i}.png"):
             os.remove(f"{filename}_{i}.png")
+
+
+def plot_diffusion_trajectory(
+    gen_obj: List[torch.Tensor], is_molecule: bool = False, dataset: str = "QM9"
+) -> Union[plotly.graph_objs.Figure, matplotlib.figure.Figure]:
+    """Return the figure of one generated object as part of a diffusion trajectory.
+
+    Args:
+        gen_obj (List[torch.Tensor]): The generated object (node features (x) and adjacency matrix (adj), and rank-2 incidence matrix (rank2) if we generated combinatorial complexes).
+        is_molecule (bool, optional): if True, we plot a molecule, otherwise a graph. Defaults to False.
+        dataset (str, optional): The dataset from which the object was generated. Defaults to "QM9" (only used if is_molecule=True).
+
+    Returns:
+        Union[plotly.graph_objs.Figure, matplotlib.figure.Figure]: The figure of the generated object.
+    """
+    x, adj = gen_obj[0], gen_obj[1]
+    fig = plt.figure(figsize=(10, 10))
+    if is_molecule:
+        if dataset == "QM9":
+            atomic_num_list = [6, 7, 8, 9, 0]
+        else:
+            atomic_num_list = [6, 7, 8, 9, 15, 16, 17, 35, 53, 0]
+        mol = construct_mol(x, adj, atomic_num_list)
+        mol_img = Draw.MolToImage(mol, size=(300, 300))
+        plt.imshow(mol_img)
+        title_str = f"{Chem.MolToSmiles(mol)}"
+    else:
+        samples_int = quantize(adj.unsqueeze(0))
+        G = adjs_to_graphs(samples_int, True)[0]
+        G.remove_nodes_from(list(nx.isolates(G)))
+        e = G.number_of_edges()
+        v = G.number_of_nodes()
+        l = nx.number_of_selfloops(G)
+        title_str = f"e={e - l}, n={v}"
+        pos = nx.spring_layout(G)
+        nx.draw(G, pos, with_labels=False, **options)
+    plt.title(title_str)
+    plt.axis("off")
+    return fig
+
+
+def diffusion_animation(
+    diff_traj: List[List[torch.Tensor]],
+    is_molecule: bool = False,
+    filedir: str = "./",
+    filename: str = "diffusion_animation",
+    fps: int = 25,
+    overwrite: bool = True,
+    engine: str = "kaleido",
+) -> None:
+    """Creates an animated GIF of the diffusion trajectory.
+
+    Args:
+        diff_traj (List[List[torch.Tensor]]): The diffusion trajectory (list of generated node features (x) and adjacency matrices (adj), and rank-2 incidence matrices (rank2) if we generated combinatorial complexes).
+        is_molecule (bool, optional): If True, the frames are molecules not graphs. Defaults to False.
+        filedir (str, optional): The directory to save the animated GIF. Defaults to "./".
+        filename (str, optional): The filename of the output animated GIF. Defaults to "diffusion_animation".
+        fps (int, optional): Number of frames per second. Defaults to 25.
+        overwrite (bool, optional): If True, overwrite the file if it already exists. Defaults to True.
+        engine (str, optional): engine to use for the .write_image plotly method if plotly is used. Defaults to "kaleido".
+    """
+    # Remove .gif extension if provided
+    if filename.lower().endswith(".gif"):
+        filename = filename[:-4]
+
+    if not overwrite:
+        # Check if the file already exists
+        if os.path.isfile(os.path.join(filedir, f"{filename}.gif")):
+            raise FileExistsError(
+                f"{filename}.gif already exists. Set overwrite=True to overwrite the file."
+            )
+
+    # Create the animation frames
+    animation_figures = []
+    print("Creating the animation ...")
+    for i in tqdm(range(len(diff_traj))):
+        fig = plot_diffusion_trajectory(diff_traj[i], is_molecule=is_molecule)
+        animation_figures.append(fig)
+
+    # Write the images to disk
+    print("Saving the images ...")
+    for i in tqdm(range(len(animation_figures))):
+        fig = animation_figures[i]
+        if isinstance(fig, plotly.graph_objs.Figure):  # plotly
+            fig.write_image(f"diffusion_{i}.png", engine=engine)
+        elif isinstance(fig, matplotlib.figure.Figure):  # matplotlib
+            fig.savefig(f"diffusion_{i}.png")
+        else:
+            raise TypeError(
+                "The figure must be either a plotly.graph_objs.Figure or a matplotlib.figure.Figure. "
+                "Otherwise, it has not been implemented yet."
+            )
+
+    # Create the GIF
+    print("Loading the images ...")
+    images = []
+    for i in tqdm(range(len(animation_figures))):
+        images.append(imageio.imread(f"diffusion_{i}.png"))
+    print("Creating the gif ...")
+    filepath = os.path.join(filedir, filename)
+    imageio.imwrite(f"{filepath}.gif", images, duration=(1 / fps), loop=0)
+
+    # Delete the images
+    print("Deleting the images ...")
+    for i in range(len(animation_figures)):
+        if os.path.exists(f"diffusion_{i}.png"):
+            os.remove(f"diffusion_{i}.png")

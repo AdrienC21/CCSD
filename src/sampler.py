@@ -43,6 +43,7 @@ from src.utils.plot import (
     save_molecule_list,
     plot_3D_molecule,
     rotate_molecule_animation,
+    diffusion_animation,
 )
 from src.evaluation.stats import eval_graph_list
 from src.utils.mol_utils import (
@@ -161,7 +162,9 @@ class Sampler_Graph(Sampler):
                 self.train_graph_list, self.configt, self.n_samples
             ).to(self.device0)
 
-            x, adj, _ = self.sampling_fn(self.model_x, self.model_adj, self.init_flags)
+            x, adj, _, diff_traj = self.sampling_fn(
+                self.model_x, self.model_adj, self.init_flags
+            )
 
             logger.log(f"Round {r} : {time.time()-t_start:.2f}s")
 
@@ -208,6 +211,24 @@ class Sampler_Graph(Sampler):
                 f"{self.config.ckpt}_graphs.png",
             )
             wandb.log({"Generated Graphs": wandb.Image(img_path)})
+        # Diffusion trajectory animation
+        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+        diffusion_animation(
+            diff_traj=diff_traj,
+            is_molecule=False,
+            filedir=filedir,
+            filename=filename,
+            fps=25,
+            overwrite=True,
+            engine="kaleido",
+        )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(filedir, filename)
+            wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
 
 
 class Sampler_CC(Sampler):
@@ -306,7 +327,7 @@ class Sampler_CC(Sampler):
                 self.train_CC_list, self.configt, self.n_samples, is_cc=True
             ).to(self.device0)
 
-            x, adj, rank2, _ = self.sampling_fn(
+            x, adj, rank2, _, diff_traj = self.sampling_fn(
                 self.model_x, self.model_adj, self.model_rank2, self.init_flags
             )
 
@@ -397,6 +418,24 @@ class Sampler_CC(Sampler):
                 f"{self.config.ckpt}_graphs.png",
             )
             wandb.log({"Generated Graphs": wandb.Image(img_path)})
+        # Diffusion trajectory animation
+        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+        diffusion_animation(
+            diff_traj=diff_traj,
+            is_molecule=False,
+            filedir=filedir,
+            filename=filename,
+            fps=25,
+            overwrite=True,
+            engine="kaleido",
+        )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(filedir, filename)
+            wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
 
 
 class Sampler_mol_Graph(Sampler):
@@ -468,7 +507,9 @@ class Sampler_mol_Graph(Sampler):
         self.init_flags = init_flags(
             self.train_graph_list, self.configt, self.n_samples
         ).to(self.device0)
-        x, adj, _ = self.sampling_fn(self.model_x, self.model_adj, self.init_flags)
+        x, adj, _, diff_traj = self.sampling_fn(
+            self.model_x, self.model_adj, self.init_flags
+        )
 
         samples_int = quantize_mol(adj)
 
@@ -604,6 +645,40 @@ class Sampler_mol_Graph(Sampler):
             # add plots to wandb
             img_path = os.path.join(filedir, filename)
             wandb.log({"Generated Molecules 3D": wandb.Image(img_path)})
+        # Diffusion trajectory animation - Graphs and molecules
+        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+        diffusion_animation(
+            diff_traj=diff_traj,
+            is_molecule=False,
+            filedir=filedir,
+            filename=filename,
+            fps=25,
+            overwrite=True,
+            engine="kaleido",
+        )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(filedir, filename)
+            wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
+        filename = f"{self.config.ckpt}_diff_traj_mol.gif"
+        diffusion_animation(
+            diff_traj=diff_traj,
+            is_molecule=True,
+            filedir=filedir,
+            filename=filename,
+            fps=25,
+            overwrite=True,
+            engine="kaleido",
+        )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(filedir, filename)
+            wandb.log({"Diffusion Trajectory Molecule": wandb.Image(img_path)})
 
 
 class Sampler_mol_CC(Sampler):
@@ -691,7 +766,7 @@ class Sampler_mol_CC(Sampler):
         self.init_flags = init_flags(
             self.train_CC_list, self.configt, self.n_samples, is_cc=True
         ).to(self.device0)
-        x, adj, rank2, _ = self.sampling_fn(
+        x, adj, rank2, _, diff_traj = self.sampling_fn(
             self.model_x, self.model_adj, self.model_rank2, self.init_flags
         )
 
@@ -863,6 +938,40 @@ class Sampler_mol_CC(Sampler):
             # add plots to wandb
             img_path = os.path.join(filedir, filename)
             wandb.log({"Generated Molecule 3D": wandb.Image(img_path)})
+        # Diffusion trajectory animation - Graphs and molecules
+        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+        diffusion_animation(
+            diff_traj=diff_traj,
+            is_molecule=False,
+            filedir=filedir,
+            filename=filename,
+            fps=25,
+            overwrite=True,
+            engine="kaleido",
+        )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(filedir, filename)
+            wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
+        filename = f"{self.config.ckpt}_diff_traj_mol.gif"
+        diffusion_animation(
+            diff_traj=diff_traj,
+            is_molecule=True,
+            filedir=filedir,
+            filename=filename,
+            fps=25,
+            overwrite=True,
+            engine="kaleido",
+        )
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            # add plots to wandb
+            img_path = os.path.join(filedir, filename)
+            wandb.log({"Diffusion Trajectory Molecule": wandb.Image(img_path)})
 
 
 def get_sampler_from_config(

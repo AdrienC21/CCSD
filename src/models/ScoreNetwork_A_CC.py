@@ -18,7 +18,6 @@ from src.utils.graph_utils import (
 from src.utils.cc_utils import default_mask, adj_to_hodgedual, hodgedual_to_adj
 from src.models.attention import AttentionLayer
 from src.models.hodge_attention import HodgeAdjAttentionLayer
-from src.models.ScoreNetwork_A import BaselineNetwork
 
 
 class ScoreNetworkA_CC(torch.nn.Module):

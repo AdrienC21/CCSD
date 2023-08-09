@@ -6,7 +6,7 @@ The correctors consist of leveraging score-based MCMC methods.
 """
 
 import abc
-from typing import Callable, Optional, Tuple, Sequence, Union, Any
+from typing import Callable, Optional, Tuple, Sequence, Union, Any, List
 
 import torch
 import numpy as np
@@ -860,7 +860,18 @@ def get_pc_sampler(
     shape_rank2: Optional[Sequence[int]] = None,
     d_min: Optional[int] = None,
     d_max: Optional[int] = None,
-):
+) -> Union[
+    Callable[
+        [torch.nn.Module, torch.nn.Module, torch.Tensor],
+        Tuple[torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]],
+    ],
+    Callable[
+        [torch.nn.Module, torch.nn.Module, torch.nn.Module, torch.Tensor],
+        Tuple[
+            torch.Tensor, torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]
+        ],
+    ],
+]:
     """Returns a PC sampler.
 
     Args:
@@ -883,6 +894,9 @@ def get_pc_sampler(
         shape_rank2 (Optional[Sequence[int]], optional): shape of the higher-order features. Defaults to None.
         d_min (Optional[int], optional): minimum size of rank-2 cells (if combinatorial complexes). Defaults to None.
         d_max (Optional[int], optional): maximum size of rank-2 cells (if combinatorial complexes). Defaults to None.
+
+    Returns:
+        Union[Callable[[torch.nn.Module, torch.nn.Module, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]]], Callable[[torch.nn.Module, torch.nn.Module, torch.nn.Module, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]]]]: PC sampler
     """
 
     if not (is_cc):
@@ -891,7 +905,7 @@ def get_pc_sampler(
             model_x: torch.nn.Module,
             model_adj: torch.nn.Module,
             init_flags: torch.Tensor,
-        ) -> Tuple[torch.Tensor, torch.Tensor, float]:
+        ) -> Tuple[torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]]:
             """PC sampler: sample from the model.
 
             Args:
@@ -900,7 +914,7 @@ def get_pc_sampler(
                 init_flags (torch.Tensor): initial flags
 
             Returns:
-                Tuple[torch.Tensor, torch.Tensor, float]: node features, adjacency matrix, timestep
+                Tuple[torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]]: node features, adjacency matrix, timestep, one complete diffusion trajectory
             """
 
             # Get score functions
@@ -928,6 +942,9 @@ def get_pc_sampler(
                 "adj", sde_adj, score_fn_adj, snr, scale_eps, n_steps
             )
 
+            # One complete diffusion trajectory
+            diff_traj = []
+
             with torch.no_grad():
                 # Initial sample
                 x = sde_x.prior_sampling(shape_x).to(device)
@@ -953,11 +970,23 @@ def get_pc_sampler(
                     _x = x
                     x, x_mean = predictor_obj_x.update_fn(x, adj, flags, vec_t)
                     adj, adj_mean = predictor_obj_adj.update_fn(_x, adj, flags, vec_t)
+
+                    # Add diffusion trajectory
+                    if denoise:
+                        diff_traj.append(
+                            [x_mean[0].detach().clone(), adj_mean[0].detach().clone()]
+                        )
+                    else:
+                        diff_traj.append(
+                            [x[0].detach().clone(), adj[0].detach().clone()]
+                        )
+
                 print(" ")
                 return (
                     (x_mean if denoise else x),
                     (adj_mean if denoise else adj),
                     diff_steps * (n_steps + 1),
+                    diff_traj,
                 )
 
     else:
@@ -967,7 +996,9 @@ def get_pc_sampler(
             model_adj: torch.nn.Module,
             model_rank2: torch.nn.Module,
             init_flags: torch.Tensor,
-        ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
+        ) -> Tuple[
+            torch.Tensor, torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]
+        ]:
             """PC sampler: sample from the model.
 
             Args:
@@ -977,7 +1008,7 @@ def get_pc_sampler(
                 init_flags (torch.Tensor): initial flags
 
             Returns:
-                Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]: node features, adjacency matrix, rank2 incidence matrix, timestep
+                Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]]: node features, adjacency matrix, rank2 incidence matrix, timestep, one complete diffusion trajectory
             """
 
             # Get score functions
@@ -1059,6 +1090,9 @@ def get_pc_sampler(
                 d_max=d_max,
             )
 
+            # One complete diffusion trajectory
+            diff_traj = []
+
             with torch.no_grad():
                 # Initial sample
                 x = sde_x.prior_sampling(shape_x).to(device)
@@ -1098,12 +1132,32 @@ def get_pc_sampler(
                     rank2, rank2_mean = predictor_obj_rank2.update_fn(
                         _x, _adj, rank2, flags, vec_t
                     )
+
+                    # Add diffusion trajectory
+                    if denoise:
+                        diff_traj.append(
+                            [
+                                x_mean[0].detach().clone(),
+                                adj_mean[0].detach().clone(),
+                                rank2_mean[0].detach().clone(),
+                            ]
+                        )
+                    else:
+                        diff_traj.append(
+                            [
+                                x[0].detach().clone(),
+                                adj[0].detach().clone(),
+                                rank2[0].detach().clone(),
+                            ]
+                        )
+
                 print(" ")
                 return (
                     (x_mean if denoise else x),
                     (adj_mean if denoise else adj),
                     (rank2_mean if denoise else rank2),
                     diff_steps * (n_steps + 1),
+                    diff_traj,
                 )
 
     return pc_sampler
@@ -1129,7 +1183,18 @@ def S4_solver(
     shape_rank2: Optional[Sequence[int]] = None,
     d_min: Optional[int] = None,
     d_max: Optional[int] = None,
-):
+) -> Union[
+    Callable[
+        [torch.nn.Module, torch.nn.Module, torch.Tensor],
+        Tuple[torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]],
+    ],
+    Callable[
+        [torch.nn.Module, torch.nn.Module, torch.nn.Module, torch.Tensor],
+        Tuple[
+            torch.Tensor, torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]
+        ],
+    ],
+]:
     """Returns a S4 sampler.
 
     Args:
@@ -1152,6 +1217,9 @@ def S4_solver(
         shape_rank2 (Optional[Sequence[int]], optional): shape of the higher-order features. Defaults to None.
         d_min (Optional[int], optional): minimum size of rank-2 cells (if combinatorial complexes). Defaults to None.
         d_max (Optional[int], optional): maximum size of rank-2 cells (if combinatorial complexes). Defaults to None.
+
+    Returns:
+        Union[Callable[[torch.nn.Module, torch.nn.Module, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]]], Callable[[torch.nn.Module, torch.nn.Module, torch.nn.Module, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]]]]: S4 sampler
     """
 
     if not (is_cc):
@@ -1160,7 +1228,7 @@ def S4_solver(
             model_x: torch.nn.Module,
             model_adj: torch.nn.Module,
             init_flags: torch.Tensor,
-        ) -> Tuple[torch.Tensor, torch.Tensor, float]:
+        ) -> Tuple[torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]]:
             """S4 solver: sample from the model.
 
             Args:
@@ -1169,7 +1237,7 @@ def S4_solver(
                 init_flags (torch.Tensor): initial flags
 
             Returns:
-                Tuple[torch.Tensor, torch.Tensor, float]: node features, adjacency matrix, timestep
+                Tuple[torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]]: node features, adjacency matrix, timestep, one complete diffusion trajectory
             """
 
             # Get score functions
@@ -1179,6 +1247,9 @@ def S4_solver(
             score_fn_adj = get_score_fn(
                 sde_adj, model_adj, train=False, continuous=continuous
             )
+
+            # One complete diffusion trajectory
+            diff_traj = []
 
             with torch.no_grad():
                 # Initial sample
@@ -1267,8 +1338,24 @@ def S4_solver(
 
                     x_mean = mu_x
                     adj_mean = mu_adj
+
+                    # Add diffusion trajectory
+                    if denoise:
+                        diff_traj.append(
+                            [x_mean[0].detach().clone(), adj_mean[0].detach().clone()]
+                        )
+                    else:
+                        diff_traj.append(
+                            [x[0].detach().clone(), adj[0].detach().clone()]
+                        )
+
                 print(" ")
-                return (x_mean if denoise else x), (adj_mean if denoise else adj), 0
+                return (
+                    (x_mean if denoise else x),
+                    (adj_mean if denoise else adj),
+                    0,
+                    diff_traj,
+                )
 
     else:
 
@@ -1277,7 +1364,9 @@ def S4_solver(
             model_adj: torch.nn.Module,
             model_rank2: torch.nn.Module,
             init_flags: torch.Tensor,
-        ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]:
+        ) -> Tuple[
+            torch.Tensor, torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]
+        ]:
             """S4 solver: sample from the model.
 
             Args:
@@ -1287,7 +1376,7 @@ def S4_solver(
                 init_flags (torch.Tensor): initial flags
 
             Returns:
-                Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]: node features, adjacency matrix, incidence matrix, timestep
+                Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float, List[List[torch.Tensor]]]: node features, adjacency matrix, incidence matrix, timestep, one complete diffusion trajectory
             """
 
             # Get score functions
@@ -1300,6 +1389,9 @@ def S4_solver(
             score_fn_rank2 = get_score_fn_cc(
                 sde_rank2, model_rank2, train=False, continuous=continuous
             )
+
+            # One complete diffusion trajectory
+            diff_traj = []
 
             with torch.no_grad():
                 # Initial sample
@@ -1427,12 +1519,32 @@ def S4_solver(
                     x_mean = mu_x
                     adj_mean = mu_adj
                     rank2_mean = mu_rank2
+
+                    # Add diffusion trajectory
+                    if denoise:
+                        diff_traj.append(
+                            [
+                                x_mean[0].detach().clone(),
+                                adj_mean[0].detach().clone(),
+                                rank2_mean[0].detach().clone(),
+                            ]
+                        )
+                    else:
+                        diff_traj.append(
+                            [
+                                x[0].detach().clone(),
+                                adj[0].detach().clone(),
+                                rank2[0].detach().clone(),
+                            ]
+                        )
+
                 print(" ")
                 return (
                     (x_mean if denoise else x),
                     (adj_mean if denoise else adj),
                     (rank2_mean if denoise else rank2),
                     0,
+                    diff_traj,
                 )
 
     return s4_solver
