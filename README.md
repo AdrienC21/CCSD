@@ -51,7 +51,7 @@ Please make sure you have the required dependencies installed before using CCSD.
 
 You can install all of them by running the command:
 
-
+```bash
 pip install -r requirements.txt
 ```
 

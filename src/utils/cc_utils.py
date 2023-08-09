@@ -5,7 +5,7 @@
 """
 
 import concurrent.futures
-from typing import List, Tuple, Dict, FrozenSet, Optional, Union, Any, Callable
+from typing import List, Tuple, Dict, FrozenSet, Optional, Union, Any, Callable, Set
 from itertools import combinations
 from collections import defaultdict
 from math import comb
@@ -312,7 +312,7 @@ def get_all_mol_rings(mol: Chem.Mol) -> List[FrozenSet[int]]:
 
 def mols_to_cc(mols: List[Chem.Mol]) -> List[CombinatorialComplex]:
     """Convert a list of molecules to a list of combinatorial complexes
-    where the rings are rank-2 cells.
+    where the rings are rank-2 cells. This is a lift operation.
 
     This is a general function mostly used for testing.
     A more complete one is implemented in src/utils/data_loader_mol.py
@@ -460,6 +460,19 @@ def ccs_to_mol(ccs: List[CombinatorialComplex]) -> List[Chem.Mol]:
     return mols
 
 
+def get_N_from_nb_edges(nb_edges: int) -> int:
+    """Get number of nodes from number of edges
+
+    Args:
+        nb_edges (int): number of edges
+
+    Returns:
+        int: number of nodes
+    """
+    N = int((1 + np.sqrt(1 + 8 * nb_edges)) / 2)
+    return N
+
+
 def get_N_from_rank2(rank2: torch.Tensor) -> int:
     """Get number of nodes from batch of rank2 incidence matrices
 
@@ -476,7 +489,7 @@ def get_N_from_rank2(rank2: torch.Tensor) -> int:
         nb_edges = rank2.shape[2]
     else:
         nb_edges = rank2.shape[1]
-    N = int((1 + np.sqrt(1 + 8 * nb_edges)) / 2)
+    N = get_N_from_nb_edges(nb_edges)
     return N
 
 
@@ -1048,22 +1061,37 @@ def load_cc_eval_settings() -> (
 
 
 def adj_to_hodgedual(adj: torch.Tensor) -> torch.Tensor:
-    """Convert a batch and channels of adjacency matrices to a batch and channels of Hodge dual adjacency matrices.
+    """Convert adjacency matrices to Hodge dual adjacency matrices.
+    Matrices are assumed to be symmetric and can be batched and/or have channels.
 
     Args:
-        adj (torch.Tensor): adjacency matrices (B x C x N x N)
+        adj (torch.Tensor): adjacency matrices (B x C x N x N) or (B x N x N) or (N x N)
 
     Returns:
-        torch.Tensor: Hodge dual adjacency matrices (B x C x (NC2) x (NC2))
+        torch.Tensor: Hodge dual adjacency matrices (B x C x (NC2) x (NC2)) or (B x (NC2) x (NC2)) or ((NC2) x (NC2))
     """
     # Get shapes
-    batch_size, channels, N, _ = adj.shape
+    if len(adj.shape) == 4:
+        batch_size, channels, N, _ = adj.shape
+    elif len(adj.shape) == 3:
+        batch_size, N, _ = adj.shape
+    elif len(adj.shape) == 2:
+        N, _ = adj.shape
+    else:
+        raise ValueError("Adjacency matrix must be 2D, 3D or 4D")
     hodgedual_size = (N * (N - 1)) // 2
-    # Extract diagonal coefficients that become diagonal coefficients of Hodge dual
-    upper_triangle = torch.triu(adj, diagonal=1)
-    diag = torch.masked_select(upper_triangle, upper_triangle != 0)
-    # Reshape to (B x C x (NC2))
-    diag = diag.reshape(batch_size, channels, hodgedual_size)
+    # Extract upper triangular coefficients that become diagonal coefficients of Hodge dual
+    # Reshape to (B x C x (NC2)) or (B x (NC2)) or ((NC2))
+    rows, cols = torch.triu_indices(N, N, offset=1).to(device="cpu")
+    if len(adj.shape) == 4:
+        diag = adj[:, :, rows, cols]
+        diag = diag.reshape(batch_size, channels, hodgedual_size)
+    elif len(adj.shape) == 3:
+        diag = adj[:, rows, cols]
+        diag = diag.reshape(batch_size, hodgedual_size)
+    else:
+        diag = adj[rows, cols]
+        diag = diag.reshape(hodgedual_size)
     # Convert to Hodge dual
     hodgedual = torch.diag_embed(diag)
     hodgedual = hodgedual.to(adj.device)
@@ -1071,33 +1099,186 @@ def adj_to_hodgedual(adj: torch.Tensor) -> torch.Tensor:
 
 
 def hodgedual_to_adj(hodgedual: torch.Tensor) -> torch.Tensor:
-    """Convert a batch and channels of Hodge dual adjacency matrices to a batch and channels of adjacency matrices.
+    """Convert Hodge dual adjacency matrices to adjacency matrices.
+    Matrices can be batched and/or have channels.
 
     Args:
-        hodgedual (torch.Tensor): Hodge dual adjacency matrices (B x C x (NC2) x (NC2))
+        hodgedual (torch.Tensor): Hodge dual adjacency matrices (B x C x (NC2) x (NC2)) or (B x (NC2) x (NC2)) or ((NC2) x (NC2))
 
     Returns:
-        torch.Tensor: adjacency matrices (B x C x N x N)
+        torch.Tensor: adjacency matrices (B x C x N x N) or (B x N x N) or (N x N)
     """
-    # Get shapes
-    batch_size, channels, hodgedual_size, _ = hodgedual.shape
-    N = int(
-        (1 + (1 + 8 * hodgedual_size) ** 0.5) / 2
-    )  # solve (N*(N-1))/2 = hodgedual_size
+    # Get shapes and create adjacency matrices
+    if len(hodgedual.shape) == 4:
+        batch_size, channels, hodgedual_size, _ = hodgedual.shape
+        N = get_N_from_nb_edges(hodgedual_size)
+        dim1, dim2 = 2, 3
+        adj = torch.zeros(batch_size, channels, N, N, device=hodgedual.device)
+    elif len(hodgedual.shape) == 3:
+        batch_size, hodgedual_size, _ = hodgedual.shape
+        N = get_N_from_nb_edges(hodgedual_size)
+        dim1, dim2 = 1, 2
+        adj = torch.zeros(batch_size, N, N, device=hodgedual.device)
+    elif len(hodgedual.shape) == 2:
+        hodgedual_size, _ = hodgedual.shape
+        N = get_N_from_nb_edges(hodgedual_size)
+        dim1, dim2 = 0, 1
+        adj = torch.zeros(N, N, device=hodgedual.device)
+    else:
+        raise ValueError("Hodge dual adjacency matrix must be 2D, 3D or 4D")
 
     # Extract diagonal coefficients from Hodge dual along dimensions (NC2) x (NC2)
-    diag = hodgedual.diagonal(dim1=2, dim2=3)
+    diag = hodgedual.diagonal(dim1=dim1, dim2=dim2)
 
-    # Reshape to (B x C x N x N)
-    rows, cols = torch.tril_indices(N, N, offset=-1)  # indices of lower triangle
-    # Sort to go from (0,1) ... (0,N-1), (1,2) etc.
-    sorted_index = sorted(zip(rows, cols), key=lambda pair: (pair[1], pair[0]))
-    rows, cols = zip(*sorted_index)
-    # Convert to tensors
-    rows, cols = torch.tensor(rows, device="cpu"), torch.tensor(cols, device="cpu")
-    # Create adjacency matrices
-    adj = torch.zeros(batch_size, channels, N, N, device=hodgedual.device)
-    adj[:, :, rows, cols] = diag
-    adj[:, :, cols, rows] = diag  # symmetrize the adjacency matrices (undirected)
+    # Reshape to (B x C x N x N) or (B x N x N) or (N x N)
+    rows, cols = torch.triu_indices(N, N, offset=1).to(
+        device="cpu"
+    )  # indices of lower triangle
+    # Fill adjacency matrices and symmetrize the adjacency matrices (undirected)
+    if len(hodgedual.shape) == 4:
+        adj[:, :, rows, cols] = diag
+        adj[:, :, cols, rows] = diag
+    elif len(hodgedual.shape) == 3:
+        adj[:, rows, cols] = diag
+        adj[:, cols, rows] = diag
+    else:  # len(hodgedual.shape) == 2
+        adj[rows, cols] = diag
+        adj[cols, rows] = diag
 
     return adj
+
+
+def get_hodge_adj_flags(
+    hodge_adj: torch.Tensor, flags: torch.Tensor
+) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Get flags for the adjacency matrices.
+    The flag is 0 if the edge is not in the CC as a node is not.
+
+    Args:
+        hodge_adj (torch.Tensor): batch of hodge adjacency matrices.
+            B x (NC2) x (NC2) or B x C x (NC2) x (NC2)
+        flags (torch.Tensor): 0-1 flags tensor. B x N
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor]: flags for the for the adjacency matrices B x (NC2)
+    """
+    _, _, _, _, _, dic_int_edge = get_cells(flags.shape[1], 1, 1)
+    nb_edges = hodge_adj.shape[-1]
+    flags_out = torch.ones((hodge_adj.shape[0], nb_edges), device=hodge_adj.device)
+    for b in range(flags.shape[0]):
+        for n in range(flags.shape[1]):
+            if not (flags[b, n]):  # node n is not in the CC
+                for i in dic_int_edge[n]:  # remove the flags of the edges containing n
+                    flags_out[b, i] = 0
+    return flags_out
+
+
+def mask_hodge_adjs(
+    hodge_adjs: torch.Tensor, flags: Optional[torch.Tensor] = None
+) -> torch.Tensor:
+    """Mask batch of hodge adjacency matrices with 0-1 flags tensor
+
+    Args:
+        hodge_adjs (torch.Tensor): batch of hodge adjacency matrices.
+            B x (NC2) x (NC2) or B x C x (NC2) x (NC2)
+        N (int): number of nodes
+        flags (Optional[torch.Tensor], optional): 0-1 flags tensor. Defaults to None.
+            B x N
+
+    Returns:
+        torch.Tensor: Mask batch of hodge adjacency matrices
+    """
+    if flags is None:
+        flags = torch.ones(
+            (hodge_adjs.shape[0], hodge_adjs.shape[-1]), device=hodge_adjs.device
+        )
+
+    flags_hodge = get_hodge_adj_flags(hodge_adjs, flags)
+
+    if len(hodge_adjs.shape) == 4:
+        flags_hodge = flags_hodge.unsqueeze(1)  # B x 1 x (NC2)
+    hodge_adjs = hodge_adjs * flags_hodge.unsqueeze(-1)
+    hodge_adjs = hodge_adjs * flags_hodge.unsqueeze(-2)
+    return hodge_adjs
+
+
+def get_all_paths_from_single_node(
+    n: int, g: Dict[int, List[int]], path_length: int
+) -> Set[FrozenSet[int]]:
+    """Get all paths from a dictionary of edges and a list of nodes
+
+    Args:
+        n (int): node to start the paths from
+        g (Dict[int, List[int]]): graph
+        path_length (int): length of the paths
+
+    Returns:
+        Set[FrozenSet[int]]: list of paths
+    """
+    paths = set()
+    if path_length == 1:
+        paths.add(frozenset([n]))
+        return paths
+    for v in g[n]:
+        sub_paths = get_all_paths_from_single_node(v, g, path_length - 1)
+        for path in sub_paths:
+            if n not in path:  # the path will be of length path_length without cycles
+                new_path = frozenset([n]) | path
+                paths.add(new_path)
+    return paths
+
+
+def get_all_paths_from_nodes(
+    nodes: List[int], g: Dict[int, List[int]], path_length: int
+) -> Set[FrozenSet[int]]:
+    """Get all paths from a dictionary of edges and a list of nodes
+
+    Args:
+        nodes (List[int]): list of nodes to start the paths from
+        g (Dict[int, List[int]]): graph
+        path_length (int): length of the paths
+
+    Returns:
+        Set[FrozenSet[int]]: list of paths
+    """
+    paths = set()
+    for n in nodes:
+        n_paths = get_all_paths_from_single_node(n, g, path_length)
+        for path in n_paths:
+            paths.add(path)
+    return paths
+
+
+def path_based_lift_CC(
+    input_cc: CombinatorialComplex, sources_nodes: List[int], path_length: int
+) -> CombinatorialComplex:
+    """Lift a 1-dimensional CC to a 2-dimensional CC by lifting the paths to rank-2 cells.
+    Rank-2 cells must be edges.
+
+    Args:
+        input_cc (CombinatorialComplex): original combinatorial complex
+        sources_nodes (List[int]): list of source nodes to start the paths from
+        path_length (int): length of the paths to lift
+
+    Returns:
+        CombinatorialComplex: lifted combinatorial complex
+    """
+    # Copy the rank-0 and rank-1 cells from the input CC
+    cc = CombinatorialComplex()
+    for rank in input_cc.cells.hyperedge_dict:
+        cells = input_cc.cells.hyperedge_dict[rank]
+        for cell in cells:
+            attr = cells[cell]
+            input_cc.add_cell(cell, rank=rank, **attr)
+
+    # Add the paths as rank-2 cells
+    edges = input_cc.cells.hyperedge_dict[1]
+    graph = defaultdict(list)
+    for e in edges:
+        edge = tuple(e)
+        graph[edge[0]].append(edge[1])
+        graph[edge[1]].append(edge[0])
+    paths = get_all_paths_from_nodes(sources_nodes, graph, path_length)
+    for path in paths:
+        cc.add_cell(path, rank=2)
+    return cc

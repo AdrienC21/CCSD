@@ -1,116 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""ScoreNetwork_F.py: ScoreNetworkF class and HodgeNetworkLayer class.
+"""ScoreNetwork_F.py: ScoreNetworkF class.
 This is a ScoreNetwork model that operates on the rank2 incidence matrix of the combinatorial complex.
 """
 
-from typing import Optional, Tuple
+from typing import Optional
 
 import torch
 import torch.nn.functional as torch_func
 
 from src.models.layers import MLP
+from src.models.hodge_layers import HodgeNetworkLayer
 from src.utils.cc_utils import get_rank2_dim, mask_rank2, default_mask, pow_tensor_cc
-
-
-class HodgeNetworkLayer(torch.nn.Module):
-    """HodgeNetworkLayer that operates on tensors derived from a rank2 incidence matrix F.
-    Used in the ScoreNetworkF model.
-    """
-
-    def __init__(
-        self,
-        num_linears: int,
-        input_dim: int,
-        nhid: int,
-        output_dim: int,
-        d_min: int,
-        d_max: int,
-        use_bn: bool = False,
-    ) -> None:
-        """Initialize the HodgeNetworkLayer.
-
-        Args:
-            num_linears (int): number of linear layers in the MLP (except the first one)
-            input_dim (int): input dimension of the MLP
-            nhid (int): number of hidden units in the MLP
-            output_dim (int): output dimension of the MLP
-            d_min (int): minimum size of the rank2 cells
-            d_max (int): maximum size of the rank2 cells
-            use_bn (bool, optional): whether to use batch normalization in the MLP. Defaults to False.
-        """
-        super(HodgeNetworkLayer, self).__init__()
-
-        # Initialize the parameters and the layer(s)
-        self.num_linears = num_linears
-        self.input_dim = input_dim
-        self.nhid = nhid
-        self.output_dim = output_dim
-        self.d_min = d_min
-        self.d_max = d_max
-        self.use_bn = use_bn
-        self.layer = MLP(
-            num_layers=self.num_linears,
-            input_dim=self.input_dim,
-            hidden_dim=self.nhid,
-            output_dim=self.output_dim,
-            use_bn=self.use_bn,
-            activate_func=torch_func.elu,
-        )
-
-        # Initialize the parameters (glorot for the weight and zeros for the bias)
-        self.reset_parameters()
-
-    def reset_parameters(self) -> None:
-        """Reset the parameters of the HodgeNetworkLayer."""
-        # Reset the parameters of the MLP layer
-        self.layer.reset_parameters()
-
-    def forward(
-        self,
-        x: torch.Tensor,
-        adj: torch.Tensor,
-        rank2: torch.Tensor,
-        flags: Optional[torch.Tensor],
-    ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-        """Forward pass of the HodgeNetworkLayer.
-
-        Args:
-            x (torch.Tensor): node feature matrix
-            adj (torch.Tensor): adjacency matrix
-            rank2 (torch.Tensor): rank2 incidence matrix
-            flags (Optional[torch.Tensor]): optional flags for the rank2 incidence matrix
-
-        Returns:
-            Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: node feature matrix, adjacency matrix, and rank2 incidence matrix
-        """
-        permut_rank2 = rank2.permute(0, 2, 3, 1)
-        rank2_out = self.layer(permut_rank2).permute(0, 3, 1, 2)
-
-        # Mask the rank2_out
-        rank2_out = mask_rank2(rank2_out, adj.shape[-1], self.d_min, self.d_max, flags)
-
-        return x, adj, rank2_out
-
-    def __repr__(self) -> str:
-        """Return a string representation of the HodgeNetworkLayer.
-
-        Returns:
-            str: string representation of the HodgeNetworkLayer
-        """
-        return (
-            "{}(layers={}, dim=({}, {}, {}), d_min={}, d_max={}, batch_norm={})".format(
-                self.__class__.__name__,
-                self.num_linears,
-                self.input_dim,
-                self.nhid,
-                self.output_dim,
-                self.d_min,
-                self.d_max,
-                self.use_bn,
-            )
-        )
 
 
 class ScoreNetworkF(torch.nn.Module):
@@ -286,9 +188,10 @@ class ScoreNetworkF(torch.nn.Module):
 
         # Apply all the HodgeNetworkLayer layers
         rank2_list = [rank2c]
+        _rank2c = rank2c.clone()
         for k in range(self.num_layers):
-            x, adj, rank2c = self.layers[k](x, adj, rank2c, flags)
-            rank2_list.append(rank2c)
+            _rank2c = self.layers[k](_rank2c, self.max_node_num, flags)
+            rank2_list.append(_rank2c)
 
         # Concatenate the output of the HodgeNetworkLayer layers (B x (NC2) x K x (cnum + c_hid * (num_layers - 1) + c_final)
         rank2s = torch.cat(rank2_list, dim=1).permute(0, 2, 3, 1)

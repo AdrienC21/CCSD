@@ -190,31 +190,34 @@ class MLP(torch.nn.Module):
             True  # default is linear model, will be change if more than 1 layer
         )
         self.num_layers = num_layers
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
+        self.output_dim = output_dim
         self.use_bn = use_bn
         self.activate_func = activate_func
 
-        if num_layers < 1:
+        if self.num_layers < 1:
             raise ValueError("Number of layers should be greater of equal to 1.")
-        elif num_layers == 1:
+        elif self.num_layers == 1:
             # Linear model
-            self.linear = torch.nn.Linear(input_dim, output_dim)
+            self.linear = torch.nn.Linear(self.input_dim, self.output_dim)
         else:
             # Multi-layer model
             self.linear_or_not = False
             self.linears = torch.nn.ModuleList()
             # Add initial layer
-            self.linears.append(torch.nn.Linear(input_dim, hidden_dim))
+            self.linears.append(torch.nn.Linear(self.input_dim, self.hidden_dim))
             # Add hidden layers
-            for _ in range(num_layers - 2):
-                self.linears.append(torch.nn.Linear(hidden_dim, hidden_dim))
+            for _ in range(self.num_layers - 2):
+                self.linears.append(torch.nn.Linear(self.hidden_dim, self.hidden_dim))
             # Add final layer
-            self.linears.append(torch.nn.Linear(hidden_dim, output_dim))
+            self.linears.append(torch.nn.Linear(self.hidden_dim, self.output_dim))
 
             # Add batch normalization layers
             if self.use_bn:
                 self.batch_norms = torch.nn.ModuleList()
-                for _ in range(num_layers - 1):
-                    self.batch_norms.append(torch.nn.BatchNorm1d(hidden_dim))
+                for _ in range(self.num_layers - 1):
+                    self.batch_norms.append(torch.nn.BatchNorm1d(self.hidden_dim))
 
         self.reset_parameters()
 

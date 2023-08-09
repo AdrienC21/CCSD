@@ -16,6 +16,7 @@ from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
 from src.models.ScoreNetwork_X import ScoreNetworkX, ScoreNetworkX_GMH
 from src.models.ScoreNetwork_A import ScoreNetworkA
+from src.models.ScoreNetwork_A_CC import ScoreNetworkA_CC
 from src.models.ScoreNetwork_F import ScoreNetworkF
 from src.sde import VPSDE, VESDE, subVPSDE, SDE
 from src.losses import get_sde_loss_fn, get_sde_loss_fn_cc
@@ -83,11 +84,13 @@ def load_model(params: Dict[str, Any]) -> torch.nn.Module:
         model = ScoreNetworkX_GMH(**params_)
     elif model_type == "ScoreNetworkA":
         model = ScoreNetworkA(**params_)
+    elif model_type == "ScoreNetworkA_CC":
+        model = ScoreNetworkA_CC(**params_)
     elif model_type == "ScoreNetworkF":
         model = ScoreNetworkF(**params_)
     else:
         raise ValueError(
-            f"Model Name <{model_type}> is unknown. Please select from [ScoreNetworkX, ScoreNetworkX_GMH, ScoreNetworkA, ScoreNetworkF]"
+            f"Model Name <{model_type}> is unknown. Please select from [ScoreNetworkX, ScoreNetworkX_GMH, ScoreNetworkA, ScoreNetworkA_CC, ScoreNetworkF]"
         )
     return model
 

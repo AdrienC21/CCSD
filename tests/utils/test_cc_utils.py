@@ -5,7 +5,7 @@
 """
 
 from collections import defaultdict
-from typing import Tuple, List
+from typing import Tuple, List, FrozenSet, Dict, Any
 
 import pytest
 import torch
@@ -28,6 +28,7 @@ from src.utils.cc_utils import (
     mols_to_cc,
     CC_to_incidence_matrices,
     ccs_to_mol,
+    get_N_from_nb_edges,
     get_N_from_rank2,
     get_rank2_flags,
     mask_rank2,
@@ -49,6 +50,11 @@ from src.utils.cc_utils import (
     load_cc_eval_settings,
     adj_to_hodgedual,
     hodgedual_to_adj,
+    get_hodge_adj_flags,
+    mask_hodge_adjs,
+    get_all_paths_from_single_node,
+    get_all_paths_from_nodes,
+    path_based_lift_CC,
 )
 
 
@@ -559,6 +565,13 @@ def test_ccs_to_mol() -> None:
     assert Chem.MolToSmiles(new_mols[1]) in ("c1cccc2c1CCCC2", "c1ccc2c(c1)CCCC2")
 
 
+def test_get_N_from_nb_edges() -> None:
+    """Test get_N_from_nb_edges function."""
+    assert get_N_from_nb_edges(1) == 2
+    assert get_N_from_nb_edges(6) == 4
+    assert get_N_from_nb_edges(300) == 25
+
+
 def test_get_N_from_rank2(
     create_incidence_1_2_test: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
 ) -> None:
@@ -591,10 +604,11 @@ def test_mask_rank2() -> None:
     N = 4
     d_min = 3
     d_max = 3
-    rank2 = torch.tensor([[[1, 1, 1, 1] for _ in range(6)]], dtype=torch.float32)
+    nb_edges = 6  # number of different possible edges with N=4
+    rank2 = torch.tensor([[[1, 1, 1, 1] for _ in range(nb_edges)]], dtype=torch.float32)
     flags = torch.tensor([[1, 1, 0, 1]], dtype=torch.float32)  # remove node 2
     masked = mask_rank2(rank2, N, d_min, d_max, flags)
-    assert masked.shape == (1, 6, 4)
+    assert masked.shape == (1, nb_edges, N)
     assert torch.allclose(
         masked,
         torch.tensor(
@@ -618,7 +632,7 @@ def test_mask_rank2() -> None:
     expected_masked = torch.cat([masked for _ in range(nb_channels)], dim=0).unsqueeze(
         0
     )
-    assert c_masked.shape == (1, 3, 6, 4)
+    assert c_masked.shape == (1, nb_channels, nb_edges, N)
     assert torch.allclose(expected_masked, c_masked)
 
 
@@ -1219,3 +1233,140 @@ def test_hodgedual_to_adj(create_batch_channel_adj_tensor: torch.Tensor) -> None
     hodgedual = adj_to_hodgedual(original_adj)
     adj = hodgedual_to_adj(hodgedual)
     assert torch.allclose(original_adj, adj)
+
+
+def test_get_hodge_adj_flags() -> None:
+    """Test get_hodge_adj_flags function."""
+    N = 4
+    nb_edges = 6  # number of different possible edges with N=4
+    hodge_adj = torch.ones((nb_edges, nb_edges), dtype=torch.float32).unsqueeze(0)
+    flags = torch.tensor([[1, 1, 0, 1]])  # remove node 2
+    flags_hodge = get_hodge_adj_flags(hodge_adj, flags)
+    assert flags_hodge.shape == (1, nb_edges)
+    assert torch.allclose(flags_hodge, torch.tensor([[1.0, 0.0, 1.0, 0.0, 1.0, 0.0]]))
+
+
+def test_mask_hodge_adjs() -> None:
+    """Test mask_hodge_adjs function."""
+    N = 4
+    nb_edges = 6  # number of different possible edges with N=4
+    hodge_adj = torch.ones((nb_edges, nb_edges), dtype=torch.float32).unsqueeze(0)
+    flags = torch.tensor([[1, 1, 0, 1]], dtype=torch.float32)  # remove node 2
+    masked = mask_hodge_adjs(hodge_adj, flags)
+    assert masked.shape == (1, nb_edges, nb_edges)
+    assert torch.allclose(
+        masked,
+        torch.tensor(
+            [
+                [
+                    [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                    [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+                    [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                ]
+            ]
+        ),
+    )
+
+    # Test with channels
+    nb_channels = 3
+    c_hodge_adj = torch.cat([hodge_adj for _ in range(nb_channels)], dim=0).unsqueeze(0)
+    c_masked = mask_hodge_adjs(c_hodge_adj, flags)
+    expected_masked = torch.cat([masked for _ in range(nb_channels)], dim=0).unsqueeze(
+        0
+    )
+    assert c_masked.shape == (1, nb_channels, nb_edges, nb_edges)
+    assert torch.allclose(expected_masked, c_masked)
+
+
+@pytest.fixture
+def create_edge_dict_graph() -> Dict[FrozenSet[int], Dict[str, Any]]:
+    """Create a graph with 4 nodes and 6 edges.
+
+    Returns:
+        Dict[FrozenSet[int], Dict[str, Any]]: A graph with 4 nodes and 6 edges.
+    """
+    return {
+        frozenset({0, 1}): {"weight": 1.0},
+        frozenset({0, 2}): {"weight": 2.0},
+        frozenset({0, 3}): {"weight": 3.0},
+        frozenset({1, 2}): {"weight": 4.0},
+        frozenset({1, 3}): {"weight": 5.0},
+        frozenset({2, 3}): {"weight": 6.0},
+    }
+
+
+def test_get_all_paths_from_single_node(
+    create_edge_dict_graph: Dict[FrozenSet[int], Dict[str, Any]]
+) -> None:
+    """Test get_all_paths_from_single_node function.
+
+    Args:
+        create_edge_dict_graph: A fixture graph with 4 nodes and 6 edges.
+    """
+    g = defaultdict(list)
+    for u, v in create_edge_dict_graph.keys():
+        g[u].append(v)
+        g[v].append(u)
+    paths = get_all_paths_from_single_node(0, g, 2)
+    assert paths == set([frozenset([0, 1]), frozenset([0, 2]), frozenset([0, 3])])
+    paths = get_all_paths_from_single_node(0, g, 3)
+    assert paths == set(
+        [
+            frozenset([0, 1, 2]),
+            frozenset([0, 1, 3]),
+            frozenset([0, 2, 1]),
+            frozenset([0, 2, 3]),
+        ]
+    )
+
+
+def test_get_all_paths_from_nodes(
+    create_edge_dict_graph: Dict[FrozenSet[int], Dict[str, Any]]
+) -> None:
+    """Test get_all_paths_from_nodes function.
+
+    Args:
+        create_edge_dict_graph (Dict[FrozenSet[int], Dict[str, Any]]): A fixture graph with 4 nodes and 6 edges.
+    """
+    g = defaultdict(list)
+    for u, v in create_edge_dict_graph.keys():
+        g[u].append(v)
+        g[v].append(u)
+    paths = get_all_paths_from_nodes([0, 1], g, 2)
+    assert paths == set(
+        [
+            frozenset([0, 1]),
+            frozenset([0, 2]),
+            frozenset([0, 3]),
+            frozenset([1, 2]),
+            frozenset([1, 3]),
+        ]
+    )
+
+
+def test_path_based_lift_CC(
+    create_edge_dict_graph: Dict[FrozenSet[int], Dict[str, Any]]
+) -> None:
+    """
+    Test path_based_lift_CC function.
+
+    Args:
+        create_edge_dict_graph (Dict[FrozenSet[int], Dict[str, Any]]): A fixture graph with 4 nodes and 6 edges.
+    """
+    cc = CombinatorialComplex()
+    for cell in create_edge_dict_graph.keys():
+        cc.add_cell(cell, rank=1, **create_edge_dict_graph[cell])
+
+    res_cc = path_based_lift_CC(cc, [0, 1], 2)
+    assert set(res_cc.cells.hyperedge_dict[2].keys()) == set(
+        [
+            frozenset([0, 1]),
+            frozenset([0, 2]),
+            frozenset([0, 3]),
+            frozenset([1, 2]),
+            frozenset([1, 3]),
+        ]
+    )
