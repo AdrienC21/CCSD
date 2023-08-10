@@ -140,7 +140,6 @@ It also requires the following dependencies:
 - TopoNetX>=0.0.2
 - torch>=2.0.1
 - tqdm>=4.65.0
-- ~aleido>=0.2.1
 
 Please make sure you have the required dependencies installed before using CCSD.
 
