@@ -10,8 +10,8 @@ import pytest
 import torch
 import numpy as np
 
-from src.utils.cc_utils import create_incidence_1_2
-from src.models.ScoreNetwork_F import ScoreNetworkF
+from ccsd.src.utils.cc_utils import create_incidence_1_2
+from ccsd.src.models.ScoreNetwork_F import ScoreNetworkF
 
 
 @pytest.fixture

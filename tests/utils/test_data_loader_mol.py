@@ -12,7 +12,7 @@ import pathlib
 import numpy as np
 import torch
 
-from src.utils.data_loader_mol import load_mol, MolDataset, get_transform_fn
+from ccsd.src.utils.data_loader_mol import load_mol, MolDataset, get_transform_fn
 
 
 @pytest.fixture

@@ -9,7 +9,7 @@ import pytz
 from datetime import datetime
 from freezegun import freeze_time
 
-from src.utils.time_utils import get_time
+from ccsd.src.utils.time_utils import get_time
 
 
 @freeze_time("2023-07-28 14:35:30")

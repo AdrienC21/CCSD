@@ -6,7 +6,7 @@
 
 import pytest
 
-from src.utils.errors import SymmetryError
+from ccsd.src.utils.errors import SymmetryError
 
 
 def test_symmetry_error() -> None:

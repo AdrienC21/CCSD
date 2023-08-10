@@ -10,9 +10,9 @@ import pytest
 import torch
 import numpy as np
 
-from src.utils.graph_utils import pow_tensor
-from src.utils.cc_utils import create_incidence_1_2, adj_to_hodgedual
-from src.models.hodge_attention import HodgeAttention, HodgeAdjAttentionLayer
+from ccsd.src.utils.graph_utils import pow_tensor
+from ccsd.src.utils.cc_utils import create_incidence_1_2, adj_to_hodgedual
+from ccsd.src.models.hodge_attention import HodgeAttention, HodgeAdjAttentionLayer
 
 
 # Initialize random seeds

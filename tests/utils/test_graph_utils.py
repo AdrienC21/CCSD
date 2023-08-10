@@ -12,8 +12,8 @@ import networkx as nx
 import numpy as np
 from rdkit import Chem
 
-from src.utils.errors import SymmetryError
-from src.utils.graph_utils import (
+from ccsd.src.utils.errors import SymmetryError
+from ccsd.src.utils.graph_utils import (
     mask_x,
     mask_adjs,
     node_flags,

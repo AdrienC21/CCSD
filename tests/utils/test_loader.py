@@ -14,8 +14,8 @@ import numpy as np
 from easydict import EasyDict
 from torch.utils.data import DataLoader
 
-from src.utils.ema import ExponentialMovingAverage
-from src.utils.loader import (
+from ccsd.src.utils.ema import ExponentialMovingAverage
+from ccsd.src.utils.loader import (
     load_seed,
     load_device,
     load_model,
@@ -32,7 +32,7 @@ from src.utils.loader import (
     load_model_from_ckpt,
     load_eval_settings,
 )
-from src.utils.models_utils import get_model_device
+from ccsd.src.utils.models_utils import get_model_device
 
 
 @pytest.fixture
@@ -149,7 +149,7 @@ def mock_load_model(monkeypatch: pytest.MonkeyPatch) -> None:
         """
         return MockModel()
 
-    monkeypatch.setattr("src.utils.loader.load_model", mock_load_model_func)
+    monkeypatch.setattr("ccsd.src.utils.loader.load_model", mock_load_model_func)
 
 
 def test_load_model_optimizer(mock_load_model):
@@ -259,7 +259,7 @@ def mock_load_sde(monkeypatch: pytest.MonkeyPatch) -> None:
 
         return MockSDE()
 
-    monkeypatch.setattr("src.utils.loader.load_sde", mock_load_sde_func)
+    monkeypatch.setattr("ccsd.src.utils.loader.load_sde", mock_load_sde_func)
 
 
 def test_load_batch(create_mock_batch: Tuple[torch.Tensor, torch.Tensor]) -> None:

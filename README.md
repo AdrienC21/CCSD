@@ -1,8 +1,12 @@
 # CCSD - Combinatorial Complex Score-based Diffusion Model using Stochastic Differential Equations
 
-<p align="center"><img src="https://github.com/AdrienC21/CCSD/blob/main/logo.png?raw=true" alt="CCSD_logo" width="600"/></p>
-
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![pypi version](https://img.shields.io/pypi/v/ccsd.svg)](https://pypi.python.org/pypi/ccsd)
+[![Documentation Status](https://readthedocs.org/projects/ccsd/badge/?version=latest)](https://ccsd.readthedocs.io/en/latest/?badge=latest)
+[![Downloads](https://static.pepy.tech/badge/ccsd)](https://pepy.tech/project/ccsd)
+[![Python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue)](https://pypi.python.org/pypi/ccsd)
+
+<p align="center"><img src="https://github.com/AdrienC21/CCSD/blob/main/logo.png?raw=true" alt="CCSD_logo" width="600"/></p>
 
 **CCSD** is a sophisticated score-based diffusion model designed to generate Combinatorial Complexes using Stochastic Differential Equations. This cutting-edge approach enables the generation of complex objects with higher-order structures and relations, thereby enhancing our ability to learn underlying distributions and produce more realistic objects.
 
@@ -14,6 +18,7 @@
     - [Introduction](#introduction)
     - [Why CCSD?](#why-ccsd)
     - [Author](#author)
+    - [Contributions](#contributions)
   - [Installation](#installation)
     - [Using pip](#using-pip)
     - [Manually](#manually)
@@ -24,12 +29,14 @@
     - [General](#general)
     - [Command line](#command-line)
     - [CCSD class](#ccsd-class)
+  - [Documentation](#documentation)
   - [Commons errors](#commons-errors)
     - [Installation of MOSES](#installation-of-moses)
     - [Error due to MOSES](#error-due-to-moses)
     - [Error due to TopoNetX when running the tests](#error-due-to-toponetx-when-running-the-tests)
   - [Citation](#citation)
   - [Acknowledgement](#acknowledgement)
+  - [Changelog](#changelog)
   - [License](#license)
 
 ## CCSD
@@ -57,6 +64,17 @@ Also, this **repository is highly documented and commented**, which makes it eas
 ### Author
 
 The research has been conducted by **Adrien Carrel** as part of his requirements for the MSc degree in Advanced Computing of Imperial College London, United Kingdom, and his requirements for the MEng in Applied Mathematics (Diplôme d'Ingénieur) at CentraleSupélec, France.
+
+<a href="https://linkedin.com/in/adrien.carrel/" target="_blank"><img align="center" src="https://cdn.jsdelivr.net/npm/simple-icons@3.0.1/icons/linkedin.svg" alt="linkedin" height="39" width="52"/></a>
+<a href="https://www.instagram.com/adrien.carrel" target="_blank"><img align="center" src="https://cdn.jsdelivr.net/npm/simple-icons@3.0.1/icons/instagram.svg" alt="instagram" height="39" width="52" /></a>
+<a href="https://github.com/AdrienC21/" target="_blank"><img align="center" src="https://cdn.jsdelivr.net/npm/simple-icons@3.0.1/icons/github.svg" alt="github" height="39" width="52" /></a>
+
+
+### Contributions
+
+We welcome new contributors with various background and programming levels who would like to contribute to the fields of diffusion models and topological deep learning. Feel free to suggest new ideas, submit pull requests, etc.
+
+Feel free to check our [Code of Conduct](https://github.com/AdrienC21/CCSD/CODE_OF_CONDUCT.md) if you wish to contribute.
 
 ## Installation
 
@@ -134,7 +152,7 @@ pip install -r requirements.txt
 
 ## Testing
 
-To ensure the correctness and robustness of CCSD and to allow researchers to build upon this tool, we have provided an extensive test suite. To run the tests, execute the following command:
+To ensure the correctness and robustness of CCSD and to allow researchers to build upon this tool, we have provided an extensive test suite. To run the tests, clone the repository and execute the following command:
 
 ```bash
 pytest tests/ -W ignore::DeprecationWarning
@@ -143,6 +161,8 @@ pytest tests/ -W ignore::DeprecationWarning
 If you encounter an error, please refer to the section **Commons errors** below.
 
 ## Usage
+
+For a more complete documentation, please refer to the **Documentation** section below.
 
 ### General
 
@@ -290,6 +310,10 @@ from ccsd import CCSD
 help(CCSD)
 ```
 
+## Documentation
+
+Here is the link to the documentation of this library: [https://ccsd.readthedocs.io/en/latest/](https://ccsd.readthedocs.io/en/latest/). It contains more information regarding all the classes and functions of this package.
+
 ## Commons errors
 
 ### Installation of MOSES
@@ -352,6 +376,10 @@ Dr. Tolga Birdal for his supervision and for the valuable advice and ressources 
 All my friends and my family for the support.
 
 Logo created by me using the icon: "topology" icon by VectorsLab from Noun Project CC BY 3.0.
+
+## Changelog
+
+See the [changelog](https://github.com/AdrienC21/CCSD) for a history of all changes to **CCSD**.
 
 ## License
 

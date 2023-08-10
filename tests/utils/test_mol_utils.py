@@ -13,7 +13,7 @@ import networkx as nx
 from rdkit import Chem
 from easydict import EasyDict
 
-from src.utils.mol_utils import (
+from ccsd.src.utils.mol_utils import (
     is_molecular_config,
     mols_to_smiles,
     smiles_to_mols,

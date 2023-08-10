@@ -12,7 +12,7 @@ from easydict import EasyDict
 from pytest import CaptureFixture
 from threading import Lock
 
-from src.utils.logger import Logger, set_log
+from ccsd.src.utils.logger import Logger, set_log
 
 
 def test_logger_init() -> None:

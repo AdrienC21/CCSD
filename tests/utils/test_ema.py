@@ -7,7 +7,7 @@
 import torch
 import pytest
 
-from src.utils.ema import (
+from ccsd.src.utils.ema import (
     ExponentialMovingAverage,
 )
 

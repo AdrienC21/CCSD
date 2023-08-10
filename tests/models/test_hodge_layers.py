@@ -10,8 +10,12 @@ import pytest
 import torch
 import numpy as np
 
-from src.utils.cc_utils import create_incidence_1_2, adj_to_hodgedual, pow_tensor_cc
-from src.models.hodge_layers import HodgeNetworkLayer, DenseHCNConv
+from ccsd.src.utils.cc_utils import (
+    create_incidence_1_2,
+    adj_to_hodgedual,
+    pow_tensor_cc,
+)
+from ccsd.src.models.hodge_layers import HodgeNetworkLayer, DenseHCNConv
 
 
 # Initialize random seeds

@@ -6,7 +6,7 @@
 
 import torch
 
-from src.utils.models_utils import get_model_device
+from ccsd.src.utils.models_utils import get_model_device
 
 
 def test_get_model_device() -> None:

@@ -1,0 +1,7 @@
+global-include *.txt *.py *.md *.in *.pth *.csv *.jpg *.png *.yaml *.pkl *.json
+
+# exclude from sdist
+recursive-exclude logs_sample *
+recursive-exclude logs_train *
+recursive-exclude samples *
+recursive-exclude wandb *

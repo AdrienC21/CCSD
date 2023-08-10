@@ -15,10 +15,10 @@ from rdkit import Chem
 from easydict import EasyDict
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
-from src.evaluation.mmd import gaussian_emd
-from src.utils.mol_utils import mols_to_nx
-from src.utils.graph_utils import pad_adjs
-from src.utils.cc_utils import (
+from ccsd.src.evaluation.mmd import gaussian_emd
+from ccsd.src.utils.mol_utils import mols_to_nx
+from ccsd.src.utils.graph_utils import pad_adjs
+from ccsd.src.utils.cc_utils import (
     get_cells,
     cc_from_incidence,
     create_incidence_1_2,

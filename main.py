@@ -15,12 +15,12 @@ from time import perf_counter
 
 import wandb
 
-from src.parsers.config import get_config, get_general_config
-from src.parsers.parser import Parser
-from src.utils.print import initial_print
-from src.utils.time_utils import get_time
-from src.sampler import get_sampler_from_config
-from src.trainer import get_trainer_from_config
+from ccsd.src.parsers.config import get_config, get_general_config
+from ccsd.src.parsers.parser import Parser
+from ccsd.src.utils.print import initial_print
+from ccsd.src.utils.time_utils import get_time
+from ccsd.src.sampler import get_sampler_from_config
+from ccsd.src.trainer import get_trainer_from_config
 
 
 def main(args: argparse.Namespace) -> None:
