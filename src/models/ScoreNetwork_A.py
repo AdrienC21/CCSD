@@ -3,6 +3,10 @@
 
 """ScoreNetwork_A.py: ScoreNetworkA and BaselineNetwork classes.
 These are ScoreNetwork models for the adjacency matrix A.
+
+Adapted from Jo, J. & al (2022)
+
+Almost left untouched.
 """
 
 from typing import Optional, Tuple

@@ -3,6 +3,8 @@
 
 """sde.py: contains the different Stochastic Differential Equations (SDEs) classes: VPSDE, VESDE, subVPSDE.
 The classes inherit from the SDE class.
+
+Adapted from Jo, J. & al (2022)
 """
 
 import abc

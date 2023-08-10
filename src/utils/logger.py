@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """logger.py: utility functions for logging.
+
+Adapted from Jo, J. & al (2022), almost left untouched.
 """
 
 import os
@@ -77,13 +79,13 @@ def set_log(config: EasyDict, is_train: bool = True) -> Tuple[str, str, str]:
 
     log_folder_name = os.path.join(*[data, exp_name])
     root = "logs_train" if is_train else "logs_sample"
-    if not (os.path.isdir(f"./{root}/{log_folder_name}")):
-        os.makedirs(os.path.join(f"./{root}/{log_folder_name}"))
-    log_dir = os.path.join(f"./{root}/{log_folder_name}/")
+    log_dir = os.path.join(config.folder, f"{root}", f"{log_folder_name}")
+    if not (os.path.isdir(log_dir)):
+        os.makedirs(log_dir)
 
-    if not (os.path.isdir(f"./checkpoints/{data}")) and is_train:
-        os.makedirs(os.path.join(f"./checkpoints/{data}"))
-    ckpt_dir = os.path.join(f"./checkpoints/{data}/")
+    ckpt_dir = os.path.join(config.folder, "checkpoints", f"{data}")
+    if not (os.path.isdir(ckpt_dir)) and is_train:
+        os.makedirs(ckpt_dir)
 
     print(100 * "-")
     print("Make Directory {} in Logs".format(log_folder_name))
@@ -101,7 +103,8 @@ def check_log(log_folder_name: str, log_name: str) -> bool:
     Returns:
         bool: True if the log file exists, False otherwise
     """
-    return os.path.isfile(f"./logs_sample/{log_folder_name}/{log_name}.log")
+    filepath = os.path.join(*["logs_sample", log_folder_name, f"{log_name}.log"])
+    return os.path.isfile(filepath)
 
 
 def data_log(logger: Logger, config: EasyDict) -> None:

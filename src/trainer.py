@@ -75,11 +75,16 @@ class Trainer(abc.ABC):
 
         # Call the plot function from utils
         log_name = f"{self.config.config_name}_{self.ckpt}"
-        plot_lc(learning_curves, self.log_dir, f"{log_name}_learning_curves")
+        plot_lc(
+            self.config, learning_curves, self.log_dir, f"{log_name}_learning_curves"
+        )
 
 
 class Trainer_Graph(Trainer):
-    """Trainer class for training the model with graphs."""
+    """Trainer class for training the model with graphs.
+
+    Adapted from Jo, J. & al (2022)
+    """
 
     def __init__(self, config: EasyDict) -> None:
         """Initialize the trainer with the different configs.
@@ -544,6 +549,14 @@ class Trainer_CC(Trainer):
 def get_trainer_from_config(
     config: EasyDict,
 ) -> Trainer:
+    """Get the trainer from a configuration file config
+
+    Args:
+        config (EasyDict): configuration file
+
+    Returns:
+        Trainer: trainer to use for the experiment
+    """
     if config.is_cc:
         trainer = Trainer_CC(config)
     else:

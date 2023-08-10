@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """losses.py: Loss functions for training the SDEs.
+
+Adapted from Jo, J. & al (2022), except for get_sde_loss_fn_cc, almost left untouched.
 """
 
 from typing import Callable, Optional, Tuple

@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """ema.py: code for the exponential moving average class for the parameters.
+
+Adapted from Jo, J. & al (2022), almost left untouched.
 """
 
 from typing import Dict, Any

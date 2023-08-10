@@ -6,9 +6,12 @@ Run this script with -h flag to see usage on how to run an experiment.
 The arguments are:
     --type: [train, sample] to train the model or sample from a trained model.
     --config: path to the configuration file.
+
+Pipeline structure adapted from Jo, J. & al (2022)
 """
 
 import argparse
+from time import perf_counter
 
 import wandb
 
@@ -46,9 +49,11 @@ def main(args: argparse.Namespace) -> None:
     config.experiment_type = args.type  # add the experiment type to the config
     config.config_name = args.config  # add the config name to the config
     config.general_config = general_config  # add the general config to the config
+    config.folder = args.folder  # add the folder to the config
 
     # -------- Train --------
     if args.type == "train":
+        start_train_time = perf_counter()
         # Initialize wandb
         if general_config.use_wandb:
             run_name = f"{args.config}_{ts}"
@@ -62,20 +67,34 @@ def main(args: argparse.Namespace) -> None:
             wandb.run.save()
             wandb.config.update(config)
         # Train the model
+        # Select the trainer based on the config
         trainer = get_trainer_from_config(config)
+        # Train the model
         ckpt = trainer.train(ts)
+        print(f"Training time: {round(perf_counter() - start_train_time, 3)} seconds")
         if "sample" in config.keys():  # then sample from the trained model
-            config.ckpt = ckpt  # to load the model just trained
+            start_sampling_time = perf_counter()
+            config.ckpt = ckpt  # oad the model that has just been trained
+            # Select the sampler based on the config
             sampler = get_sampler_from_config(config)
+            # Sample from the model
             sampler.sample()
+            print(
+                f"Sampling time: {round(perf_counter() - start_sampling_time, 3)} seconds"
+            )
         # Finish wandb
         wandb.finish()
 
     # -------- Generation --------
     elif args.type == "sample":
-        # Select the sampler based on the dataset
+        start_sampling_time = perf_counter()
+        # Select the sampler based on the config
         sampler = get_sampler_from_config(config)
+        # Sample from the model
         sampler.sample()
+        print(
+            f"Sampling time: {round(perf_counter() - start_sampling_time, 3)} seconds"
+        )
 
     else:
         raise ValueError(

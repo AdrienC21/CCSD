@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """stats.py: code for computing statistics of graphs.
+
+Adapted from Jo, J. & al (2022)
 """
 
 import os
@@ -13,6 +15,7 @@ import torch
 import subprocess as sp
 import networkx as nx
 import numpy as np
+from easydict import EasyDict
 from datetime import datetime
 from scipy.linalg import eigvalsh
 
@@ -28,7 +31,6 @@ from src.utils.graph_utils import adjs_to_graphs
 
 # Global variables
 PRINT_TIME = False  # whether to print the time for computing statistics
-ORCA_DIR = "evaluation/orca"  # relative path to the orca dir
 
 
 def degree_worker(G: nx.Graph) -> np.ndarray:
@@ -292,16 +294,17 @@ def edge_list_reindexed(G: nx.Graph) -> List[Tuple[int, int]]:
     return edges
 
 
-def orca(graph: nx.Graph) -> np.ndarray:
+def orca(graph: nx.Graph, orca_dir: str) -> np.ndarray:
     """Compute the orbit counts of a graph using orca.
 
     Args:
         graph (nx.Graph): input graph
+        orca_dir (str): path to the orca directory where the executable are
 
     Returns:
         np.ndarray: orbit counts
     """
-    tmp_file_path = os.path.join(ORCA_DIR, f"tmp-{random.random():.4f}.txt")
+    tmp_file_path = os.path.join(orca_dir, f"tmp-{random.random():.4f}.txt")
     f = open(tmp_file_path, "w")
     f.write(str(graph.number_of_nodes()) + " " + str(graph.number_of_edges()) + "\n")
     for u, v in edge_list_reindexed(graph):
@@ -309,7 +312,7 @@ def orca(graph: nx.Graph) -> np.ndarray:
     f.close()
 
     output = sp.check_output(
-        [os.path.join(ORCA_DIR, "orca"), "node", "4", tmp_file_path, "std"]
+        [os.path.join(orca_dir, "orca"), "node", "4", tmp_file_path, "std"]
     )
     output = output.decode("utf8").strip()
 
@@ -331,6 +334,7 @@ def orca(graph: nx.Graph) -> np.ndarray:
 
 
 def orbit_stats_all(
+    config: EasyDict,
     graph_ref_list: List[nx.Graph],
     graph_pred_list: List[nx.Graph],
     kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian,
@@ -338,6 +342,7 @@ def orbit_stats_all(
     """Compute the MMD distance between the orbits of two unordered sets of graphs.
 
     Args:
+        config (EasyDict): configuration (to provide the folder to create the ORCA_DIR)
         graph_ref_list (List[nx.Graph]): reference list of networkx graphs to be evaluated
         graph_pred_list (List[nx.Graph]): target list of networkx graphs to be evaluated
         kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian.
@@ -350,9 +355,13 @@ def orbit_stats_all(
 
     prev = datetime.now()
 
+    orca_dir = os.path.join(
+        *[config.folder, "evaluation", "orca"]
+    )  # relative path to the orca dir
+
     for G in graph_ref_list:
         try:
-            orbit_counts = orca(G)
+            orbit_counts = orca(G, orca_dir)
         except Exception as e:
             print(e)
             continue
@@ -361,7 +370,7 @@ def orbit_stats_all(
 
     for G in graph_pred_list:
         try:
-            orbit_counts = orca(G)
+            orbit_counts = orca(G, orca_dir)
         except:
             print("orca failed")
             continue

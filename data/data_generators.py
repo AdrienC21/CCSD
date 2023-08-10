@@ -6,6 +6,8 @@ Run this script with -h flag to see usage on how to generate graph datasets.
 The arguments are:
     --data-dir: directory to save generated graphs (default "data")
     --dataset: name of dataset to generate (default "grid"), choices are ["ego_small", "community_small", "ENZYMES", "grid"]
+
+Adapted from Jo, J. & al (2022)
 """
 
 import json

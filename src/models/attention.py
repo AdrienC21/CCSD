@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """attention.py: Attention and AttentionLayer classes for the ScoreNetwork models.
+
+Adapted from Jo, J. & al (2022)
+
+Almost left untouched.
 """
 
 import math

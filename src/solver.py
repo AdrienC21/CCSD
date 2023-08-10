@@ -3,6 +3,8 @@
 
 """solver.py: Contains the SDEs solvers, and the predictor and corrector algorithms.
 The correctors consist of leveraging score-based MCMC methods.
+
+Adapted from Jo, J. & al (2022) for Combinatorial Complexes and higher-order domain compatibility.
 """
 
 import abc

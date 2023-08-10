@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """preprocess.py: preprocess the molecule datasets (not for NSPDK).
+
+Adapted from Jo, J. & al (2022)
 """
 
 import os

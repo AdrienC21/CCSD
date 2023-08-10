@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """data_loader_mol.py: utility functions for loading the graph data (molecular ones).
+
+Only dataloader_mol left untouched from Jo, J. & al (2022)
 """
 
 import os

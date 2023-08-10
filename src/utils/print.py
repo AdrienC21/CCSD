@@ -5,6 +5,7 @@
 """
 
 import argparse
+from typing import Union, Dict, Any
 
 
 def get_ascii_logo(ascii_logo_path: str = "ascii_logo.txt") -> str:
@@ -23,30 +24,35 @@ def get_ascii_logo(ascii_logo_path: str = "ascii_logo.txt") -> str:
     return ascii_logo
 
 
-def get_experiment_desc(args: argparse.Namespace) -> str:
+def get_experiment_desc(args: Union[argparse.Namespace, Dict[str, Any]]) -> str:
     """Get the experiment description.
 
     Args:
-        args (argparse.Namespace): parsed arguments for the experiment.
+        args (Union[argparse.Namespace, Dict[str, Any]]): parsed arguments for the experiment.
 
     Returns:
         str: the experiment description.
     """
 
     experiment_desc = "Current experiment:\n\n"
-    for arg in vars(args):
-        experiment_desc += f"\t{arg}: {getattr(args, arg)}\n"
+    if isinstance(args, argparse.Namespace):
+        for arg in vars(args):
+            experiment_desc += f"\t{arg}: {getattr(args, arg)}\n"
+    else:
+        for arg in args:
+            experiment_desc += f"\t{arg}: {args[arg]}\n"
 
     return experiment_desc
 
 
 def initial_print(
-    args: argparse.Namespace, ascii_logo_path: str = "ascii_logo.txt"
+    args: Union[argparse.Namespace, Dict[str, Any]],
+    ascii_logo_path: str = "ascii_logo.txt",
 ) -> None:
     """Print the initial message to the console.
 
     Args:
-        args (argparse.Namespace): parsed arguments for the experiment.
+        args (Union[argparse.Namespace, Dict[str, Any]]): parsed arguments for the experiment.
         ascii_logo_path (str, optional): path of the logo. Defaults to "ascii_logo.txt".
     """
 

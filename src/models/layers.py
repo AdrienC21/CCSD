@@ -3,6 +3,10 @@
 
 """layers.py: DenseGCNConv and MLP class for the Attention layers/the ScoreNetwork models.
 It also contains some parameters initialization functions.
+
+Adapted from Jo, J. & al (2022)
+
+Almost left untouched.
 """
 
 import math

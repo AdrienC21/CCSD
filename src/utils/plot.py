@@ -20,6 +20,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objs as go
 import hypernetx as hnx  # to visalize CC of dim 2
+from easydict import EasyDict
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from rdkit import Chem
 from rdkit.Chem import AllChem, Draw
@@ -38,6 +39,7 @@ options = {"node_size": 2, "edge_color": "black", "linewidths": 1, "width": 0.5}
 
 
 def save_fig(
+    config: EasyDict,
     save_dir: Optional[str] = None,
     title: str = "fig",
     dpi: int = 300,
@@ -45,7 +47,10 @@ def save_fig(
 ) -> None:
     """Function to adjust the figure and save it.
 
+    Adapted from Jo, J. & al (2022)
+
     Args:
+        config (EasyDict): configuration file
         save_dir (Optional[str], optional): directory to save the figures. Defaults to None.
         title (str, optional): name of the file. Defaults to "fig".
         dpi (int, optional): DPI (Dots per Inch). Defaults to 300.
@@ -57,7 +62,7 @@ def save_fig(
         plt.show()
     else:
         if is_sample:
-            fig_dir = os.path.join(*["samples", "fig", save_dir])
+            fig_dir = os.path.join(*[config.folder, "samples", "fig", save_dir])
         else:
             fig_dir = os.path.join(*[save_dir, "fig"])
         if not os.path.exists(fig_dir):
@@ -73,15 +78,19 @@ def save_fig(
 
 
 def plot_graphs_list(
+    config: EasyDict,
     graphs: List[Union[nx.Graph, Dict[str, Any]]],
     title: str = "title",
     max_num: int = 16,
     save_dir: Optional[str] = None,
     N: int = 0,
 ) -> None:
-    """_summary_
+    """Plot a list of graphs.
+
+    Adapted from Jo, J. & al (2022)
 
     Args:
+        config (EasyDict): configuration file
         graphs (List[Union[nx.Graph, Dict[str, Any]]]): graphs to plot
         title (str, optional): title of the plot. Defaults to "title".
         max_num (int, optional): number of graphs to plot (must lower or equal than batch size). Defaults to 16.
@@ -113,15 +122,21 @@ def plot_graphs_list(
         ax.set_axis_off()
     figure.suptitle(title)
 
-    save_fig(save_dir=save_dir, title=title, is_sample=True)
+    save_fig(config=config, save_dir=save_dir, title=title, is_sample=True)
 
 
 def save_graph_list(
-    log_folder_name: str, exp_name: str, gen_graph_list: List[nx.Graph]
+    config: EasyDict,
+    log_folder_name: str,
+    exp_name: str,
+    gen_graph_list: List[nx.Graph],
 ) -> str:
     """Save the generated graphs in a pickle file.
 
+    Adapted from Jo, J. & al (2022)
+
     Args:
+        config (EasyDict): configuration file
         log_folder_name (str): name of the folder where the pickle file will be saved
         exp_name (str): name of the experiment
         gen_graph_list (List[nx.Graph]): list of generated graphs
@@ -129,15 +144,17 @@ def save_graph_list(
     Returns:
         str: path to the pickle file
     """
-    if not (os.path.isdir("./samples/pkl/{}".format(log_folder_name))):
-        os.makedirs(os.path.join("./samples/pkl/{}".format(log_folder_name)))
-    with open("./samples/pkl/{}/{}.pkl".format(log_folder_name, exp_name), "wb") as f:
+    path = os.path.join(*[config.folder, "samples", "pkl", log_folder_name])
+    if not (os.path.isdir(path)):
+        os.makedirs(path)
+    save_dir = os.path.join(*[path, exp_name])
+    with open(save_dir, "wb") as f:
         pickle.dump(obj=gen_graph_list, file=f, protocol=pickle.HIGHEST_PROTOCOL)
-    save_dir = "./samples/pkl/{}/{}.pkl".format(log_folder_name, exp_name)
     return save_dir
 
 
 def plot_cc_list(
+    config: EasyDict,
     ccs: List[Union[CombinatorialComplex, Dict[str, Any]]],
     title: str = "title",
     max_num: int = 16,
@@ -193,15 +210,19 @@ def plot_cc_list(
         ax.set_axis_off()
     figure.suptitle(title)
 
-    save_fig(save_dir=save_dir, title=title, is_sample=True)
+    save_fig(config=config, save_dir=save_dir, title=title, is_sample=True)
 
 
 def save_cc_list(
-    log_folder_name: str, exp_name: str, gen_cc_list: List[CombinatorialComplex]
+    config: EasyDict,
+    log_folder_name: str,
+    exp_name: str,
+    gen_cc_list: List[CombinatorialComplex],
 ) -> str:
     """Save the generated combinatorial complexes in a pickle file.
 
     Args:
+        config (EasyDict): configuration file
         log_folder_name (str): name of the folder where the pickle file will be saved
         exp_name (str): name of the experiment
         gen_cc_list (List[CombinatorialComplex]): list of generated ccs
@@ -209,15 +230,17 @@ def save_cc_list(
     Returns:
         str: path to the pickle file
     """
-    if not (os.path.isdir("./samples/pkl/{}".format(log_folder_name))):
-        os.makedirs(os.path.join("./samples/pkl/{}".format(log_folder_name)))
-    with open("./samples/pkl/{}/{}.pkl".format(log_folder_name, exp_name), "wb") as f:
+    path = os.path.join(*[config.folder, "samples", "pkl", log_folder_name])
+    if not (os.path.isdir(path)):
+        os.makedirs(path)
+    save_dir = os.path.join(*[path, exp_name])
+    with open(save_dir, "wb") as f:
         pickle.dump(obj=gen_cc_list, file=f, protocol=pickle.HIGHEST_PROTOCOL)
-    save_dir = "./samples/pkl/{}/{}.pkl".format(log_folder_name, exp_name)
     return save_dir
 
 
 def plot_molecule_list(
+    config: EasyDict,
     mols: List[Chem.Mol],
     title: str = "title",
     max_num: int = 16,
@@ -227,6 +250,7 @@ def plot_molecule_list(
     """Plot a list of molecules, using rdkit.
 
     Args:
+        config (EasyDict): configuration file
         mols (List[Chem.Mol]): molecules to plot
         title (str, optional): title of the plot. Defaults to "title".
         max_num (int, optional): number of molecules to plot (must lower or equal than batch size). Defaults to 16.
@@ -255,15 +279,16 @@ def plot_molecule_list(
         ax.set_axis_off()
     figure.suptitle(title)
 
-    save_fig(save_dir=save_dir, title=title, is_sample=True)
+    save_fig(config=config, save_dir=save_dir, title=title, is_sample=True)
 
 
 def save_molecule_list(
-    log_folder_name: str, exp_name: str, gen_mol_list: List[Chem.Mol]
+    config: EasyDict, log_folder_name: str, exp_name: str, gen_mol_list: List[Chem.Mol]
 ) -> str:
     """Save the generated molecules in a pickle file.
 
     Args:
+        config (EasyDict): configuration file
         log_folder_name (str): name of the folder where the pickle file will be saved
         exp_name (str): name of the experiment
         gen_mol_list (List[Chem.Mol]): list of generated molecules
@@ -271,15 +296,17 @@ def save_molecule_list(
     Returns:
         str: path to the pickle file
     """
-    if not (os.path.isdir("./samples/pkl/{}".format(log_folder_name))):
-        os.makedirs(os.path.join("./samples/pkl/{}".format(log_folder_name)))
-    with open("./samples/pkl/{}/{}.pkl".format(log_folder_name, exp_name), "wb") as f:
+    path = os.path.join(*[config.folder, "samples", "pkl", log_folder_name])
+    if not (os.path.isdir(path)):
+        os.makedirs(path)
+    save_dir = os.path.join(*[path, exp_name])
+    with open(save_dir, "wb") as f:
         pickle.dump(obj=gen_mol_list, file=f, protocol=pickle.HIGHEST_PROTOCOL)
-    save_dir = "./samples/pkl/{}/{}.pkl".format(log_folder_name, exp_name)
     return save_dir
 
 
 def plot_lc(
+    config: EasyDict,
     learning_curves: Dict[str, List[float]],
     f_dir: str = "./",
     filename: str = "learning_curves",
@@ -288,6 +315,7 @@ def plot_lc(
     """Plot the learning curves.
 
     Args:
+        config (EasyDict): configuration file
         learning_curves (Dict[str, List[float]]): dictionary containing the learning curves
         f_dir (str, optional): directory to save the figure. Defaults to "./".
         filename (str, optional): name of the figure. Defaults to "learning_curves".
@@ -302,7 +330,7 @@ def plot_lc(
         ax.title.set_text(curve_name)
     figure.suptitle("Learning curves")
 
-    save_fig(save_dir=f_dir, title=filename, is_sample=False)
+    save_fig(config=config, save_dir=f_dir, title=filename, is_sample=False)
 
 
 def plot_3D_molecule(

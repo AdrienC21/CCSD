@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """data_loader.py: utility functions for loading the graph data (not molecular ones).
+
+Only dataloader left untouched from Jo, J. & al (2022)
 """
 
 from typing import List, Tuple, Union

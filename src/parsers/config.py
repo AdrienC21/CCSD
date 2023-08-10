@@ -2,7 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """config.py: code for loading the config file.
+
+Adapted from Jo, J. & al (2022)
 """
+
+import os
 
 import yaml
 from easydict import EasyDict
@@ -18,7 +22,7 @@ def get_config(config: str, seed: int) -> EasyDict:
     Returns:
         EasyDict: configuration object.
     """
-    config_dir = f"./config/{config}.yaml"
+    config_dir = os.path.join("config", f"{config}.yaml")
     config = EasyDict(yaml.load(open(config_dir, "r"), Loader=yaml.FullLoader))
     config.seed = seed
 
@@ -31,7 +35,7 @@ def get_general_config() -> EasyDict:
     Returns:
         EasyDict: general configuration.
     """
-    config_dir = f"./config/general_config.yaml"
+    config_dir = os.path.join("config", "general_config.yaml")
     config = EasyDict(yaml.load(open(config_dir, "r"), Loader=yaml.FullLoader))
 
     return config

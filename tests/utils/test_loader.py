@@ -216,7 +216,11 @@ def test_load_data() -> None:
     """Test the load_data function"""
     # Assuming we have valid configurations for the datasets
     config_qm9 = EasyDict(
-        {"is_cc": False, "data": {"dir": "data", "data": "QM9", "batch_size": 32}}
+        {
+            "is_cc": False,
+            "folder": "./",
+            "data": {"dir": "data", "data": "QM9", "batch_size": 32},
+        }
     )
 
     # Test with a dataset that is not a CombinatorialComplex
@@ -331,6 +335,7 @@ def create_mock_configs() -> Tuple[EasyDict, EasyDict, EasyDict, EasyDict, str]:
     config_train = EasyDict(
         {
             "is_cc": False,
+            "folder": "./",
             "data": {
                 "data": "QM9",
                 "dir": "./data",
@@ -477,7 +482,13 @@ def create_mock_config() -> Tuple[EasyDict, str, str]:
         Tuple[EasyDict, str, str]: a tuple of mock configuration, device, and timestamp
     """
     config = EasyDict(
-        {"ckpt": "test_data", "data": {"data": "QM9"}, "sample": {"use_ema": True}}
+        {
+            "is_cc": False,
+            "folder": "./",
+            "ckpt": "test_data",
+            "data": {"data": "QM9"},
+            "sample": {"use_ema": True},
+        }
     )
     device = "cpu"  # Assume we are using CPU for testing
     ts = "test_data"
@@ -494,7 +505,7 @@ def test_load_ckpt(create_mock_config: Tuple[EasyDict, str, str]) -> None:
     config, device, ts = create_mock_config
 
     # Create a mock checkpoint file
-    path = f"./checkpoints/{config.data.data}/{config.ckpt}.pth"
+    path = os.path.join("checkpoints", f"{config.data.data}", f"{config.ckpt}.pth")
     ckpt = {
         "model_config": {"model_type": "ScoreNetworkX", "nhid": 10, "depth": 20},
         "params_x": {},

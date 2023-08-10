@@ -5,6 +5,9 @@
 Just used to in data/preprocess.py.
 Original code from MoFlow (under MIT License) https://github.com/calvin-zcx/moflow
 Adapted from chainer_chemistry\dataset\parsers\data_frame_parser.py
+Code from Jo, J. & al (2022)
+
+Left untouched.
 """
 
 import traceback

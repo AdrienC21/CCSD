@@ -82,7 +82,10 @@ class Sampler(abc.ABC):
 
 
 class Sampler_Graph(Sampler):
-    """Sampler for generic graph generation tasks"""
+    """Sampler for generic graph generation tasks
+
+    Adapted from Jo, J. & al (2022)
+    """
 
     def __init__(self, config: EasyDict) -> None:
         """Initialize the sampler with the config and the device.
@@ -192,11 +195,12 @@ class Sampler_Graph(Sampler):
         # -------- Save samples & Plot --------
         # Graphs
         save_dir = save_graph_list(
-            self.log_folder_name, self.log_name + "_graphs", gen_graph_list
+            self.config, self.log_folder_name, self.log_name + "_graphs", gen_graph_list
         )
         with open(save_dir, "rb") as f:
             sample_graph_list = pickle.load(f)
         plot_graphs_list(
+            config=self.config,
             graphs=sample_graph_list,
             title=f"{self.config.ckpt}_graphs",
             max_num=16,
@@ -207,12 +211,16 @@ class Sampler_Graph(Sampler):
         ) and self.config.general_config.use_wandb:
             # add plots to wandb
             img_path = os.path.join(
-                os.path.join(*["samples", "fig", self.log_folder_name]),
+                os.path.join(
+                    *[self.config.folder, "samples", "fig", self.log_folder_name]
+                ),
                 f"{self.config.ckpt}_graphs.png",
             )
             wandb.log({"Generated Graphs": wandb.Image(img_path)})
         # Diffusion trajectory animation
-        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filedir = os.path.join(
+            *[self.config.folder, "samples", "fig", self.log_folder_name]
+        )
         filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
         diffusion_animation(
             diff_traj=diff_traj,
@@ -232,7 +240,10 @@ class Sampler_Graph(Sampler):
 
 
 class Sampler_CC(Sampler):
-    """Sampler for generic combinatorial complexes generation tasks"""
+    """Sampler for generic combinatorial complexes generation tasks
+
+    Adapted from Jo, J. & al (2022)
+    """
 
     def __init__(self, config: EasyDict) -> None:
         """Initialize the sampler with the config and the device.
@@ -378,11 +389,12 @@ class Sampler_CC(Sampler):
         # -------- Save samples & Plot --------
         # Ccs
         save_dir = save_cc_list(
-            self.log_folder_name, self.log_name + "_ccs", gen_CC_list
+            self.config, self.log_folder_name, self.log_name + "_ccs", gen_CC_list
         )
         with open(save_dir, "rb") as f:
             sample_CC_list = pickle.load(f)
         plot_cc_list(
+            config=self.config,
             ccs=sample_CC_list,
             title=f"{self.config.ckpt}_ccs",
             max_num=16,
@@ -393,17 +405,20 @@ class Sampler_CC(Sampler):
         ) and self.config.general_config.use_wandb:
             # add plots to wandb
             img_path = os.path.join(
-                os.path.join(*["samples", "fig", self.log_folder_name]),
+                os.path.join(
+                    *[self.config.folder, "samples", "fig", self.log_folder_name]
+                ),
                 f"{self.config.ckpt}_ccs.png",
             )
             wandb.log({"Generated Combinatorial Complexes": wandb.Image(img_path)})
         # Graphs
         save_dir = save_graph_list(
-            self.log_folder_name, self.log_name + "_graphs", gen_graph_list
+            self.config, self.log_folder_name, self.log_name + "_graphs", gen_graph_list
         )
         with open(save_dir, "rb") as f:
             sample_graph_list = pickle.load(f)
         plot_graphs_list(
+            config=self.config,
             graphs=sample_graph_list,
             title=f"{self.config.ckpt}_graphs",
             max_num=16,
@@ -414,12 +429,16 @@ class Sampler_CC(Sampler):
         ) and self.config.general_config.use_wandb:
             # add plots to wandb
             img_path = os.path.join(
-                os.path.join(*["samples", "fig", self.log_folder_name]),
+                os.path.join(
+                    *[self.config.folder, "samples", "fig", self.log_folder_name]
+                ),
                 f"{self.config.ckpt}_graphs.png",
             )
             wandb.log({"Generated Graphs": wandb.Image(img_path)})
         # Diffusion trajectory animation
-        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filedir = os.path.join(
+            *[self.config.folder, "samples", "fig", self.log_folder_name]
+        )
         filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
         diffusion_animation(
             diff_traj=diff_traj,
@@ -584,11 +603,15 @@ class Sampler_mol_Graph(Sampler):
         # -------- Save samples & Plot --------
         # Graphs
         save_dir = save_graph_list(
-            self.log_folder_name, self.log_name + "_mol_graphs", gen_graph_list
+            self.config,
+            self.log_folder_name,
+            self.log_name + "_mol_graphs",
+            gen_graph_list,
         )
         with open(save_dir, "rb") as f:
             sample_graph_list = pickle.load(f)
         plot_graphs_list(
+            config=self.config,
             graphs=sample_graph_list,
             title=f"{self.config.ckpt}_mol_graphs",
             max_num=16,
@@ -599,17 +622,20 @@ class Sampler_mol_Graph(Sampler):
         ) and self.config.general_config.use_wandb:
             # add plots to wandb
             img_path = os.path.join(
-                os.path.join(*["samples", "fig", self.log_folder_name]),
+                os.path.join(
+                    *[self.config.folder, "samples", "fig", self.log_folder_name]
+                ),
                 f"{self.config.ckpt}_mol_graphs.png",
             )
             wandb.log({"Generated Mol Graphs": wandb.Image(img_path)})
         # Molecules
         save_dir = save_molecule_list(
-            self.log_folder_name, self.log_name + "_mols", gen_mols
+            self.config, self.log_folder_name, self.log_name + "_mols", gen_mols
         )
         with open(save_dir, "rb") as f:
             sample_mol_list = pickle.load(f)
         plot_molecule_list(
+            config=self.config,
             mols=sample_mol_list,
             title=f"{self.config.ckpt}_mols",
             max_num=16,
@@ -620,14 +646,18 @@ class Sampler_mol_Graph(Sampler):
         ) and self.config.general_config.use_wandb:
             # add plots to wandb
             img_path = os.path.join(
-                os.path.join(*["samples", "fig", self.log_folder_name]),
+                os.path.join(
+                    *[self.config.folder, "samples", "fig", self.log_folder_name]
+                ),
                 f"{self.config.ckpt}_mols.png",
             )
             wandb.log({"Generated Molecules": wandb.Image(img_path)})
         # 3D Molecule
         molecule = gen_mols[0]
         mol_3d = plot_3D_molecule(molecule)
-        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filedir = os.path.join(
+            *[self.config.folder, "samples", "fig", self.log_folder_name]
+        )
         filename = f"{self.config.ckpt}_mols_3d.gif"
         rotate_molecule_animation(
             mol_3d,
@@ -646,7 +676,9 @@ class Sampler_mol_Graph(Sampler):
             img_path = os.path.join(filedir, filename)
             wandb.log({"Generated Molecules 3D": wandb.Image(img_path)})
         # Diffusion trajectory animation - Graphs and molecules
-        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filedir = os.path.join(
+            *[self.config.folder, "samples", "fig", self.log_folder_name]
+        )
         filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
         diffusion_animation(
             diff_traj=diff_traj,
@@ -856,11 +888,12 @@ class Sampler_mol_CC(Sampler):
         # -------- Save samples & Plot --------
         # Ccs
         save_dir = save_cc_list(
-            self.log_folder_name, self.log_name + "_mol_ccs", gen_CC_list
+            self.config, self.log_folder_name, self.log_name + "_mol_ccs", gen_CC_list
         )
         with open(save_dir, "rb") as f:
             sample_CC_list = pickle.load(f)
         plot_cc_list(
+            config=self.config,
             ccs=sample_CC_list,
             title=f"{self.config.ckpt}_mol_ccs",
             max_num=16,
@@ -871,17 +904,23 @@ class Sampler_mol_CC(Sampler):
         ) and self.config.general_config.use_wandb:
             # add plots to wandb
             img_path = os.path.join(
-                os.path.join(*["samples", "fig", self.log_folder_name]),
+                os.path.join(
+                    *[self.config.folder, "samples", "fig", self.log_folder_name]
+                ),
                 f"{self.config.ckpt}_mol_ccs.png",
             )
             wandb.log({"Generated Mol Combinatorial Complexes": wandb.Image(img_path)})
         # Graphs
         save_dir = save_graph_list(
-            self.log_folder_name, self.log_name + "_mol_graphs", gen_graph_list
+            self.config,
+            self.log_folder_name,
+            self.log_name + "_mol_graphs",
+            gen_graph_list,
         )
         with open(save_dir, "rb") as f:
             sample_graph_list = pickle.load(f)
         plot_graphs_list(
+            config=self.config,
             graphs=sample_graph_list,
             title=f"{self.config.ckpt}_mol_graphs",
             max_num=16,
@@ -892,17 +931,20 @@ class Sampler_mol_CC(Sampler):
         ) and self.config.general_config.use_wandb:
             # add plots to wandb
             img_path = os.path.join(
-                os.path.join(*["samples", "fig", self.log_folder_name]),
+                os.path.join(
+                    *[self.config.folder, "samples", "fig", self.log_folder_name]
+                ),
                 f"{self.config.ckpt}_mol_graphs.png",
             )
             wandb.log({"Generated Mol Graphs": wandb.Image(img_path)})
         # Molecules
         save_dir = save_molecule_list(
-            self.log_folder_name, self.log_name + "_mols", gen_mols
+            self.config, self.log_folder_name, self.log_name + "_mols", gen_mols
         )
         with open(save_dir, "rb") as f:
             sample_mol_list = pickle.load(f)
         plot_molecule_list(
+            config=self.config,
             mols=sample_mol_list,
             title=f"{self.config.ckpt}_mols",
             max_num=16,
@@ -913,14 +955,18 @@ class Sampler_mol_CC(Sampler):
         ) and self.config.general_config.use_wandb:
             # add plots to wandb
             img_path = os.path.join(
-                os.path.join(*["samples", "fig", self.log_folder_name]),
+                os.path.join(
+                    *[self.config.folder, "samples", "fig", self.log_folder_name]
+                ),
                 f"{self.config.ckpt}_mols.png",
             )
             wandb.log({"Generated Molecules": wandb.Image(img_path)})
         # 3D Molecule
         molecule = gen_mols[0]
         mol_3d = plot_3D_molecule(molecule)
-        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filedir = os.path.join(
+            *[self.config.folder, "samples", "fig", self.log_folder_name]
+        )
         filename = f"{self.config.ckpt}_mols_3d.gif"
         rotate_molecule_animation(
             mol_3d,
@@ -939,7 +985,9 @@ class Sampler_mol_CC(Sampler):
             img_path = os.path.join(filedir, filename)
             wandb.log({"Generated Molecule 3D": wandb.Image(img_path)})
         # Diffusion trajectory animation - Graphs and molecules
-        filedir = os.path.join(*["samples", "fig", self.log_folder_name])
+        filedir = os.path.join(
+            *[self.config.folder, "samples", "fig", self.log_folder_name]
+        )
         filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
         diffusion_animation(
             diff_traj=diff_traj,
@@ -977,6 +1025,14 @@ class Sampler_mol_CC(Sampler):
 def get_sampler_from_config(
     config: EasyDict,
 ) -> Sampler:
+    """Get the sampler from a configuration file config
+
+    Args:
+        config (EasyDict): configuration file
+
+    Returns:
+        Sampler: sampler to use for the experiment
+    """
     if config.is_cc:
         sampler = (
             Sampler_mol_CC(config)

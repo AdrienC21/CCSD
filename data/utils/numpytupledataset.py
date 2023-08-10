@@ -4,6 +4,9 @@
 """numpytupledataset.py: NumpyTupleDataset class.
 Just used to in data/preprocess.py.
 Original code from MoFlow (under MIT License) https://github.com/calvin-zcx/moflow
+Code from Jo, J. & al (2022)
+
+Left untouched.
 """
 
 import os

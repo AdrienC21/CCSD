@@ -147,7 +147,9 @@ def test_set_log(tmpdir: pathlib.Path) -> None:
     # Test set_log function
     data = "test_data"
     exp_name = "test_experiment"
-    config = EasyDict({"data": {"data": data}, "train": {"name": exp_name}})
+    config = EasyDict(
+        {"folder": "./", "data": {"data": data}, "train": {"name": exp_name}}
+    )
     is_train = True
     root = "logs_train" if is_train else "logs_sample"
     log_folder_name, log_dir, ckpt_dir = set_log(config, is_train=is_train)
@@ -157,8 +159,8 @@ def test_set_log(tmpdir: pathlib.Path) -> None:
     assert os.path.isdir(log_dir)
     assert os.path.isdir(ckpt_dir)
     dir_to_delete = [
-        os.path.join(f"./{root}/{data}/{exp_name}/"),
-        os.path.join(f"./checkpoints/{data}"),
+        os.path.join(*[f"{root}", f"{data}", f"{exp_name}"]),
+        os.path.join(*["checkpoints", f"{data}"]),
     ]
     for dir_del in dir_to_delete:
         if os.path.exists(dir_del):  # remove the folders created by set_log

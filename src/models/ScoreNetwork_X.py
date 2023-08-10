@@ -3,6 +3,10 @@
 
 """ScoreNetwork_X.py: ScoreNetworkX and ScoreNetworkX_GMH classes.
 These are ScoreNetwork models for the node feature matrix X.
+
+Adapted from Jo, J. & al (2022)
+
+Almost left untouched.
 """
 
 from typing import Optional

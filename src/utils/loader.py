@@ -2,8 +2,11 @@
 # -*- coding: utf-8 -*-
 
 """loader.py: code for loading the model, the optimizer, the scheduler, the loss function, etc
+
+Adapted from Jo, J. & al (2022)
 """
 
+import os
 from typing import Tuple, Union, List, Callable, Optional, Dict, Any
 
 import torch
@@ -531,7 +534,9 @@ def load_ckpt(
     ckpt_dict = {}
     if ts is not None:
         config.ckpt = ts
-    path = f"./checkpoints/{config.data.data}/{config.ckpt}.pth"
+    path = os.path.join(
+        config.folder, "checkpoints", f"{config.data.data}", f"{config.ckpt}.pth"
+    )
     ckpt = torch.load(path, map_location=device_id)
     print(f"{path} loaded")
     ckpt_dict = {

@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """preprocess_for_nspdk.py: preprocess the test molecules for NSPDK.
+
+Adapted from Jo, J. & al (2022)
 """
 
 from time import time

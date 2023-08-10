@@ -6,6 +6,8 @@ kernel based statistical test used to determine whether given two
 distribution are the same. Also contains functions to calculate
 the EMD (Earth Mover's Distance) and the L2 distance between two
 histograms, in addition to Gaussian kernels with these distances.
+
+Adapted from Jo, J. & al (2022)
 """
 
 import concurrent.futures

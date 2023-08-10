@@ -2,6 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """mol_utils.py: utility functions for loading the molecular data, checking the validity of the molecules, converting them, saving them, etc.
+
+Adapted from Jo, J. & al (2022), almost left untouched.
 """
 
 from typing import List, Tuple, Optional, Union

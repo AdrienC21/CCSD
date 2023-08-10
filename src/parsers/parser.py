@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 
 """parser.py: code for parsing the arguments of the main script (experiments).
+
+Adapted from Jo, J. & al (2022)
+
+Almost left untouched.
 """
 
 import argparse
@@ -29,6 +33,12 @@ class Parser:
         )
         self.parser.add_argument(
             "--config", type=str, required=True, help="Path of config file"
+        )
+        self.parser.add_argument(
+            "--folder",
+            type=str,
+            default="./",
+            help="Directory to save the results, load checkpoints, load config, etc",
         )
         self.parser.add_argument(
             "--comment",
