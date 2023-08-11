@@ -16,7 +16,6 @@ build:
       - pip install Cython
       - pip install pomegranate
       - pip install git+https://github.com/molecularsets/moses.git
-      - sed -i "24s/.*/\t\t\tpd.concat([_mcf, _pains], sort=True)[\'smarts\'].values]/" /home/docs/checkouts/readthedocs.org/user_builds/ccsd/envs/latest/lib/python3.11/site-packages/moses/metrics/utils.py
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
