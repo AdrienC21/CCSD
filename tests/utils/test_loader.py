@@ -222,7 +222,7 @@ def test_load_data() -> None:
             "data": {"dir": "./data", "data": "QM9", "batch_size": 32},
         }
     )
-    # Check if "qm9_kekulized.npz" has been created to test the load data function
+    # Check if "qm9_kekulized.npz" has been created to test the load data
     kekulized_dir = os.path.join(config_qm9.data.dir, "qm9_kekulized.npz")
     if os.path.exists(kekulized_dir):
         # Test with a dataset that is not a CombinatorialComplex
