@@ -10,7 +10,7 @@ Almost left untouched.
 """
 
 import math
-from typing import Any, Optional, Callable
+from typing import Any, Callable, Optional
 
 import torch
 import torch.nn.functional as F

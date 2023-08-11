@@ -4,9 +4,10 @@
 """test_time_utils.py: test functions for time_utils.py
 """
 
+from datetime import datetime
+
 import pytest
 import pytz
-from datetime import datetime
 from freezegun import freeze_time
 
 from ccsd.src.utils.time_utils import get_time

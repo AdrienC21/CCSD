@@ -10,12 +10,12 @@ Code from Jo, J. & al (2022)
 Left untouched.
 """
 
-import traceback
+import logging
 import os
 import sys
-import logging
-from typing import List, Optional, Callable, Union, Tuple
+import traceback
 from logging import getLogger
+from typing import Callable, List, Optional, Tuple, Union
 
 sys.path.insert(0, os.getcwd())
 
@@ -23,8 +23,8 @@ import numpy
 from rdkit import Chem
 from tqdm import tqdm
 
-from .smile_to_graph import GGNNPreprocessor, MolFeatureExtractionError
 from .numpytupledataset import NumpyTupleDataset
+from .smile_to_graph import GGNNPreprocessor, MolFeatureExtractionError
 
 
 class DataFrameParser(object):

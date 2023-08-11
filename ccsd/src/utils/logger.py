@@ -7,7 +7,7 @@ Adapted from Jo, J. & al (2022), almost left untouched.
 """
 
 import os
-from typing import Optional, Any, Tuple, List
+from typing import Any, List, Optional, Tuple
 
 import torch
 from easydict import EasyDict

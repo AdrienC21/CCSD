@@ -7,7 +7,6 @@ import networkx as nx
 import numpy as np
 from networkx import Graph
 from scipy.sparse import csr_matrix
-
 from toponetx.classes.complex import Complex
 from toponetx.classes.hyperedge import HyperEdge
 from toponetx.classes.reportviews import HyperEdgeView, NodeView

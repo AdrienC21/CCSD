@@ -6,23 +6,23 @@
 Only dataloader_mol left untouched from Jo, J. & al (2022)
 """
 
+import json
 import os
 from time import time
-from typing import List, Tuple, Any, Callable, Union
+from typing import Any, Callable, List, Tuple, Union
 
-import torch
-import json
-import numpy as np
 import networkx as nx
+import numpy as np
+import torch
 from easydict import EasyDict
-from torch.utils.data import DataLoader, Dataset
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
+from torch.utils.data import DataLoader, Dataset
 
-from ccsd.src.utils.cc_utils import cc_from_incidence
 from ccsd.src.utils.cc_utils import (
+    cc_from_incidence,
     create_incidence_1_2,
-    get_mol_from_x_adj,
     get_all_mol_rings,
+    get_mol_from_x_adj,
 )
 
 

@@ -6,9 +6,9 @@
 Adapted from Jo, J. & al (2022)
 """
 
+import argparse
 import os
 import sys
-import argparse
 import time
 
 sys.path.insert(0, os.getcwd())

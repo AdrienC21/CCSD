@@ -1,7 +1,6 @@
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 import ccsd
-
 
 NAME = "ccsd"
 VERSION = ccsd.__version__

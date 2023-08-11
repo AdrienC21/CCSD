@@ -6,19 +6,20 @@
 Adapted from Jo, J. & al (2022)
 """
 
-from time import time
-import os
 import argparse
+import os
 import sys
+from time import time
 
 sys.path.insert(0, os.getcwd())
 
-import pickle
 import json
+import pickle
+
 import pandas as pd
 
-from ccsd.src.utils.mol_utils import mols_to_nx, smiles_to_mols
 from ccsd.src.parsers.parser_preprocess import ParserPreprocess
+from ccsd.src.utils.mol_utils import mols_to_nx, smiles_to_mols
 
 
 def preprocess_nspdk(args: argparse.Namespace, print_elapsed_time: bool = True) -> None:

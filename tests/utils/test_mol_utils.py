@@ -6,25 +6,25 @@
 
 from typing import List
 
-import torch
-import pytest
-import numpy as np
 import networkx as nx
-from rdkit import Chem
+import numpy as np
+import pytest
+import torch
 from easydict import EasyDict
+from rdkit import Chem
 
 from ccsd.src.utils.mol_utils import (
+    canonicalize_smiles,
+    check_valency,
+    construct_mol,
+    correct_mol,
+    gen_mol,
     is_molecular_config,
+    load_smiles,
+    mols_to_nx,
     mols_to_smiles,
     smiles_to_mols,
-    canonicalize_smiles,
-    load_smiles,
-    gen_mol,
-    construct_mol,
-    check_valency,
-    correct_mol,
     valid_mol_can_with_seg,
-    mols_to_nx,
 )
 
 

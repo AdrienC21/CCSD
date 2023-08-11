@@ -4,15 +4,14 @@
 """test_ScoreNetwork_A_CC.py: test functions for ScoreNetwork_A_CC.py
 """
 
-from typing import Tuple, Dict, Any
+from typing import Any, Dict, Tuple
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
-from ccsd.src.utils.cc_utils import create_incidence_1_2
 from ccsd.src.models.ScoreNetwork_A_CC import ScoreNetworkA_CC
-
+from ccsd.src.utils.cc_utils import create_incidence_1_2
 
 # Initialize random seeds
 torch.manual_seed(42)

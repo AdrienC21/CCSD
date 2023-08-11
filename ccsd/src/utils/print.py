@@ -5,7 +5,7 @@
 """
 
 import argparse
-from typing import Union, Dict, Any
+from typing import Any, Dict, Union
 
 
 def get_ascii_logo(ascii_logo_path: str = "ascii_logo.txt") -> str:

@@ -6,18 +6,17 @@
 Adapted from Jo, J. & al (2022), almost left untouched.
 """
 
-from typing import List, Tuple, Optional, Union
-import re
-
-import torch
 import json
-import rdkit
+import re
+from typing import List, Optional, Tuple, Union
+
+import networkx as nx
 import numpy as np
 import pandas as pd
-import networkx as nx
-from rdkit import Chem, RDLogger
+import rdkit
+import torch
 from easydict import EasyDict
-
+from rdkit import Chem, RDLogger
 
 RDLogger.DisableLog("rdApp.*")
 

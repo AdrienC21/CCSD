@@ -8,10 +8,10 @@ Adapted from Jo, J. & al (2022)
 """
 
 import abc
-from typing import Sequence, Tuple, Optional, Callable
+from typing import Callable, Optional, Sequence, Tuple
 
-import torch
 import numpy as np
+import torch
 
 
 class SDE(abc.ABC):

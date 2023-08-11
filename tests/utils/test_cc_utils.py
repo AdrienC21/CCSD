@@ -5,57 +5,57 @@
 """
 
 from collections import defaultdict
-from typing import Tuple, List, FrozenSet, Dict, Any
+from typing import Any, Dict, FrozenSet, List, Tuple
 
+import networkx as nx
+import numpy as np
 import pytest
 import torch
-import numpy as np
-import networkx as nx
-from rdkit import Chem
 from easydict import EasyDict
+from rdkit import Chem
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
 from ccsd.src.evaluation.mmd import gaussian_emd
-from ccsd.src.utils.mol_utils import mols_to_nx
-from ccsd.src.utils.graph_utils import pad_adjs
 from ccsd.src.utils.cc_utils import (
-    get_cells,
-    cc_from_incidence,
-    create_incidence_1_2,
-    get_rank2_dim,
-    get_mol_from_x_adj,
-    get_all_mol_rings,
-    mols_to_cc,
     CC_to_incidence_matrices,
-    ccs_to_mol,
-    get_N_from_nb_edges,
-    get_N_from_rank2,
-    get_rank2_flags,
-    mask_rank2,
-    gen_noise_rank2,
-    pad_rank2,
-    get_global_cc_properties,
-    ccs_to_tensors,
+    adj_to_hodgedual,
+    cc_from_incidence,
     cc_to_tensor,
+    ccs_to_mol,
+    ccs_to_tensors,
     convert_CC_to_graphs,
     convert_graphs_to_CCs,
-    init_flags,
-    hodge_laplacian,
+    create_incidence_1_2,
     default_mask,
-    pow_tensor_cc,
-    is_empty_cc,
-    rank2_distrib_worker,
-    rank2_distrib_stats,
     eval_CC_list,
-    load_cc_eval_settings,
-    adj_to_hodgedual,
-    hodgedual_to_adj,
-    get_hodge_adj_flags,
-    mask_hodge_adjs,
-    get_all_paths_from_single_node,
+    gen_noise_rank2,
+    get_all_mol_rings,
     get_all_paths_from_nodes,
+    get_all_paths_from_single_node,
+    get_cells,
+    get_global_cc_properties,
+    get_hodge_adj_flags,
+    get_mol_from_x_adj,
+    get_N_from_nb_edges,
+    get_N_from_rank2,
+    get_rank2_dim,
+    get_rank2_flags,
+    hodge_laplacian,
+    hodgedual_to_adj,
+    init_flags,
+    is_empty_cc,
+    load_cc_eval_settings,
+    mask_hodge_adjs,
+    mask_rank2,
+    mols_to_cc,
+    pad_rank2,
     path_based_lift_CC,
+    pow_tensor_cc,
+    rank2_distrib_stats,
+    rank2_distrib_worker,
 )
+from ccsd.src.utils.graph_utils import pad_adjs
+from ccsd.src.utils.mol_utils import mols_to_nx
 
 
 def test_get_cells() -> None:

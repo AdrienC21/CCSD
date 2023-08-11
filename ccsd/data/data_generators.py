@@ -10,13 +10,13 @@ The arguments are:
 Adapted from Jo, J. & al (2022)
 """
 
+import argparse
 import json
 import logging
 import os
-import argparse
-from typing import Optional, Dict, Any, Callable, Union, List, Tuple
-
 import pickle
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+
 import networkx as nx
 import numpy as np
 import scipy.sparse as sp

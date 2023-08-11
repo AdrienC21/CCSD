@@ -5,12 +5,12 @@
 """
 
 import os
+import pathlib
+from threading import Lock
 
 import pytest
-import pathlib
 from easydict import EasyDict
 from pytest import CaptureFixture
-from threading import Lock
 
 from ccsd.src.utils.logger import Logger, set_log
 

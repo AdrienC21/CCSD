@@ -8,10 +8,10 @@ Adapted from Jo, J. & al (2022), almost left untouched.
 
 from typing import List, Optional, Union
 
-import torch
-import torch.nn.functional as F
 import networkx as nx
 import numpy as np
+import torch
+import torch.nn.functional as F
 from easydict import EasyDict
 from rdkit import Chem
 

@@ -4,12 +4,10 @@
 """test_data_loader.py: test functions for data_loader.py
 """
 
-import torch
 import pytest
+import torch
 
-from ccsd.src.utils.ema import (
-    ExponentialMovingAverage,
-)
+from ccsd.src.utils.ema import ExponentialMovingAverage
 
 
 @pytest.fixture

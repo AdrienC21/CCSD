@@ -7,28 +7,28 @@ Adapted from Jo, J. & al (2022)
 """
 
 import os
-from typing import Tuple, Union, List, Callable, Optional, Dict, Any
-
-import torch
 import random
-import numpy as np
-import networkx as nx
-from easydict import EasyDict
-from torch.utils.data import DataLoader
-from toponetx.classes.combinatorial_complex import CombinatorialComplex
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
-from ccsd.src.models.ScoreNetwork_X import ScoreNetworkX, ScoreNetworkX_GMH
+import networkx as nx
+import numpy as np
+import torch
+from easydict import EasyDict
+from toponetx.classes.combinatorial_complex import CombinatorialComplex
+from torch.utils.data import DataLoader
+
+from ccsd.src.evaluation.mmd import gaussian, gaussian_emd, gaussian_tv
+from ccsd.src.losses import get_sde_loss_fn, get_sde_loss_fn_cc
 from ccsd.src.models.ScoreNetwork_A import ScoreNetworkA
 from ccsd.src.models.ScoreNetwork_A_CC import ScoreNetworkA_CC
 from ccsd.src.models.ScoreNetwork_F import ScoreNetworkF
-from ccsd.src.sde import VPSDE, VESDE, subVPSDE, SDE
-from ccsd.src.losses import get_sde_loss_fn, get_sde_loss_fn_cc
-from ccsd.src.solver import get_pc_sampler, S4_solver
-from ccsd.src.evaluation.mmd import gaussian, gaussian_emd, gaussian_tv
-from ccsd.src.utils.ema import ExponentialMovingAverage
+from ccsd.src.models.ScoreNetwork_X import ScoreNetworkX, ScoreNetworkX_GMH
+from ccsd.src.sde import SDE, VESDE, VPSDE, subVPSDE
+from ccsd.src.solver import S4_solver, get_pc_sampler
+from ccsd.src.utils.cc_utils import get_rank2_dim
 from ccsd.src.utils.data_loader import dataloader, dataloader_cc
 from ccsd.src.utils.data_loader_mol import dataloader_mol, dataloader_mol_cc
-from ccsd.src.utils.cc_utils import get_rank2_dim
+from ccsd.src.utils.ema import ExponentialMovingAverage
 
 
 def load_seed(seed: int) -> int:

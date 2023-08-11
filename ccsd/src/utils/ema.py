@@ -6,7 +6,7 @@
 Adapted from Jo, J. & al (2022), almost left untouched.
 """
 
-from typing import Dict, Any
+from typing import Any, Dict
 
 import torch
 

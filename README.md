@@ -5,6 +5,9 @@
 [![Documentation Status](https://readthedocs.org/projects/ccsd/badge/?version=latest)](https://ccsd.readthedocs.io/en/latest/?badge=latest)
 [![Downloads](https://static.pepy.tech/badge/ccsd)](https://pepy.tech/project/ccsd)
 [![Python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue)](https://pypi.python.org/pypi/ccsd)
+[![Test](https://github.com/AdrienC21/CCSD/actions/workflows/test.yml/badge.svg)](https://github.com/AdrienC21/CCSD/actions/workflows/test.yml)
+[![Lint](https://github.com/AdrienC21/CCSD/actions/workflows/lint.yml/badge.svg)](https://github.com/AdrienC21/CCSD/actions/workflows/lint.yml)
+[![Codecov](https://codecov.io/gh/AdrienC21/CCSD/branch/main/graph/badge.svg)](https://app.codecov.io/gh/AdrienC21/CCSD)
 
 <p align="center"><img src="https://github.com/AdrienC21/CCSD/blob/main/logo.png?raw=true" alt="CCSD_logo" width="600"/></p>
 
@@ -77,6 +80,8 @@ We welcome new contributors with various background and programming levels who w
 Feel free to check our [Code of Conduct](https://github.com/AdrienC21/CCSD/CODE_OF_CONDUCT.md) if you wish to contribute.
 
 ## Installation
+
+If you encounter an error during the installation, please refer to the section **Commons errors** below.
 
 ### Using pip
 
@@ -153,13 +158,26 @@ pip install -r requirements.txt
 
 ## Testing
 
-To ensure the correctness and robustness of CCSD and to allow researchers to build upon this tool, we have provided an extensive test suite. To run the tests, clone the repository and execute the following command:
+To ensure the correctness and robustness of CCSD and to allow researchers to build upon this tool, we have provided an extensive test suite. To run the tests, clone the repository, change your directory to the root folder of this project and execute the following command:
 
 ```bash
 pytest tests/ -W ignore::DeprecationWarning
 ```
 
-If you encounter an error, please refer to the section **Commons errors** below.
+If you encounter an error during the testing, please refer to the section **Commons errors** below.
+
+The output should look like this:
+
+```bash
+==================================================== test session starts ====================================================
+
+...
+
+tests\utils\test_mol_utils.py ..................                                                                       [ 98%]
+tests\utils\test_time_utils.py ..                                                                                      [100%]
+
+============================================== 128 passed in 70.03s (0:01:10) =============================================== 
+```
 
 ## Usage
 
@@ -337,6 +355,12 @@ Finally, either install MOSES directly using:
 pip install molsets
 ```
 
+**Or** by running the command
+
+```bash
+pip install git+https://github.com/molecularsets/moses.git
+```
+
 **Or** install it manually if it doesn't work by typing the following commands:
 
 ```bash
@@ -364,6 +388,12 @@ The trick is to replace this line (24) by:
 
 ```python
             pd.concat([_mcf, _pains], sort=True)['smarts'].values]
+```
+
+**Remark:** The entire operation can be done through the command line by using sed:
+
+```bash
+sed -i "24s/.*/\t\t\tpd.concat([_mcf, _pains], sort=True)[\o047smarts\o047].values]/" <path_to_moses_utils.py>
 ```
 
 ### Error due to TopoNetX when running the tests
@@ -394,7 +424,7 @@ Logo created by me using the icon: "topology" icon by VectorsLab from Noun Proje
 
 ## Changelog
 
-See the [changelog](https://github.com/AdrienC21/CCSD) for a history of all changes to **CCSD**.
+See the [change log](https://github.com/AdrienC21/CCSD/CHANGELOG.rst) for a history of all changes to **CCSD**.
 
 ## License
 

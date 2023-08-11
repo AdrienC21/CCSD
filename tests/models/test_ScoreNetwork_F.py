@@ -4,14 +4,14 @@
 """test_ScoreNetwork_F.py: test functions for ScoreNetwork_F.py
 """
 
-from typing import Tuple, Dict, Any
+from typing import Any, Dict, Tuple
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
-from ccsd.src.utils.cc_utils import create_incidence_1_2
 from ccsd.src.models.ScoreNetwork_F import ScoreNetworkF
+from ccsd.src.utils.cc_utils import create_incidence_1_2
 
 
 @pytest.fixture

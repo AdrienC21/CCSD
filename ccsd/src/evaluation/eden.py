@@ -8,25 +8,21 @@ Code adapted from https://github.com/fabriziocosta/EDeN
 Left untouched.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
+from __future__ import absolute_import, division, print_function
+
+import math
+from collections import defaultdict, deque
+from itertools import tee
 
 import dill
-import math
-from itertools import tee
-from collections import defaultdict, deque
-
 import joblib
 import networkx as nx
 import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
-from sklearn import metrics
-from sklearn.cluster import MiniBatchKMeans
 from scipy import stats
-from scipy.sparse import csr_matrix
-from scipy.sparse import vstack
-
+from scipy.sparse import csr_matrix, vstack
+from sklearn import metrics
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.cluster import MiniBatchKMeans
 
 _bitmask_ = 4294967295
 
@@ -779,7 +775,8 @@ class Vectorizer(AbstractVectorizer):
         scale=1,
         vertex_features=False,
     ):
-        """Return graphs with extra attributes: importance and features.
+        """
+        Return graphs with extra attributes: importance and features.
         Given a list of networkx graphs, if the given estimator is not None and
         is fitted, return a list of networkx graphs where each vertex has
         additional attributes with key 'importance' and 'weight'.

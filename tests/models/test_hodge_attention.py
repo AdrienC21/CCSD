@@ -4,16 +4,15 @@
 """test_hodge_attention.py: test functions for hodge_attention.py
 """
 
-from typing import Tuple, Dict, Any
+from typing import Any, Dict, Tuple
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
+from ccsd.src.models.hodge_attention import HodgeAdjAttentionLayer, HodgeAttention
+from ccsd.src.utils.cc_utils import adj_to_hodgedual, create_incidence_1_2
 from ccsd.src.utils.graph_utils import pow_tensor
-from ccsd.src.utils.cc_utils import create_incidence_1_2, adj_to_hodgedual
-from ccsd.src.models.hodge_attention import HodgeAttention, HodgeAdjAttentionLayer
-
 
 # Initialize random seeds
 torch.manual_seed(42)

@@ -5,18 +5,14 @@
 """
 
 import math
-from typing import Tuple, Optional, Callable, Union
+from typing import Callable, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as torch_func
 
-from ccsd.src.models.layers import MLP
-from ccsd.src.utils.cc_utils import (
-    mask_hodge_adjs,
-    mask_rank2,
-    get_rank2_dim,
-)
 from ccsd.src.models.hodge_layers import DenseHCNConv
+from ccsd.src.models.layers import MLP
+from ccsd.src.utils.cc_utils import get_rank2_dim, mask_hodge_adjs, mask_rank2
 
 
 class HodgeAttention(torch.nn.Module):

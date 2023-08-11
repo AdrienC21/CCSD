@@ -5,14 +5,14 @@
 """
 
 import os
+import pathlib
 from typing import List, Tuple
 
-import pytest
-import pathlib
 import numpy as np
+import pytest
 import torch
 
-from ccsd.src.utils.data_loader_mol import load_mol, MolDataset, get_transform_fn
+from ccsd.src.utils.data_loader_mol import MolDataset, get_transform_fn, load_mol
 
 
 @pytest.fixture

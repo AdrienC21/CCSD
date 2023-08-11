@@ -6,29 +6,28 @@
 
 import math
 import os
-import warnings
-from typing import List, Optional, Union, Dict, Any, FrozenSet
-
-import kaleido  # import kaleido FIRST to avoid any conflicts
-import imageio.v3 as imageio
-import matplotlib
-import plotly
 import pickle
-import torch
+import warnings
+from typing import Any, Dict, FrozenSet, List, Optional, Union
+
+import hypernetx as hnx  # to visalize CC of dim 2
+import imageio.v3 as imageio
+import kaleido  # import kaleido FIRST to avoid any conflicts
+import matplotlib
+import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import matplotlib.pyplot as plt
+import plotly
 import plotly.graph_objs as go
-import hypernetx as hnx  # to visalize CC of dim 2
+import torch
 from easydict import EasyDict
-from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from rdkit import Chem
 from rdkit.Chem import AllChem, Draw
+from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from tqdm import tqdm
 
-from ccsd.src.utils.graph_utils import quantize, adjs_to_graphs
+from ccsd.src.utils.graph_utils import adjs_to_graphs, quantize
 from ccsd.src.utils.mol_utils import construct_mol
-
 
 warnings.filterwarnings(
     "ignore", category=matplotlib.cbook.MatplotlibDeprecationWarning

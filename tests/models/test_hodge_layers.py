@@ -4,19 +4,18 @@
 """test_hodge_layers.py: test functions for hodge_layers.py
 """
 
-from typing import Tuple, Dict, Any
+from typing import Any, Dict, Tuple
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
 
+from ccsd.src.models.hodge_layers import DenseHCNConv, HodgeNetworkLayer
 from ccsd.src.utils.cc_utils import (
-    create_incidence_1_2,
     adj_to_hodgedual,
+    create_incidence_1_2,
     pow_tensor_cc,
 )
-from ccsd.src.models.hodge_layers import HodgeNetworkLayer, DenseHCNConv
-
 
 # Initialize random seeds
 torch.manual_seed(42)

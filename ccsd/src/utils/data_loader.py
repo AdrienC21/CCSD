@@ -10,12 +10,12 @@ from typing import List, Tuple, Union
 
 import networkx as nx
 from easydict import EasyDict
-from torch.utils.data import TensorDataset, DataLoader
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
+from torch.utils.data import DataLoader, TensorDataset
 
 from ccsd.data.data_generators import load_dataset
-from ccsd.src.utils.graph_utils import init_features, graphs_to_tensor
 from ccsd.src.utils.cc_utils import ccs_to_tensors
+from ccsd.src.utils.graph_utils import graphs_to_tensor, init_features
 
 
 def graphs_to_dataloader(config: EasyDict, graph_list: List[nx.Graph]) -> DataLoader:

@@ -12,11 +12,11 @@ Adapted from Jo, J. & al (2022)
 
 import concurrent.futures
 from functools import partial
-from typing import Callable, Iterator, Tuple, List, Optional
+from typing import Callable, Iterator, List, Optional, Tuple
 
-import pyemd
-import numpy as np
 import networkx as nx
+import numpy as np
+import pyemd
 from scipy.linalg import toeplitz
 from sklearn.metrics.pairwise import pairwise_kernels
 
@@ -24,7 +24,8 @@ from ccsd.src.evaluation.eden import vectorize
 
 
 def emd(x: np.ndarray, y: np.ndarray, distance_scaling: float = 1.0) -> float:
-    """Calculate the earth mover's distance (EMD) between two histograms
+    """
+    Calculate the earth mover's distance (EMD) between two histograms
     It corresponds to the Wasserstein metric (see Optimal transport theory)
     The formula is (\inf_{\gama \in \Gama(\mu, \nu) \int_{M*M} d(x,y)^p d\gama(x,y))^(1/p).
 
@@ -38,6 +39,7 @@ def emd(x: np.ndarray, y: np.ndarray, distance_scaling: float = 1.0) -> float:
     Returns:
         float: EMD value
     """
+
     # Convert histogram values x and y to float, and make them equal len
     x = x.astype(np.float64)
     y = y.astype(np.float64)
@@ -88,7 +90,7 @@ def gaussian_emd(
 def gaussian(x: np.ndarray, y: np.ndarray, sigma: float = 1.0) -> float:
     """Gaussian kernel with squared distance in exponential term replaced by L2 distance
     The inputs are PMF (Probability mass function). The Gaussian kernel is defined as
-    k(x,y) = exp(-||x-y||^2/(2*sigma^2)) where ||.|| is the L2 distance function.
+    k(x,y) = exp(-||x - y||^2/(2*sigma^2)) where ||.|| is the L2 distance function.
 
     Args:
         x (np.ndarray): 1D pmf of the first distribution with the same support
@@ -110,7 +112,7 @@ def gaussian(x: np.ndarray, y: np.ndarray, sigma: float = 1.0) -> float:
 def gaussian_tv(x: np.ndarray, y: np.ndarray, sigma: float = 1.0) -> float:
     """Gaussian kernel with squared distance in exponential term replaced by total variation distance (half L1 distance, used in transportation theory)
     The inputs are PMF (Probability mass function). The Gaussian kernel is defined as
-    k(x,y) = exp(-f(x-y)^2/(2*sigma^2)) where f(.) = 0.5 * |x-y| is the total variation distance (half L1 distance).
+    k(x,y) = exp(-f(x - y)^2/(2*sigma^2)) where f(.) = 0.5 * |x - y| is the total variation distance (half L1 distance).
 
     Args:
         x (np.ndarray): 1D pmf of the first distribution with the same support

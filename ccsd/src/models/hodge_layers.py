@@ -4,7 +4,7 @@
 """attention.py: DenseHCNConv and HodgeNetworkLayer classes for the ScoreNetwork models and other layers.
 """
 
-from typing import Tuple, Optional
+from typing import Optional, Tuple
 
 import torch
 import torch.nn.functional as torch_func

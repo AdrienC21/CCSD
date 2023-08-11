@@ -6,28 +6,27 @@
 Adapted from Jo, J. & al (2022)
 """
 
-import os
 import concurrent.futures
+import os
 import random
-from typing import Callable, List, Tuple, Optional, Dict
-
-import torch
 import subprocess as sp
+from datetime import datetime
+from typing import Callable, Dict, List, Optional, Tuple
+
 import networkx as nx
 import numpy as np
+import torch
 from easydict import EasyDict
-from datetime import datetime
 from scipy.linalg import eigvalsh
 
 from ccsd.src.evaluation.mmd import (
-    process_tensor,
     compute_mmd,
+    compute_nspdk_mmd,
     gaussian,
     gaussian_emd,
-    compute_nspdk_mmd,
+    process_tensor,
 )
 from ccsd.src.utils.graph_utils import adjs_to_graphs
-
 
 # Global variables
 PRINT_TIME = False  # whether to print the time for computing statistics

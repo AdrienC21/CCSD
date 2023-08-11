@@ -10,14 +10,11 @@ from typing import Optional
 import torch
 import torch.nn.functional as torch_func
 
-from ccsd.src.models.layers import MLP
-from ccsd.src.utils.graph_utils import (
-    mask_adjs,
-    pow_tensor,
-)
-from ccsd.src.utils.cc_utils import default_mask, adj_to_hodgedual, hodgedual_to_adj
 from ccsd.src.models.attention import AttentionLayer
 from ccsd.src.models.hodge_attention import HodgeAdjAttentionLayer
+from ccsd.src.models.layers import MLP
+from ccsd.src.utils.cc_utils import adj_to_hodgedual, default_mask, hodgedual_to_adj
+from ccsd.src.utils.graph_utils import mask_adjs, pow_tensor
 
 
 class ScoreNetworkA_CC(torch.nn.Module):

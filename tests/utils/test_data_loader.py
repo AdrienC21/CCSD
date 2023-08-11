@@ -5,20 +5,20 @@
 """
 
 import os
+import pickle
 from typing import List
 
-import pytest
-import pickle
 import networkx as nx
+import pytest
 from easydict import EasyDict
-from torch.utils.data import DataLoader
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
+from torch.utils.data import DataLoader
 
 from ccsd.src.utils.data_loader import (
-    graphs_to_dataloader,
     ccs_to_dataloader,
     dataloader,
     dataloader_cc,
+    graphs_to_dataloader,
 )
 
 
@@ -132,7 +132,7 @@ def test_dataloader(sample_graph_list: List[nx.Graph]) -> None:
         sample_graph_list (List[nx.Graph]): sample list of graphs
     """
     # Define a sample configuration for testing
-    temp_dir = os.path.join(*["ccsd", "tests"])
+    temp_dir = os.path.join(*["tests"])
     temp_data_name = "test_data"
     with open(os.path.join(temp_dir, f"{temp_data_name}.pkl"), "wb") as f:
         pickle.dump(sample_graph_list, f)
@@ -175,7 +175,7 @@ def test_dataloader_cc(sample_cc_list: List[CombinatorialComplex]) -> None:
         sample_cc_list (List[CombinatorialComplex]): sample list of combinatorial complexes
     """
     # Define a sample configuration for testing
-    temp_dir = os.path.join(*["ccsd", "tests"])
+    temp_dir = os.path.join(*["tests"])
     temp_data_name = "test_data"
     with open(os.path.join(temp_dir, f"{temp_data_name}.pkl"), "wb") as f:
         pickle.dump(sample_cc_list, f)

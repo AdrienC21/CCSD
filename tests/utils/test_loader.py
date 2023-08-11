@@ -8,29 +8,29 @@ import os
 import random
 from typing import Any, Tuple
 
+import numpy as np
 import pytest
 import torch
-import numpy as np
 from easydict import EasyDict
 from torch.utils.data import DataLoader
 
 from ccsd.src.utils.ema import ExponentialMovingAverage
 from ccsd.src.utils.loader import (
-    load_seed,
+    load_batch,
+    load_ckpt,
+    load_data,
     load_device,
-    load_model,
-    load_model_optimizer,
     load_ema,
     load_ema_from_ckpt,
-    load_data,
-    load_batch,
-    load_sde,
-    load_loss_fn,
-    load_sampling_fn,
-    load_model_params,
-    load_ckpt,
-    load_model_from_ckpt,
     load_eval_settings,
+    load_loss_fn,
+    load_model,
+    load_model_from_ckpt,
+    load_model_optimizer,
+    load_model_params,
+    load_sampling_fn,
+    load_sde,
+    load_seed,
 )
 from ccsd.src.utils.models_utils import get_model_device
 

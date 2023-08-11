@@ -9,13 +9,13 @@ Almost left untouched.
 """
 
 import math
-from typing import Tuple, Optional, Callable, Union
+from typing import Callable, Optional, Tuple, Union
 
 import torch
 import torch.nn.functional as F
 
-from ccsd.src.models.layers import DenseGCNConv, MLP
-from ccsd.src.utils.graph_utils import mask_x, mask_adjs
+from ccsd.src.models.layers import MLP, DenseGCNConv
+from ccsd.src.utils.graph_utils import mask_adjs, mask_x
 
 
 class Attention(torch.nn.Module):
