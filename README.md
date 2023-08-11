@@ -11,7 +11,6 @@
 [![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-red.svg)](https://opensource.org/licenses/MIT)
 
-
 <p align="center"><img src="https://github.com/AdrienC21/CCSD/blob/main/logo.png?raw=true" alt="CCSD_logo" width="600"/></p>
 
 **CCSD** is a sophisticated score-based diffusion model designed to generate Combinatorial Complexes using Stochastic Differential Equations. This cutting-edge approach enables the generation of complex objects with higher-order structures and relations, thereby enhancing our ability to learn underlying distributions and produce more realistic objects.
@@ -75,7 +74,6 @@ The research has been conducted by **Adrien Carrel** as part of his requirements
 <a href="https://www.instagram.com/adrien.carrel" target="_blank"><img align="center" src="https://cdn.jsdelivr.net/npm/simple-icons@3.0.1/icons/instagram.svg" alt="instagram" height="39" width="52" /></a>
 <a href="https://github.com/AdrienC21/" target="_blank"><img align="center" src="https://cdn.jsdelivr.net/npm/simple-icons@3.0.1/icons/github.svg" alt="github" height="39" width="52" /></a>
 
-
 ### Contributions
 
 We welcome new contributors with various background and programming levels who would like to contribute to the fields of diffusion models and topological deep learning. Feel free to suggest new ideas, submit pull requests, etc.
@@ -133,7 +131,6 @@ It also requires the following dependencies:
 - joblib>=1.3.1
 - kaleido>=0.1.0.post1
 - matplotlib>=3.7.2
-- molsets>=0.3.1
 - networkx>=2.8.8
 - numpy>=1.24.4
 - pandas>=2.0.3
@@ -150,6 +147,9 @@ It also requires the following dependencies:
 - toponetx @ git+https://github.com/pyt-team/TopoNetX.git
 - torch>=2.0.1
 - tqdm>=4.65.0
+- molsets>=0.3.1
+- pytest-cov
+- wandb
 
 Please make sure you have the required dependencies installed before using CCSD.
 

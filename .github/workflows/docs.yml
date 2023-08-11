@@ -1,47 +1,34 @@
-name: "Test"
+name: "Docs: Check and Deploy"
 
 on:
   push:
     branches:
       - main
-    paths-ignore:
-    - "docs/**"
-    - "README.md"
-    - "LICENSE"
-    - ".gitignore"
-
   pull_request:
     branches:
       - main
-    paths-ignore:
-    - "docs/**"
-    - "README.md"
-    - "LICENSE"
-    - ".gitignore"
-
+permissions:
+  contents: write
 
 jobs:
-  pytest:
-    runs-on: ${{ matrix.os }}
-
+  build:
+    runs-on: ${{matrix.os}}
     strategy:
-      fail-fast: false
       matrix:
         os: [ubuntu-latest]
-        python-version: ["3.10", "3.11"]
+        python-version: [3.11.3]
         torch-version: [2.0.1]
         include:
           - torch-version: 2.0.1
 
     steps:
       - uses: actions/checkout@v3
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Build using Python ${{matrix.python-version}}
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: ${{matrix.python-version}}
           cache: "pip"
-
-      - name: Install PyTorch ${{ matrix.torch-version }}+cpu
+      - name: Install PyTorch
         run: |
           pip install --upgrade pip setuptools wheel
           pip install torch==${{ matrix.torch-version}} --extra-index-url https://download.pytorch.org/whl/cpu
@@ -60,13 +47,23 @@ jobs:
       - name: Install requirements
         run: |
           pip install -r requirements.txt
-      - name: Run tests [pytest]
+      - name: Install sphinx and requirements
         run: |
-          pytest tests/ --cov --cov-report=xml:coverage.xml
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
+          pip install sphinx
+          pip install -r docs/requirements.txt
+      - name: Install Pandoc [apt-get]
+        run: |
+          sudo apt-get -y install pandoc
+      - name: Generate Docs [Sphinx]
+        run: |
+          sphinx-build  -b html -D version=latest -D release=latest docs docs/_build
+      - name: Deploy Docs
+        uses: JamesIves/github-pages-deploy-action@v4
+        if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'AdrienC21/CCSD' }}
         with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-          file: coverage.xml
-          fail_ci_if_error: false
-  
+          branch: main
+          folder: docs/_build
+          token: ${{ secrets.DOCUMENTATION_KEY }}
+          repository-name: AdrienC21/CCSD
+          target-folder: ccsd
+          clean: true
