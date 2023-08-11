@@ -144,7 +144,7 @@ It also requires the following dependencies:
 - scipy>=1.11.1
 - Cython
 - pomegranate
-- toponetx @ git+https://github.com/pyt-team/TopoNetX.git
+- toponetx
 - torch>=2.0.1
 - tqdm>=4.65.0
 - molsets>=0.3.1

@@ -15,6 +15,7 @@ build:
       - pip install rdkit
       - pip install Cython
       - pip install pomegranate
+      - pip install git+https://github.com/pyt-team/TopoNetX.git
       - pip install git+https://github.com/molecularsets/moses.git
       - sed -i "24s/.*/\t\t\tpd.concat([_mcf, _pains], sort=True)[\o047smarts\o047].values]/" /home/docs/checkouts/readthedocs.org/user_builds/ccsd/envs/latest/lib/python3.11/site-packages/moses/metrics/utils.py
 
