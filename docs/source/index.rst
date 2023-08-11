@@ -6,28 +6,17 @@
 Welcome to CCSD's documentation!
 ================================
 
+CCSD - Combinatorial Complex Score-based Diffusion Model using Stochastic Differential Equations
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
    readme
    authors
-   solver
-   trainer
-   sde
-   sampler
-   losses
+   ccsd
+   diffusion
    models
    utils
-   parsers
-   data
-   evaluation
-   ccsd
+   others
    changelog
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

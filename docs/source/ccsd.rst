@@ -1,19 +1,9 @@
-CCSD - Total
+CCSD
 ==============
 
-Subpackages
------------
+Here is the CCSD class to run the training and/or sampling pipeline.
 
-.. toctree::
-   :maxdepth: 4
-
-   ccsd.src
-   ccsd.data
-
-Module contents
----------------
-
-.. automodule:: ccsd
+.. automodule:: ccsd.ccsd
    :members:
    :undoc-members:
    :show-inheritance:

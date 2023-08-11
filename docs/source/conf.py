@@ -30,12 +30,12 @@ release = version
 
 extensions = [
     "sphinxawesome_theme",
+    "sphinx.ext.napoleon",
     "sphinx.ext.duration",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
     "sphinx.ext.autodoc",
     "sphinx.ext.autosummary",
-    "sphinx.ext.napoleon",
     "m2r2",
 ]
 
