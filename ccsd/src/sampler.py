@@ -11,10 +11,10 @@ import pickle
 import time
 
 import torch
+import wandb
 from easydict import EasyDict
 from moses.metrics.metrics import get_all_metrics
 
-import wandb
 from ccsd.src.evaluation.stats import eval_graph_list
 from ccsd.src.utils.cc_utils import (
     cc_from_incidence,

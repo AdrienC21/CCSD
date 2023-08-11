@@ -8,6 +8,9 @@
 [![Test](https://github.com/AdrienC21/CCSD/actions/workflows/test.yml/badge.svg)](https://github.com/AdrienC21/CCSD/actions/workflows/test.yml)
 [![Lint](https://github.com/AdrienC21/CCSD/actions/workflows/lint.yml/badge.svg)](https://github.com/AdrienC21/CCSD/actions/workflows/lint.yml)
 [![Codecov](https://codecov.io/gh/AdrienC21/CCSD/branch/main/graph/badge.svg)](https://app.codecov.io/gh/AdrienC21/CCSD)
+[![Imports: isort](https://img.shields.io/badge/%20imports-isort-%231674b1?style=flat&labelColor=ef8336)](https://pycqa.github.io/isort/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-red.svg)](https://opensource.org/licenses/MIT)
+
 
 <p align="center"><img src="https://github.com/AdrienC21/CCSD/blob/main/logo.png?raw=true" alt="CCSD_logo" width="600"/></p>
 
@@ -428,4 +431,4 @@ See the [change log](https://github.com/AdrienC21/CCSD/CHANGELOG.rst) for a hist
 
 ## License
 
-CCSD is licensed under the [MIT License](https://choosealicense.com/licenses/mit/). Feel free to use and modify the code as per the terms of the license.
+CCSD is licensed under the [MIT License](https://opensource.org/licenses/MIT). Feel free to use and modify the code as per the terms of the license.

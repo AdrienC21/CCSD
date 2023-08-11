@@ -32,4 +32,4 @@ jobs:
       - name : Linting [black, isort]
         run: |
           black . --check
-          isort --profile black --check .
+          isort --profile black -o wandb --check .

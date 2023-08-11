@@ -14,6 +14,7 @@ import argparse
 from time import perf_counter
 
 import wandb
+
 from ccsd.src.parsers.config import get_config, get_general_config
 from ccsd.src.parsers.parser import Parser
 from ccsd.src.sampler import get_sampler_from_config
