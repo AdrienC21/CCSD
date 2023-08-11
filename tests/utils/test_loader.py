@@ -222,11 +222,13 @@ def test_load_data() -> None:
             "data": {"dir": "./data", "data": "QM9", "batch_size": 32},
         }
     )
-
-    # Test with a dataset that is not a CombinatorialComplex
-    data_loader = load_data(config_qm9)
-    assert isinstance(data_loader[0], DataLoader)
-    assert isinstance(data_loader[1], DataLoader)
+    # Check if "qm9_kekulized.npz" has been created to test the load data function
+    kekulized_dir = os.path.join(config_qm9.data.dir, "qm9_kekulized.npz")
+    if os.path.exists(kekulized_dir):
+        # Test with a dataset that is not a CombinatorialComplex
+        data_loader = load_data(config_qm9)
+        assert isinstance(data_loader[0], DataLoader)
+        assert isinstance(data_loader[1], DataLoader)
 
 
 @pytest.fixture

@@ -56,13 +56,13 @@ jobs:
           sudo apt-get -y install pandoc
       - name: Generate Docs [Sphinx]
         run: |
-          sphinx-build  -b html -D version=latest -D release=latest docs docs/_build
+          sphinx-build -b html -D version=latest -D release=latest docs/source docs/build
       - name: Deploy Docs
         uses: JamesIves/github-pages-deploy-action@v4
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && github.repository == 'AdrienC21/CCSD' }}
         with:
           branch: main
-          folder: docs/_build
+          folder: docs/build
           token: ${{ secrets.DOCUMENTATION_KEY }}
           repository-name: AdrienC21/CCSD
           target-folder: ccsd
