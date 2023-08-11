@@ -26,10 +26,10 @@ jobs:
           python-version: ${{matrix.python-version}}
           cache: "pip"
 
-      - name: install dependencies [pip]
+      - name: Install dependencies [pip]
         run:  |
-          pip install black==22.6.0 isort==5.10.1
-      - name : linting [black, isort, flake8]
+          pip install black==23.7.0 isort==5.12.0
+      - name : Linting [black, isort]
         run: |
           black . --check
           isort --profile black --check .

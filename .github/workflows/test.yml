@@ -47,14 +47,14 @@ jobs:
           pip install torch==${{ matrix.torch-version}} --extra-index-url https://download.pytorch.org/whl/cpu
           pip install torch-scatter -f https://data.pyg.org/whl/torch-${{ matrix.torch-version }}+cpu.html
           pip install torch-sparse -f https://data.pyg.org/whl/torch-${{ matrix.torch-version }}+cpu.html
-      - name: Install molsets and toponetx
+      - name: Install molsets and TopoNetX (before fixes)
         run: |
           pip install rdkit
           pip install Cython
           pip install pomegranate
           pip install git+https://github.com/molecularsets/moses.git
-          pip install toponetx
-      - name: Fix moses and toponetx
+          pip install toponetx @ git+https://github.com/pyt-team/TopoNetX.git
+      - name: Fix moses and TopoNetX
         run: |
           python ./.github/workflows/apply_fixes.py
       - name: Install requirements
