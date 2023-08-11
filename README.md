@@ -352,6 +352,20 @@ If you get an error related to a `._append` method that no longer exists in Pand
 
 `C:\Users\<username>\miniconda3\lib\site-packages\moses\metrics\utils.py` or `miniconda\lib\python3.11\site-packages\molsets-1.0-py3.11.egg\moses\metrics\utils.py`
 
+More precisely the error should look like this:
+
+```bash
+_mcf.append(_pains, sort=True)['smarts'].values]
+...
+AttributeError: 'DataFrame' object has no attribute 'append'
+```
+
+The trick is to replace this line (24) by:
+
+```python
+            pd.concat([_mcf, _pains], sort=True)['smarts'].values]
+```
+
 ### Error due to TopoNetX when running the tests
 
 Replace the file `combinatorial_complex.py` of TopoNetX by the updated one provided in this repository: **fixes\combinatorial_complex.py**
