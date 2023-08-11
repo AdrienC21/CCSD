@@ -29,6 +29,7 @@ release = version
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
 
 extensions = [
+    "sphinx_rtd_theme",
     "sphinx.ext.duration",
     "sphinx.ext.doctest",
     "sphinx.ext.viewcode",
