@@ -15,10 +15,7 @@ build:
       - pip install rdkit
       - pip install Cython
       - pip install pomegranate
-      - git clone https://github.com/molecularsets/moses.git
-      - cd moses
-      - python setup.py install
-      - cd ../
+      - pip install git+https://github.com/molecularsets/moses.git
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:
