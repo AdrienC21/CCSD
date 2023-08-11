@@ -137,7 +137,7 @@ It also requires the following dependencies:
 - rdkit>=2023.3.2
 - scikit_learn>=1.3.0
 - scipy>=1.11.1
-- toponetx>=0.0.2
+- toponetx @ git+https://github.com/pyt-team/TopoNetX.git
 - torch>=2.0.1
 - tqdm>=4.65.0
 
