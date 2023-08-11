@@ -29,9 +29,7 @@ from tqdm import tqdm
 from ccsd.src.utils.graph_utils import adjs_to_graphs, quantize
 from ccsd.src.utils.mol_utils import construct_mol
 
-warnings.filterwarnings(
-    "ignore", category=matplotlib.cbook.MatplotlibDeprecationWarning
-)
+warnings.filterwarnings("ignore", category=matplotlib.MatplotlibDeprecationWarning)
 
 # Parameters to make graph plots look nicer.
 options = {"node_size": 2, "edge_color": "black", "linewidths": 1, "width": 0.5}

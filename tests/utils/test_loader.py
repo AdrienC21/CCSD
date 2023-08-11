@@ -219,7 +219,7 @@ def test_load_data() -> None:
         {
             "is_cc": False,
             "folder": "./",
-            "data": {"dir": "data", "data": "QM9", "batch_size": 32},
+            "data": {"dir": "./data", "data": "QM9", "batch_size": 32},
         }
     )
 
