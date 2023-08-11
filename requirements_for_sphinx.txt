@@ -21,3 +21,6 @@ toponetx @ git+https://github.com/pyt-team/TopoNetX.git
 torch>=2.0.1
 tqdm>=4.65.0
 wandb
+Cython
+pomegranate
+molsets @ https://github.com/molecularsets/moses.git
