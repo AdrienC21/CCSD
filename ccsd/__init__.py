@@ -9,4 +9,5 @@ __version__ = "0.1.0"
 
 __all__ = ["src", "data"]
 
+from . import data, src
 from .ccsd import CCSD

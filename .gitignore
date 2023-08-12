@@ -134,6 +134,9 @@ dmypy.json
 # SBATCH log
 *.out
 
+# Twine token file
+.pypirc
+
 # Data
 data/qm9_kekulized.npz
 
