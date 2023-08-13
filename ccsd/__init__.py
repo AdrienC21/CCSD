@@ -5,6 +5,6 @@
 
 __author__ = "Adrien Carrel"
 __email__ = "a.carrel@hotmail.fr"
-__version__ = "0.5.0"
+__version__ = "0.2.1"
 
 __all__ = ["src", "data"]

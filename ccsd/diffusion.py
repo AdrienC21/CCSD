@@ -7,9 +7,9 @@
 import os
 from time import perf_counter
 
+import wandb
 from easydict import EasyDict
 
-import wandb
 from ccsd.src.parsers.config import get_config, get_general_config
 from ccsd.src.sampler import Sampler, get_sampler_from_config
 from ccsd.src.trainer import Trainer, get_trainer_from_config

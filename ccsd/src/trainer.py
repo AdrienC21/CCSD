@@ -12,10 +12,10 @@ from typing import Dict, List, Optional
 
 import numpy as np
 import torch
+import wandb
 from easydict import EasyDict
 from tqdm import tqdm, trange
 
-import wandb
 from ccsd.src.utils.loader import (
     load_batch,
     load_data,
