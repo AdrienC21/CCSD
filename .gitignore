@@ -148,3 +148,6 @@ wandb/
 
 # images
 notes.txt
+
+# Post-installation script when creating instances (with my credentials)
+post_installation_script_adrien.sh

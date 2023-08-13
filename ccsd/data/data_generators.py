@@ -22,7 +22,7 @@ import numpy as np
 import scipy.sparse as sp
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
-from ..src.parsers.parser_generator import ParserGenerator
+from ccsd.src.parsers.parser_generator import ParserGenerator
 
 
 def n_community(

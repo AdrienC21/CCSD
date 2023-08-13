@@ -14,9 +14,9 @@ from typing import Optional
 import torch
 import torch.nn.functional as F
 
-from ..utils.graph_utils import mask_x, pow_tensor
-from .attention import AttentionLayer
-from .layers import MLP, DenseGCNConv
+from ccsd.src.models.attention import AttentionLayer
+from ccsd.src.models.layers import MLP, DenseGCNConv
+from ccsd.src.utils.graph_utils import mask_x, pow_tensor
 
 
 class ScoreNetworkX(torch.nn.Module):

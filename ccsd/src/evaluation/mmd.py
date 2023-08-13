@@ -20,7 +20,7 @@ import pyemd
 from scipy.linalg import toeplitz
 from sklearn.metrics.pairwise import pairwise_kernels
 
-from .eden import vectorize
+from ccsd.src.evaluation.eden import vectorize
 
 
 def emd(x: np.ndarray, y: np.ndarray, distance_scaling: float = 1.0) -> float:

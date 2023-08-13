@@ -14,8 +14,8 @@ from typing import Callable, Optional, Tuple, Union
 import torch
 import torch.nn.functional as F
 
-from ..utils.graph_utils import mask_adjs, mask_x
-from .layers import MLP, DenseGCNConv
+from ccsd.src.models.layers import MLP, DenseGCNConv
+from ccsd.src.utils.graph_utils import mask_adjs, mask_x
 
 
 class Attention(torch.nn.Module):

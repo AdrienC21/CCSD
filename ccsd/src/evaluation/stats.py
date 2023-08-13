@@ -19,8 +19,14 @@ import torch
 from easydict import EasyDict
 from scipy.linalg import eigvalsh
 
-from ..utils.graph_utils import adjs_to_graphs
-from .mmd import compute_mmd, compute_nspdk_mmd, gaussian, gaussian_emd, process_tensor
+from ccsd.src.evaluation.mmd import (
+    compute_mmd,
+    compute_nspdk_mmd,
+    gaussian,
+    gaussian_emd,
+    process_tensor,
+)
+from ccsd.src.utils.graph_utils import adjs_to_graphs
 
 # Global variables
 PRINT_TIME = False  # whether to print the time for computing statistics

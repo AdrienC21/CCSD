@@ -23,8 +23,8 @@ import numpy
 from rdkit import Chem
 from tqdm import tqdm
 
-from .numpytupledataset import NumpyTupleDataset
-from .smile_to_graph import GGNNPreprocessor, MolFeatureExtractionError
+from ccsd.data.utils.numpytupledataset import NumpyTupleDataset
+from ccsd.data.utils.smile_to_graph import GGNNPreprocessor, MolFeatureExtractionError
 
 
 class DataFrameParser(object):

@@ -11,12 +11,12 @@ import pickle
 import time
 
 import torch
-import wandb
 from easydict import EasyDict
 from moses.metrics.metrics import get_all_metrics
 
-from .evaluation.stats import eval_graph_list
-from .utils.cc_utils import (
+import wandb
+from ccsd.src.evaluation.stats import eval_graph_list
+from ccsd.src.utils.cc_utils import (
     cc_from_incidence,
     convert_CC_to_graphs,
     eval_CC_list,
@@ -24,8 +24,13 @@ from .utils.cc_utils import (
     load_cc_eval_settings,
     mols_to_cc,
 )
-from .utils.graph_utils import adjs_to_graphs, nxs_to_mols, quantize, quantize_mol
-from .utils.loader import (
+from ccsd.src.utils.graph_utils import (
+    adjs_to_graphs,
+    nxs_to_mols,
+    quantize,
+    quantize_mol,
+)
+from ccsd.src.utils.loader import (
     load_ckpt,
     load_data,
     load_device,
@@ -35,8 +40,15 @@ from .utils.loader import (
     load_sampling_fn,
     load_seed,
 )
-from .utils.logger import Logger, check_log, sample_log, set_log, start_log, train_log
-from .utils.mol_utils import (
+from ccsd.src.utils.logger import (
+    Logger,
+    check_log,
+    sample_log,
+    set_log,
+    start_log,
+    train_log,
+)
+from ccsd.src.utils.mol_utils import (
     canonicalize_smiles,
     gen_mol,
     is_molecular_config,
@@ -44,7 +56,7 @@ from .utils.mol_utils import (
     mols_to_nx,
     mols_to_smiles,
 )
-from .utils.plot import (
+from ccsd.src.utils.plot import (
     diffusion_animation,
     plot_3D_molecule,
     plot_cc_list,

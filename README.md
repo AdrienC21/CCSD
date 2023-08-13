@@ -37,8 +37,9 @@
   - [Documentation](#documentation)
   - [Commons errors](#commons-errors)
     - [Installation of MOSES](#installation-of-moses)
-    - [Error due to MOSES](#error-due-to-moses)
-    - [Error due to TopoNetX when running the tests](#error-due-to-toponetx-when-running-the-tests)
+    - [Package-related errors](#package-related-errors)
+      - [Error due to MOSES](#error-due-to-moses)
+      - [Error due to TopoNetX when running the tests](#error-due-to-toponetx-when-running-the-tests)
   - [Citation](#citation)
   - [Acknowledgement](#acknowledgement)
   - [Changelog](#changelog)
@@ -82,7 +83,7 @@ Feel free to check our [Code of Conduct](https://github.com/AdrienC21/CCSD/CODE_
 
 ## Installation
 
-If you encounter an error during the installation, please refer to the section **Commons errors** below.
+If you encounter an error during the installation, please refer to the section **Commons errors** below. If you are creating an Ubuntu instance on a Public Cloud service to train/sample from the model, you may want to use the `post_installation_script.sh` script provided to automate the process.
 
 ### Using pip
 
@@ -112,6 +113,12 @@ pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.0.1+$
 ```
 
 where ${CUDA} could be `cu117`, `cu118`, or `cpu` if you want to use the CPU. For GPU, we recommend `cu118`. Also, TopoModelX should be installed after TopoNetX to avoid versioning issues.
+
+If you are using a **Linux** system, you may need to install libxrender1 by typing:
+
+```bash
+sudo apt-get install libxrender1
+```
 
 To test your installation, refer to the section **Testing** below.
 
@@ -373,7 +380,11 @@ cd moses
 python setup.py install
 ```
 
-### Error due to MOSES
+### Package-related errors
+
+The errors related to packages (MOSES, TopoNetX, etc) can be fixed by running the script `apply_fixes.py` located in `.github/workflows/` or by following the steps for each individual packages below:
+
+#### Error due to MOSES
 
 If you get an error related to a `._append` method that no longer exists in Pandas and that is still used in the MOSES package, please replace in the MOSES package the file `utils.py` with the one provided in this repository: **fixes\utils.py**. The MOSES `utils.py` file should be located somewhere like:
 
@@ -399,7 +410,7 @@ The trick is to replace this line (24) by:
 sed -i "24s/.*/\t\t\tpd.concat([_mcf, _pains], sort=True)[\o047smarts\o047].values]/" <path_to_moses_utils.py>
 ```
 
-### Error due to TopoNetX when running the tests
+#### Error due to TopoNetX when running the tests
 
 Replace the file `combinatorial_complex.py` of TopoNetX by the updated one provided in this repository: **fixes\combinatorial_complex.py**
 

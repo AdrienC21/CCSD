@@ -26,8 +26,8 @@ from rdkit.Chem import AllChem, Draw
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from tqdm import tqdm
 
-from .graph_utils import adjs_to_graphs, quantize
-from .mol_utils import construct_mol
+from ccsd.src.utils.graph_utils import adjs_to_graphs, quantize
+from ccsd.src.utils.mol_utils import construct_mol
 
 warnings.filterwarnings("ignore", category=matplotlib.MatplotlibDeprecationWarning)
 

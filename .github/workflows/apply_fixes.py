@@ -26,5 +26,7 @@ toponetx_path = os.path.join(
 )
 
 # Make the copies
+print("Fixing MOSES ... (utils.py)")
 shutil.copyfile(molsets_filepath, molsets_path)
+print("Fixing TopoNetX ... (combinatorial_complex.py)")
 shutil.copyfile(toponetx_filepath, toponetx_path)

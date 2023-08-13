@@ -7,14 +7,14 @@
 import os
 from time import perf_counter
 
-import wandb
 from easydict import EasyDict
 
-from .src.parsers.config import get_config, get_general_config
-from .src.sampler import Sampler, get_sampler_from_config
-from .src.trainer import Trainer, get_trainer_from_config
-from .src.utils.print import initial_print
-from .src.utils.time_utils import get_time
+import wandb
+from ccsd.src.parsers.config import get_config, get_general_config
+from ccsd.src.sampler import Sampler, get_sampler_from_config
+from ccsd.src.trainer import Trainer, get_trainer_from_config
+from ccsd.src.utils.print import initial_print
+from ccsd.src.utils.time_utils import get_time
 
 
 class CCSD:
