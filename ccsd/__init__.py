@@ -5,9 +5,8 @@
 
 __author__ = "Adrien Carrel"
 __email__ = "a.carrel@hotmail.fr"
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = ["src", "data"]
 
-from . import data, src
 from .ccsd import CCSD

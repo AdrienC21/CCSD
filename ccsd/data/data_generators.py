@@ -209,7 +209,7 @@ def gen_graph_list(
     return graph_list
 
 
-def load_dataset(
+def load_gen_dataset(
     data_dir: str = "data", file_name: Optional[str] = None
 ) -> Union[List[nx.Graph], List[CombinatorialComplex]]:
     """Load an existing dataset as a list of graphs or list of combinatorial complexes from a file.
