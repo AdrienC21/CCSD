@@ -14,15 +14,10 @@ from typing import Optional, Tuple
 import torch
 import torch.nn.functional as torch_func
 
-from ccsd.src.models.attention import AttentionLayer
-from ccsd.src.models.layers import MLP, DenseGCNConv
-from ccsd.src.utils.cc_utils import default_mask
-from ccsd.src.utils.graph_utils import (
-    mask_adjs,
-    mask_x,
-    node_feature_to_matrix,
-    pow_tensor,
-)
+from ..utils.cc_utils import default_mask
+from ..utils.graph_utils import mask_adjs, mask_x, node_feature_to_matrix, pow_tensor
+from .attention import AttentionLayer
+from .layers import MLP, DenseGCNConv
 
 
 class BaselineNetworkLayer(torch.nn.Module):

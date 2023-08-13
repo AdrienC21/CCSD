@@ -18,7 +18,7 @@ from easydict import EasyDict
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from torch.utils.data import DataLoader, Dataset
 
-from ccsd.src.utils.cc_utils import (
+from .cc_utils import (
     cc_from_incidence,
     create_incidence_1_2,
     get_all_mol_rings,

@@ -10,9 +10,9 @@ from typing import Callable, Optional, Tuple, Union
 import torch
 import torch.nn.functional as torch_func
 
-from ccsd.src.models.hodge_layers import DenseHCNConv
-from ccsd.src.models.layers import MLP
-from ccsd.src.utils.cc_utils import get_rank2_dim, mask_hodge_adjs, mask_rank2
+from ..utils.cc_utils import get_rank2_dim, mask_hodge_adjs, mask_rank2
+from .hodge_layers import DenseHCNConv
+from .layers import MLP
 
 
 class HodgeAttention(torch.nn.Module):

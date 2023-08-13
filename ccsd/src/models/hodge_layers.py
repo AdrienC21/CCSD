@@ -10,8 +10,8 @@ import torch
 import torch.nn.functional as torch_func
 from torch.nn import Parameter
 
-from ccsd.src.models.layers import MLP, glorot, zeros
-from ccsd.src.utils.cc_utils import mask_rank2
+from ..utils.cc_utils import mask_rank2
+from .layers import MLP, glorot, zeros
 
 
 class HodgeNetworkLayer(torch.nn.Module):

@@ -16,7 +16,7 @@ import wandb
 from easydict import EasyDict
 from tqdm import tqdm, trange
 
-from ccsd.src.utils.loader import (
+from .utils.loader import (
     load_batch,
     load_data,
     load_device,
@@ -26,14 +26,8 @@ from ccsd.src.utils.loader import (
     load_model_params,
     load_seed,
 )
-from ccsd.src.utils.logger import (
-    Logger,
-    model_parameters_log,
-    set_log,
-    start_log,
-    train_log,
-)
-from ccsd.src.utils.plot import plot_lc
+from .utils.logger import Logger, model_parameters_log, set_log, start_log, train_log
+from .utils.plot import plot_lc
 
 
 class Trainer(abc.ABC):

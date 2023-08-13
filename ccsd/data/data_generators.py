@@ -22,7 +22,7 @@ import numpy as np
 import scipy.sparse as sp
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
-from ccsd.src.parsers.parser_generator import ParserGenerator
+from ..src.parsers.parser_generator import ParserGenerator
 
 
 def n_community(
@@ -209,7 +209,7 @@ def gen_graph_list(
     return graph_list
 
 
-def load_gen_dataset(
+def load_dataset(
     data_dir: str = "data", file_name: Optional[str] = None
 ) -> Union[List[nx.Graph], List[CombinatorialComplex]]:
     """Load an existing dataset as a list of graphs or list of combinatorial complexes from a file.

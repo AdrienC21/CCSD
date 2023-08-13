@@ -10,9 +10,9 @@ from typing import Callable, Optional, Tuple
 
 import torch
 
-from ccsd.src.sde import SDE, VESDE, VPSDE, subVPSDE
-from ccsd.src.utils.cc_utils import gen_noise_rank2, mask_rank2
-from ccsd.src.utils.graph_utils import gen_noise, mask_adjs, mask_x, node_flags
+from .sde import SDE, VESDE, VPSDE, subVPSDE
+from .utils.cc_utils import gen_noise_rank2, mask_rank2
+from .utils.graph_utils import gen_noise, mask_adjs, mask_x, node_flags
 
 
 def get_score_fn(

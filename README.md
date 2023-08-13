@@ -184,7 +184,7 @@ tests\utils\test_time_utils.py ..                                               
 
 ## Usage
 
-For a more complete documentation, please refer to the **Documentation** section below.
+For a more complete documentation on all the classes and functions, please refer to the **Documentation** page (link in the section below) and [here](https://readthedocs.org/projects/ccsd/).
 
 ### General
 
@@ -310,7 +310,7 @@ CUDA_VISIBLE_DEVICES=0 python main.py --type <type> --config <config_name>
 - Run an experiment by adapting the code below:
 
 ```python
-from ccsd import CCSD
+from ccsd.diffusion import CCSD
 
 
 params = {

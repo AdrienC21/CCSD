@@ -15,8 +15,8 @@ import torch.nn.functional as F
 from easydict import EasyDict
 from rdkit import Chem
 
-from ccsd.src.utils.errors import SymmetryError
-from ccsd.src.utils.mol_utils import bond_decoder
+from .errors import SymmetryError
+from .mol_utils import bond_decoder
 
 
 def mask_x(x: torch.Tensor, flags: Optional[torch.Tensor] = None) -> torch.Tensor:

@@ -15,10 +15,10 @@ sys.path.insert(0, os.getcwd())
 
 import pandas as pd
 
-from ccsd.data.utils.data_frame_parser import DataFrameParser
-from ccsd.data.utils.numpytupledataset import NumpyTupleDataset
-from ccsd.data.utils.smile_to_graph import GGNNPreprocessor
-from ccsd.src.parsers.parser_preprocess import ParserPreprocess
+from ..src.parsers.parser_preprocess import ParserPreprocess
+from .utils.data_frame_parser import DataFrameParser
+from .utils.numpytupledataset import NumpyTupleDataset
+from .utils.smile_to_graph import GGNNPreprocessor
 
 
 def preprocess(args: argparse.Namespace, print_elapsed_time: bool = True) -> None:

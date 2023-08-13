@@ -13,9 +13,9 @@ from easydict import EasyDict
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from torch.utils.data import DataLoader, TensorDataset
 
-from ccsd.data.data_generators import load_dataset
-from ccsd.src.utils.cc_utils import ccs_to_tensors
-from ccsd.src.utils.graph_utils import graphs_to_tensor, init_features
+from ...data.data_generators import load_dataset
+from .cc_utils import ccs_to_tensors
+from .graph_utils import graphs_to_tensor, init_features
 
 
 def graphs_to_dataloader(config: EasyDict, graph_list: List[nx.Graph]) -> DataLoader:

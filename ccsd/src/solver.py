@@ -14,10 +14,10 @@ import numpy as np
 import torch
 from tqdm import trange
 
-from ccsd.src.losses import get_score_fn, get_score_fn_cc
-from ccsd.src.sde import SDE, VPSDE, subVPSDE
-from ccsd.src.utils.cc_utils import gen_noise_rank2, mask_rank2
-from ccsd.src.utils.graph_utils import gen_noise, mask_adjs, mask_x
+from .losses import get_score_fn, get_score_fn_cc
+from .sde import SDE, VPSDE, subVPSDE
+from .utils.cc_utils import gen_noise_rank2, mask_rank2
+from .utils.graph_utils import gen_noise, mask_adjs, mask_x
 
 
 class Predictor(abc.ABC):

@@ -71,7 +71,7 @@ KEYWORDS = [
     "topological-neural-networks",
     "topological-data-analysis",
 ]
-PACKAGES = find_packages(include=["ccsd"])
+PACKAGES = find_packages(exclude=["tests", "tests.models", "tests.utils"])
 PYTHON_REQUIRES = ">=3.10"
 with open("requirements.txt", "r+") as f:
     INSTALL_REQUIRES = [x.replace("\n", "") for x in f.readlines()]
