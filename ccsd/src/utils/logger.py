@@ -176,7 +176,11 @@ def device_log(
         device (Union[str, List[int], List[str], List[torch.device]]): device(s) used as detected
     """
     print(100 * "-")
-    logger.log(f"Using device: {device}")
+    if isinstance(device, list):
+        device_str = f"GPU: {device}"
+    else:
+        device_str = f"{device}"
+    logger.log(f"Using device: {device_str}")
 
 
 def start_log(logger: Logger, config: EasyDict) -> None:
