@@ -107,7 +107,7 @@ class Sampler_Graph(Sampler):
         # Device to compute the score metrics
         if self.device0 == "cpu":
             self.device_score = "cpu"
-        elif "cuda" in self.device0:
+        elif "cuda" in str(self.device0):
             self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
@@ -278,7 +278,7 @@ class Sampler_CC(Sampler):
         # Device to compute the score metrics
         if self.device0 == "cpu":
             self.device_score = "cpu"
-        elif "cuda" in self.device0:
+        elif "cuda" in str(self.device0):
             self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
@@ -506,7 +506,7 @@ class Sampler_mol_Graph(Sampler):
         # Device to compute the score metrics
         if self.device0 == "cpu":
             self.device_score = "cpu"
-        elif "cuda" in self.device0:
+        elif "cuda" in str(self.device0):
             self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
@@ -774,7 +774,7 @@ class Sampler_mol_CC(Sampler):
         # Device to compute the score metrics
         if self.device0 == "cpu":
             self.device_score = "cpu"
-        elif "cuda" in self.device0:
+        elif "cuda" in str(self.device0):
             self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
