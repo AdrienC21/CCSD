@@ -1,0 +1,24 @@
+# Description: Adapted configuration file to sample from the QM9 dataset used in GDSS
+
+is_cc: False
+
+data:
+  data: QM9
+  dir: './data'
+
+ckpt: gdss_qm9
+
+sampler:
+  predictor: Reverse
+  corrector: Langevin
+  snr: 0.2
+  scale_eps: 0.7
+  n_steps: 1
+
+sample:
+  n_samples: 3  # param only for mol datasets
+  use_ema: False
+  noise_removal: True
+  probability_flow: False
+  eps: 1.0e-4
+  seed: 42
