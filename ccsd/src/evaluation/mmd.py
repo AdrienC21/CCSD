@@ -173,8 +173,8 @@ def disc(
     samples1: Iterator[np.ndarray],
     samples2: Iterator[np.ndarray],
     kernel: Callable[[np.ndarray, np.ndarray], float],
-    is_parallel: bool = False,
-    max_workers: Optional[int] = 4,
+    is_parallel: bool = True,
+    max_workers: Optional[int] = None,
     debug_mode: bool = False,
     *args,
     **kwargs
@@ -185,19 +185,20 @@ def disc(
         samples1 (Iterator[np.ndarray]): samples 1
         samples2 (Iterator[np.ndarray]): samples 2
         kernel (Callable[[np.ndarray, np.ndarray], float]): kernel function
-        is_parallel (bool, optional): whether or not we use parallel processing. Defaults to False.
-        max_workers (Optional[int], optional): number of workers (if is_parallel). Defaults to 4.
+        is_parallel (bool, optional): whether or not we use parallel processing. Defaults to True.
+        max_workers (Optional[int], optional): number of workers (if is_parallel). Defaults to None.
         debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to False.
 
     Returns:
         float: discrepancy
     """
-    d = 0
     if not is_parallel:
+        d = 0
         for s1 in samples1:
             for s2 in samples2:
                 d += kernel(s1, s2, *args, **kwargs)
     else:  # parallel
+        all_dist = []
         if debug_mode:
             print("Start parallel computing for disc compute")
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
@@ -207,10 +208,14 @@ def disc(
             )
             try:
                 for dist in results:
-                    d += dist
+                    all_dist.append(dist)
             except Exception as e:
                 raise e
-    d /= len(samples1) * len(samples2)  # normalize
+        d = np.sum(all_dist)
+    # Normalize
+    N = len(samples1) * len(samples2)
+    if N:
+        d /= N
     return d
 
 
@@ -235,8 +240,8 @@ def compute_mmd(
         float: MMD
     """
     if is_hist:  # normalize histograms into pmf
-        samples1 = [s1 / np.sum(s1) for s1 in samples1]
-        samples2 = [s2 / np.sum(s2) for s2 in samples2]
+        samples1 = [s1 / np.sum(s1) if np.sum(s1) else s1 for s1 in samples1]
+        samples2 = [s2 / np.sum(s2) if np.sum(s2) else s2 for s2 in samples2]
     return (
         disc(samples1, samples1, kernel, *args, **kwargs)
         + disc(samples2, samples2, kernel, *args, **kwargs)
