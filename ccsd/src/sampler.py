@@ -194,6 +194,7 @@ class Sampler_Graph(Sampler):
             gen_graph_list.extend(adjs_to_graphs(samples_int, True))
 
         gen_graph_list = gen_graph_list[: len(self.test_graph_list)]
+        print("Sampling done.")
 
         # -------- Evaluation --------
         # Eval graphs
@@ -386,6 +387,7 @@ class Sampler_CC(Sampler):
             )
 
         gen_CC_list = gen_CC_list[: len(self.test_CC_list)]
+        print("Sampling done.")
 
         # -------- Evaluation --------
         # Convert CC into graphs for evaluation
@@ -595,6 +597,7 @@ class Sampler_mol_Graph(Sampler):
 
         # Convert generated molecules into graphs
         gen_graph_list = mols_to_nx(gen_mols)
+        print("Sampling done.")
 
         # -------- Save generated molecules --------
         with open(os.path.join(self.log_dir, f"{self.log_name}.txt"), "a") as f:
@@ -881,6 +884,7 @@ class Sampler_mol_CC(Sampler):
         # Convert generated molecules into graphs and combinatorial complexes
         gen_graph_list = mols_to_nx(gen_mols)
         gen_CC_list = mols_to_cc(gen_mols)
+        print("Sampling done.")
 
         # -------- Save generated molecules --------
         with open(os.path.join(self.log_dir, f"{self.log_name}_smiles.txt"), "a") as f:

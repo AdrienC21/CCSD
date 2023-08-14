@@ -156,6 +156,7 @@ class Trainer_Graph(Trainer):
         self.loss_fn = load_loss_fn(self.config)
 
         # -------- Training --------
+        print("Training started...")
         for epoch in trange(
             0, (self.config.train.num_epochs), desc="[Epoch]", position=1, leave=False
         ):
@@ -278,7 +279,7 @@ class Trainer_Graph(Trainer):
                     f"[EPOCH {epoch+1:04d}] test adj: {mean_test_adj:.3e} | train adj: {mean_train_adj:.3e} | "
                     f"test x: {mean_test_x:.3e} | train x: {mean_train_x:.3e}"
                 )
-        print(" ")
+        print("Training complete.")
         # -------- Save final model --------
         torch.save(
             {
@@ -387,6 +388,7 @@ class Trainer_CC(Trainer):
         self.loss_fn = load_loss_fn(self.config, is_cc=True)
 
         # -------- Training --------
+        print("Training started...")
         for epoch in trange(
             0, (self.config.train.num_epochs), desc="[Epoch]", position=1, leave=False
         ):
@@ -519,7 +521,7 @@ class Trainer_CC(Trainer):
                     f"test x: {mean_test_x:.3e} | train x: {mean_train_x:.3e} | "
                     f"test rank2: {mean_test_rank2:.3e} | train rank2: {mean_train_rank2:.3e}"
                 )
-        print(" ")
+        print("Training complete.")
         # -------- Save final model --------
         torch.save(
             {

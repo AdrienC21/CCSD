@@ -61,6 +61,8 @@ def degree_stats(
     graph_pred_list: List[nx.Graph],
     kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
     is_parallel: bool = True,
+    max_workers: int = 4,
+    debug_mode: bool = True,
 ) -> float:
     """Compute the MMD distance between the degree distributions of two unordered sets of graphs.
 
@@ -69,6 +71,8 @@ def degree_stats(
         graph_pred_list (List[nx.Graph]): target list of networkx graphs to be evaluated
         kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
         is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
+        max_workers (int, optional): number of workers (if is_parallel). Defaults to 4.
+        debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to True.
 
     Returns:
         float: MMD distance
@@ -83,14 +87,18 @@ def degree_stats(
 
     prev = datetime.now()
     if is_parallel:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        if debug_mode:
+            print("Start parallel computing for degree mmd reference objects")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(degree_worker, graph_ref_list)
             try:
                 for deg_hist in results:
                     sample_ref.append(deg_hist)
             except Exception as e:
                 raise e
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        if debug_mode:
+            print("Start parallel computing for degree mmd predicted objects")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(degree_worker, graph_pred_list_remove_empty)
             try:
                 for deg_hist in results:
@@ -133,6 +141,8 @@ def spectral_stats(
     graph_pred_list: List[nx.Graph],
     kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
     is_parallel: bool = True,
+    max_workers: int = 4,
+    debug_mode: bool = True,
 ) -> np.ndarray:
     """Compute the MMD distance between the spectral densities of two unordered sets of graphs.
 
@@ -141,6 +151,8 @@ def spectral_stats(
         graph_pred_list (List[nx.Graph]): target list of networkx graphs to be evaluated
         kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
         is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
+        max_workers (int, optional): number of workers (if is_parallel). Defaults to 4.
+        debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to True.
 
     Returns:
         np.ndarray: spectral distance
@@ -156,14 +168,18 @@ def spectral_stats(
 
     prev = datetime.now()
     if is_parallel:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        if debug_mode:
+            print("Start parallel computing for spectral mmd reference objects")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(spectral_worker, graph_ref_list)
             try:
                 for spectral_density in results:
                     sample_ref.append(spectral_density)
             except Exception as e:
                 raise e
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        if debug_mode:
+            print("Start parallel computing for spectral mmd predicted objects")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(spectral_worker, graph_pred_list_remove_empty)
             try:
                 for spectral_density in results:
@@ -209,6 +225,8 @@ def clustering_stats(
     kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
     bins: int = 100,
     is_parallel: bool = True,
+    max_workers: int = 4,
+    debug_mode: bool = True,
 ) -> np.ndarray:
     """Compute the MMD distance between the clustering coefficients of two unordered sets of graphs.
     For unweighted graphs, the clustering coefficient of a node u is the fraction of possible triangles through that node that exist.
@@ -220,6 +238,8 @@ def clustering_stats(
         kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
         bins (int, optional): number of bins for the histogram. Defaults to 100.
         is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
+        max_workers (int, optional): number of workers (if is_parallel). Defaults to 4.
+        debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to True.
 
     Returns:
         float: mmd distance
@@ -235,7 +255,9 @@ def clustering_stats(
 
     prev = datetime.now()
     if is_parallel:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        if debug_mode:
+            print("Start parallel computing for clustering mmd reference objects")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(
                 clustering_worker, [(G, bins) for G in graph_ref_list]
             )
@@ -244,7 +266,9 @@ def clustering_stats(
                     sample_ref.append(clustering_hist)
             except Exception as e:
                 raise e
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        if debug_mode:
+            print("Start parallel computing for clustering mmd predicted objects")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(
                 clustering_worker, [(G, bins) for G in graph_pred_list_remove_empty]
             )
