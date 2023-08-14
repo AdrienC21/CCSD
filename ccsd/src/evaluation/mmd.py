@@ -200,6 +200,8 @@ def disc(
     else:  # parallel
         if debug_mode:
             print("Disc parallel")
+            print(samples1)
+            print(samples2)
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(
                 kernel_parallel_worker,
