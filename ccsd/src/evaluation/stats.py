@@ -62,7 +62,7 @@ def degree_stats(
     kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
     is_parallel: bool = True,
     max_workers: Optional[int] = 4,
-    debug_mode: bool = True,
+    debug_mode: bool = False,
 ) -> float:
     """Compute the MMD distance between the degree distributions of two unordered sets of graphs.
 
@@ -72,7 +72,7 @@ def degree_stats(
         kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
         is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
         max_workers (Optional[int], optional): number of workers (if is_parallel). Defaults to 4.
-        debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to True.
+        debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to False.
 
     Returns:
         float: MMD distance
@@ -142,7 +142,7 @@ def spectral_stats(
     kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
     is_parallel: bool = True,
     max_workers: Optional[int] = 4,
-    debug_mode: bool = True,
+    debug_mode: bool = False,
 ) -> np.ndarray:
     """Compute the MMD distance between the spectral densities of two unordered sets of graphs.
 
@@ -152,7 +152,7 @@ def spectral_stats(
         kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
         is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
         max_workers (Optional[int], optional): number of workers (if is_parallel). Defaults to 4.
-        debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to True.
+        debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to False.
 
     Returns:
         np.ndarray: spectral distance
@@ -226,7 +226,7 @@ def clustering_stats(
     bins: int = 100,
     is_parallel: bool = True,
     max_workers: Optional[int] = 4,
-    debug_mode: bool = True,
+    debug_mode: bool = False,
 ) -> np.ndarray:
     """Compute the MMD distance between the clustering coefficients of two unordered sets of graphs.
     For unweighted graphs, the clustering coefficient of a node u is the fraction of possible triangles through that node that exist.
@@ -239,7 +239,7 @@ def clustering_stats(
         bins (int, optional): number of bins for the histogram. Defaults to 100.
         is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
         max_workers (Optional[int], optional): number of workers (if is_parallel). Defaults to 4.
-        debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to True.
+        debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to False.
 
     Returns:
         float: mmd distance

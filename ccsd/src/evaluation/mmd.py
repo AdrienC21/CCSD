@@ -173,9 +173,9 @@ def disc(
     samples1: Iterator[np.ndarray],
     samples2: Iterator[np.ndarray],
     kernel: Callable[[np.ndarray, np.ndarray], float],
-    is_parallel: bool = True,
+    is_parallel: bool = False,
     max_workers: Optional[int] = 4,
-    debug_mode: bool = True,
+    debug_mode: bool = False,
     *args,
     **kwargs
 ) -> float:
@@ -185,9 +185,9 @@ def disc(
         samples1 (Iterator[np.ndarray]): samples 1
         samples2 (Iterator[np.ndarray]): samples 2
         kernel (Callable[[np.ndarray, np.ndarray], float]): kernel function
-        is_parallel (bool, optional): whether or not we use parallel processing. Defaults to True.
+        is_parallel (bool, optional): whether or not we use parallel processing. Defaults to False.
         max_workers (Optional[int], optional): number of workers (if is_parallel). Defaults to 4.
-        debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to True.
+        debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to False.
 
     Returns:
         float: discrepancy
@@ -199,9 +199,7 @@ def disc(
                 d += kernel(s1, s2, *args, **kwargs)
     else:  # parallel
         if debug_mode:
-            print("Disc parallel")
-            print(samples1)
-            print(samples2)
+            print("Start parallel computing for disc compute")
         with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             results = executor.map(
                 kernel_parallel_worker,
