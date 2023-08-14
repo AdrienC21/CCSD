@@ -68,7 +68,7 @@ def preprocess(args: argparse.Namespace, print_elapsed_time: bool = True) -> Non
     smiles = result["smiles"]
 
     NumpyTupleDataset.save(
-        os.path.join(folder, "data", f"{data_name.lower()}_kekulized.npz", dataset)
+        os.path.join(folder, "data", f"{data_name.lower()}_kekulized.npz"), dataset
     )
 
     if print_elapsed_time:
