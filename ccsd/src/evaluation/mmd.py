@@ -195,11 +195,15 @@ def disc(
                 d += kernel(s1, s2, *args, **kwargs)
     else:  # parallel
         with concurrent.futures.ProcessPoolExecutor() as executor:
-            for dist in executor.map(
+            results = executor.map(
                 kernel_parallel_worker,
                 [(s1, samples2, partial(kernel, *args, **kwargs)) for s1 in samples1],
-            ):
-                d += dist
+            )
+            try:
+                for dist in results:
+                    d += dist
+            except Exception as e:
+                raise e
     d /= len(samples1) * len(samples2)  # normalize
     return d
 

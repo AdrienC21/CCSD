@@ -84,11 +84,19 @@ def degree_stats(
     prev = datetime.now()
     if is_parallel:
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for deg_hist in executor.map(degree_worker, graph_ref_list):
-                sample_ref.append(deg_hist)
+            results = executor.map(degree_worker, graph_ref_list)
+            try:
+                for deg_hist in results:
+                    sample_ref.append(deg_hist)
+            except Exception as e:
+                raise e
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for deg_hist in executor.map(degree_worker, graph_pred_list_remove_empty):
-                sample_pred.append(deg_hist)
+            results = executor.map(degree_worker, graph_pred_list_remove_empty)
+            try:
+                for deg_hist in results:
+                    sample_pred.append(deg_hist)
+            except Exception as e:
+                raise e
 
     else:
         for i in range(len(graph_ref_list)):
@@ -149,13 +157,19 @@ def spectral_stats(
     prev = datetime.now()
     if is_parallel:
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for spectral_density in executor.map(spectral_worker, graph_ref_list):
-                sample_ref.append(spectral_density)
+            results = executor.map(spectral_worker, graph_ref_list)
+            try:
+                for spectral_density in results:
+                    sample_ref.append(spectral_density)
+            except Exception as e:
+                raise e
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for spectral_density in executor.map(
-                spectral_worker, graph_pred_list_remove_empty
-            ):
-                sample_pred.append(spectral_density)
+            results = executor.map(spectral_worker, graph_pred_list_remove_empty)
+            try:
+                for spectral_density in results:
+                    sample_pred.append(spectral_density)
+            except Exception as e:
+                raise e
     else:
         for i in range(len(graph_ref_list)):
             spectral_temp = spectral_worker(graph_ref_list[i])
@@ -222,15 +236,23 @@ def clustering_stats(
     prev = datetime.now()
     if is_parallel:
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for clustering_hist in executor.map(
+            results = executor.map(
                 clustering_worker, [(G, bins) for G in graph_ref_list]
-            ):
-                sample_ref.append(clustering_hist)
+            )
+            try:
+                for clustering_hist in results:
+                    sample_ref.append(clustering_hist)
+            except Exception as e:
+                raise e
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for clustering_hist in executor.map(
+            results = executor.map(
                 clustering_worker, [(G, bins) for G in graph_pred_list_remove_empty]
-            ):
-                sample_pred.append(clustering_hist)
+            )
+            try:
+                for clustering_hist in results:
+                    sample_pred.append(clustering_hist)
+            except Exception as e:
+                raise e
     else:
         for i in range(len(graph_ref_list)):
             clustering_coeffs_list = list(nx.clustering(graph_ref_list[i]).values())
