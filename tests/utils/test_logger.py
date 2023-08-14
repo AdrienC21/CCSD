@@ -152,7 +152,9 @@ def test_set_log(tmpdir: pathlib.Path) -> None:
     )
     is_train = True
     root = "logs_train" if is_train else "logs_sample"
-    log_folder_name, log_dir, ckpt_dir = set_log(config, is_train=is_train)
+    log_folder_name, log_dir, ckpt_dir = set_log(
+        config, is_train=is_train, folder=config.folder
+    )
 
     # Check if the log folder name, log directory, and checkpoint directory are correct
     assert log_folder_name == os.path.join(data, exp_name)

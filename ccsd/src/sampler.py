@@ -120,7 +120,9 @@ class Sampler_Graph(Sampler):
             self.configt, get_list=True
         )
 
-        self.log_folder_name, self.log_dir, _ = set_log(self.configt, is_train=False)
+        self.log_folder_name, self.log_dir, _ = set_log(
+            self.configt, is_train=False, folder=self.config.folder
+        )
         self.log_name = f"{self.config.config_name}_{self.config.ckpt}-sample_{self.config.current_time}"
         logger = Logger(
             str(os.path.join(self.log_dir, f"{self.log_name}.log")), mode="a"
@@ -278,7 +280,9 @@ class Sampler_CC(Sampler):
             self.configt, get_list=True, is_cc=True
         )
 
-        self.log_folder_name, self.log_dir, _ = set_log(self.configt, is_train=False)
+        self.log_folder_name, self.log_dir, _ = set_log(
+            self.configt, is_train=False, folder=self.config.folder
+        )
         self.log_name = f"{self.config.config_name}_{self.config.ckpt}-sample_{self.config.current_time}"
         logger = Logger(
             str(os.path.join(self.log_dir, f"{self.log_name}.log")), mode="a"
@@ -490,7 +494,9 @@ class Sampler_mol_Graph(Sampler):
 
         load_seed(self.config.seed)
 
-        self.log_folder_name, self.log_dir, _ = set_log(self.configt, is_train=False)
+        self.log_folder_name, self.log_dir, _ = set_log(
+            self.configt, is_train=False, folder=self.config.folder
+        )
         self.log_name = f"{self.config.config_name}_{self.config.ckpt}-sample_{self.config.current_time}"
         logger = Logger(
             str(os.path.join(self.log_dir, f"{self.log_name}.log")), mode="a"
@@ -746,7 +752,9 @@ class Sampler_mol_CC(Sampler):
 
         load_seed(self.config.seed)
 
-        self.log_folder_name, self.log_dir, _ = set_log(self.configt, is_train=False)
+        self.log_folder_name, self.log_dir, _ = set_log(
+            self.configt, is_train=False, folder=self.config.folder
+        )
         self.log_name = f"{self.config.config_name}_{self.config.ckpt}-sample_{self.config.current_time}"
         logger = Logger(
             str(os.path.join(self.log_dir, f"{self.log_name}.log")), mode="a"

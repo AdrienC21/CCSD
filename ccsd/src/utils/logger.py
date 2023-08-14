@@ -63,12 +63,15 @@ class Logger:
             print(str)
 
 
-def set_log(config: EasyDict, is_train: bool = True) -> Tuple[str, str, str]:
+def set_log(
+    config: EasyDict, is_train: bool = True, folder: str = "./"
+) -> Tuple[str, str, str]:
     """Set the log folder name, log directory and checkpoint directory
 
     Args:
         config (EasyDict): the config object
         is_train (bool, optional): True if we are training, False if we are sampling. Defaults to True.
+        folder (str, optional): the general saving folder. Defaults to "./".
 
     Returns:
         Tuple[str, str, str]: the name of the folder, the log directory and the checkpoint directory of the log
@@ -79,11 +82,11 @@ def set_log(config: EasyDict, is_train: bool = True) -> Tuple[str, str, str]:
 
     log_folder_name = os.path.join(*[data, exp_name])
     root = "logs_train" if is_train else "logs_sample"
-    log_dir = os.path.join(config.folder, f"{root}", f"{log_folder_name}")
+    log_dir = os.path.join(folder, f"{root}", f"{log_folder_name}")
     if not (os.path.isdir(log_dir)):
         os.makedirs(log_dir)
 
-    ckpt_dir = os.path.join(config.folder, "checkpoints", f"{data}")
+    ckpt_dir = os.path.join(folder, "checkpoints", f"{data}")
     if not (os.path.isdir(ckpt_dir)) and is_train:
         os.makedirs(ckpt_dir)
 

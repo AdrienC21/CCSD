@@ -157,6 +157,7 @@ It also requires the following dependencies:
 - molsets>=0.3.1
 - pytest-cov
 - wandb
+- pandas>=2.0.3
 
 Please make sure you have the required dependencies installed before using CCSD.
 

@@ -24,3 +24,4 @@ tqdm>=4.65.0
 wandb
 molsets
 pytest-cov
+pandas>=2.0.3

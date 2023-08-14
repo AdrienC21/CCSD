@@ -102,7 +102,9 @@ class Trainer_Graph(Trainer):
 
         # Load general config
         self.config = config
-        self.log_folder_name, self.log_dir, self.ckpt_dir = set_log(self.config)
+        self.log_folder_name, self.log_dir, self.ckpt_dir = set_log(
+            self.config, is_train=True, folder=self.config.folder
+        )
         self.is_cc = self.config.is_cc
 
         # Load training config
@@ -322,7 +324,9 @@ class Trainer_CC(Trainer):
 
         # Load general config
         self.config = config
-        self.log_folder_name, self.log_dir, self.ckpt_dir = set_log(self.config)
+        self.log_folder_name, self.log_dir, self.ckpt_dir = set_log(
+            self.config, is_train=True, folder=self.config.folder
+        )
         self.is_cc = self.config.is_cc
 
         # Load training config
