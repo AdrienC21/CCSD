@@ -11,6 +11,20 @@ sudo apt install -y git
 git config --global user.name "<username>"
 git config --global user.email "<email>"
 
+# Install CUDA (https://hackmd.io/@MarconiJiang/nvidia_v100_ubuntu1804)
+# distribution=$(. /etc/os-release;echo $ID$VERSION_ID | sed -e 's/\.//g')
+distribution="ubuntu1804"
+arch="x86_64"
+wget https://developer.download.nvidia.com/compute/cuda/repos/$distribution/$arch/cuda-keyring_1.0-1_all.deb
+sudo dpkg -i cuda-keyring_1.0-1_all.deb
+sudo apt-get update
+sudo apt-get -y install cuda-drivers
+sudo apt-get install cuda
+export PATH=/usr/local/cuda-12.2/bin${PATH:+:${PATH}}
+export LD_LIBRARY_PATH=/usr/local/cuda-12.2/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+sudo apt-get install zlib1g
+sudo apt-get install libcudnn8
+
 # Install Python 3 and pip
 sudo apt install -y python3 python3-pip
 python3 -m venv ccsd_env

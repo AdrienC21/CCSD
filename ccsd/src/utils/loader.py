@@ -365,14 +365,14 @@ def load_sampling_fn(
     # Get shape in function of dataset
     if config_train.data.data in ["QM9"]:
         shape_x = (
-            config_train.sample.n_samples,
+            config_sample.n_samples,
             max_node_num,
             config_train.data.max_feat_num,
         )
-        shape_adj = (config_train.sample.n_samples, max_node_num, max_node_num)
+        shape_adj = (config_sample.n_samples, max_node_num, max_node_num)
         if is_cc:
             rank2_dim = get_rank2_dim(max_node_num, d_min, d_max)
-            shape_rank2 = (config_train.sample.n_samples, rank2_dim[0], rank2_dim[1])
+            shape_rank2 = (config_sample.n_samples, rank2_dim[0], rank2_dim[1])
     else:
         shape_x = (
             config_train.data.batch_size,
