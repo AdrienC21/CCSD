@@ -177,7 +177,10 @@ def device_log(
     """
     print(100 * "-")
     if isinstance(device, list):
-        device_str = f"GPU: {device}"
+        device_str_list = [
+            f"cuda:{dev}" if "cuda" not in str(dev) else str(dev) for dev in device
+        ]
+        device_str = f"GPU: {device_str_list}"
     else:
         device_str = f"{device}"
     logger.log(f"Using device: {device_str}")
