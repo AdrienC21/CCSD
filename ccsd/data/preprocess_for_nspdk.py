@@ -54,7 +54,7 @@ def preprocess_nspdk(args: argparse.Namespace, print_elapsed_time: bool = True) 
         raise ValueError(f"[ERROR] Unexpected value. Dataset {dataset} not supported.")
 
     # Load the molecules
-    smiles = pd.read_csv(os.path.join(folder, "data" f"{dataset.lower()}.csv"))[col]
+    smiles = pd.read_csv(os.path.join(folder, "data", f"{dataset.lower()}.csv"))[col]
     # Get the test molecules
     test_smiles = [smiles.iloc[i] for i in test_idx]
     # Convert the test molecules into graphs
