@@ -11,10 +11,10 @@ import pickle
 import time
 
 import torch
-import wandb
 from easydict import EasyDict
 from moses.metrics.metrics import get_all_metrics
 
+import wandb
 from ccsd.src.evaluation.stats import eval_graph_list
 from ccsd.src.utils.cc_utils import (
     cc_from_incidence,
@@ -43,6 +43,7 @@ from ccsd.src.utils.loader import (
 from ccsd.src.utils.logger import (
     Logger,
     check_log,
+    device_log,
     sample_log,
     set_log,
     start_log,
@@ -130,6 +131,7 @@ class Sampler_Graph(Sampler):
 
         if not check_log(self.log_folder_name, self.log_name):
             logger.log(f"{self.log_name}")
+            device_log(logger, self.device)
             start_log(logger, self.configt)
             train_log(logger, self.configt)
         sample_log(logger, self.config)
@@ -290,6 +292,7 @@ class Sampler_CC(Sampler):
 
         if not check_log(self.log_folder_name, self.log_name):
             logger.log(f"{self.log_name}")
+            device_log(logger, self.device)
             start_log(logger, self.configt)
             train_log(logger, self.configt)
         sample_log(logger, self.config)
@@ -503,6 +506,8 @@ class Sampler_mol_Graph(Sampler):
         )
 
         if not check_log(self.log_folder_name, self.log_name):
+            logger.log(f"{self.log_name}")
+            device_log(logger, self.device)
             start_log(logger, self.configt)
             train_log(logger, self.configt)
         sample_log(logger, self.config)
@@ -761,6 +766,8 @@ class Sampler_mol_CC(Sampler):
         )
 
         if not check_log(self.log_folder_name, self.log_name):
+            logger.log(f"{self.log_name}")
+            device_log(logger, self.device)
             start_log(logger, self.configt)
             train_log(logger, self.configt)
         sample_log(logger, self.config)

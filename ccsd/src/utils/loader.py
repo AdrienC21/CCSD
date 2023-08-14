@@ -54,11 +54,11 @@ def load_seed(seed: int) -> int:
     return seed
 
 
-def load_device() -> str:
-    """Check if cuda is available and then return the device to use
+def load_device() -> Union[str, List[int], List[str], List[torch.device]]:
+    """Check if cuda is available and then return the device(s) to use
 
     Returns:
-        str: device to use
+        Union[str, List[int], List[str], List[torch.device]]: device(s) to use
     """
     if torch.cuda.is_available():
         device = list(range(torch.cuda.device_count()))

@@ -7,7 +7,7 @@ Adapted from Jo, J. & al (2022), almost left untouched.
 """
 
 import os
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Union
 
 import torch
 from easydict import EasyDict
@@ -159,11 +159,24 @@ def model_log(logger: Logger, config: EasyDict, is_cc: bool = False) -> None:
         )
     line1 += "   : "
     model_log = (
-        line1,
-        f"depth={config_m.depth} adim={config_m.adim} nhid={config_m.nhid} layers={config_m.num_layers} "
-        f"linears={config_m.num_linears} c=({config_m.c_init} {config_m.c_hid} {config_m.c_final})",
+        line1
+        + f"depth={config_m.depth} adim={config_m.adim} nhid={config_m.nhid} layers={config_m.num_layers} "
+        + f"linears={config_m.num_linears} c=({config_m.c_init} {config_m.c_hid} {config_m.c_final})"
     )
     logger.log(model_log)
+
+
+def device_log(
+    logger: Logger, device: Union[str, List[int], List[str], List[torch.device]]
+) -> None:
+    """Log the device(s) that will be used as detected by PyTorch
+
+    Args:
+        logger (Logger): Logger object
+        device (Union[str, List[int], List[str], List[torch.device]]): device(s) used as detected
+    """
+    print(100 * "-")
+    logger.log(f"Using device: {device}")
 
 
 def start_log(logger: Logger, config: EasyDict) -> None:

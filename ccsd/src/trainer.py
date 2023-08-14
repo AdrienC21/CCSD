@@ -12,10 +12,10 @@ from typing import Dict, List, Optional
 
 import numpy as np
 import torch
-import wandb
 from easydict import EasyDict
 from tqdm import tqdm, trange
 
+import wandb
 from ccsd.src.utils.loader import (
     load_batch,
     load_data,
@@ -28,6 +28,7 @@ from ccsd.src.utils.loader import (
 )
 from ccsd.src.utils.logger import (
     Logger,
+    device_log,
     model_parameters_log,
     set_log,
     start_log,
@@ -147,6 +148,7 @@ class Trainer_Graph(Trainer):
         log_name = f"{self.config.config_name}_{self.ckpt}"
         logger = Logger(str(os.path.join(self.log_dir, f"{log_name}.log")), mode="a")
         logger.log(f"{self.ckpt}", verbose=False)
+        device_log(logger, self.device)
         start_log(logger, self.config)
         train_log(logger, self.config)
         model_parameters_log(logger, [self.model_x, self.model_adj])
@@ -377,6 +379,7 @@ class Trainer_CC(Trainer):
         log_name = f"{self.config.config_name}_{self.ckpt}"
         logger = Logger(str(os.path.join(self.log_dir, f"{log_name}.log")), mode="a")
         logger.log(f"{self.ckpt}", verbose=False)
+        device_log(logger, self.device)
         start_log(logger, self.config)
         train_log(logger, self.config)
         model_parameters_log(logger, [self.model_x, self.model_adj, self.model_rank2])
