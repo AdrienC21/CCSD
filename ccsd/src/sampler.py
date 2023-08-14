@@ -108,7 +108,7 @@ class Sampler_Graph(Sampler):
         if self.device0 == "cpu":
             self.device_score = "cpu"
         elif "cuda" in self.device0:
-            self.device_score = self.device0
+            self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
         self.n_samples = None
@@ -279,7 +279,7 @@ class Sampler_CC(Sampler):
         if self.device0 == "cpu":
             self.device_score = "cpu"
         elif "cuda" in self.device0:
-            self.device_score = self.device0
+            self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
         self.n_samples = None
@@ -507,7 +507,7 @@ class Sampler_mol_Graph(Sampler):
         if self.device0 == "cpu":
             self.device_score = "cpu"
         elif "cuda" in self.device0:
-            self.device_score = self.device0
+            self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
         self.n_samples = self.config.sample.n_samples
@@ -775,7 +775,7 @@ class Sampler_mol_CC(Sampler):
         if self.device0 == "cpu":
             self.device_score = "cpu"
         elif "cuda" in self.device0:
-            self.device_score = self.device0
+            self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
         self.n_samples = self.config.sample.n_samples
