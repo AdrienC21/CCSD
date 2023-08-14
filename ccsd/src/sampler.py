@@ -167,6 +167,9 @@ class Sampler_Graph(Sampler):
             len(self.test_graph_list) / self.configt.data.batch_size
         )
         gen_graph_list = []
+        logger.log(
+            f"Number sampling rounds: {num_sampling_rounds}, number of samples per round: {self.config.data.batch_size}"
+        )
         for r in range(num_sampling_rounds):
             t_start = time.time()
 
@@ -343,6 +346,9 @@ class Sampler_CC(Sampler):
             len(self.test_CC_list) / self.configt.data.batch_size
         )
         gen_CC_list = []
+        logger.log(
+            f"Number sampling rounds: {num_sampling_rounds}, number of samples per round: {self.config.data.batch_size}"
+        )
         for r in range(num_sampling_rounds):
             t_start = time.time()
 
@@ -539,6 +545,7 @@ class Sampler_mol_Graph(Sampler):
         with open(f"data/{self.configt.data.data.lower()}_test_nx.pkl", "rb") as f:
             self.test_graph_list = pickle.load(f)  # for NSPDK MMD
 
+        logger.log(f"Sampling {self.n_samples} samples ...")
         self.init_flags = init_flags(
             self.train_graph_list, self.configt, self.n_samples
         ).to(self.device0)
@@ -815,6 +822,7 @@ class Sampler_mol_CC(Sampler):
         self.test_cc_list = mols_to_cc(test_mol_list)
 
         # Generate samples
+        logger.log(f"Sampling {self.n_samples} samples ...")
         self.init_flags = init_flags(
             self.train_CC_list, self.configt, self.n_samples, is_cc=True
         ).to(self.device0)

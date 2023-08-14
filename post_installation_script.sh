@@ -3,9 +3,13 @@
 # Go root
 sudo su
 
-# Update the system and install Git
+# Update the system and install Git and git-lfs (for MOSES)
 sudo apt update
 sudo apt install -y git
+# git-lfs
+curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+sudo apt-get install git-lfs
+git-lfs install
 
 # Set up Git configurations (replace with your details)
 git config --global user.name "<username>"
@@ -37,6 +41,7 @@ pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.0.1+c
 pip install rdkit
 pip install Cython
 pip install pomegranate
+git lfs install
 pip install git+https://github.com/molecularsets/moses.git
 pip install git+https://github.com/pyt-team/TopoNetX.git
 

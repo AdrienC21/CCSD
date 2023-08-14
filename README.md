@@ -366,13 +366,24 @@ Finally, either install MOSES directly using:
 pip install molsets
 ```
 
-**Or** by running the command
+**Or**, first install lfs by running
 
 ```bash
+curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
+sudo apt-get install git-lfs
+git-lfs install
+```
+
+And then use one of the two options below to install MOSES:
+
+1 - via git
+
+```bash
+git lfs install
 pip install git+https://github.com/molecularsets/moses.git
 ```
 
-**Or** install it manually if it doesn't work by typing the following commands:
+2 - install it manually (if the previous steps doesn't work):
 
 ```bash
 git lfs install
