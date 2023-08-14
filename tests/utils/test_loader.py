@@ -417,7 +417,12 @@ def create_mock_configs() -> Tuple[EasyDict, EasyDict, EasyDict, EasyDict, str]:
         }
     )
     config_sample = EasyDict(
-        {"probability_flow": False, "noise_removal": False, "eps": 1e-6}
+        {
+            "n_samples": 10,
+            "probability_flow": False,
+            "noise_removal": False,
+            "eps": 1e-6,
+        }
     )
     device = "cpu"  # Assume we are using CPU for testing
     return config_train, config_train_cc, config_module, config_sample, device

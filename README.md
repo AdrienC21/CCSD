@@ -30,6 +30,9 @@
     - [Next steps](#next-steps)
   - [Dependencies](#dependencies)
   - [Testing](#testing)
+  - [Datasets](#datasets)
+    - [Process molecular datasets](#process-molecular-datasets)
+    - [Generate generic graphs datasets](#generate-generic-graphs-datasets)
   - [Usage](#usage)
     - [General](#general)
     - [Command line](#command-line)
@@ -83,7 +86,7 @@ Feel free to check our [Code of Conduct](https://github.com/AdrienC21/CCSD/CODE_
 
 ## Installation
 
-If you encounter an error during the installation, please refer to the section **Commons errors** below. If you are creating an Ubuntu instance on a Public Cloud service to train/sample from the model, you may want to use the `post_installation_script.sh` script provided to automate the process.
+If you encounter an error during the installation, please refer to the section **Commons errors** below. If you are creating an Ubuntu instance on a Public Cloud service to train/sample from the model, you may want to use the `post_installation_script.sh` script provided to automate the process (just modify the **Git configurations** section inside the script with your details).
 
 ### Using pip
 
@@ -189,6 +192,35 @@ tests\utils\test_time_utils.py ..                                               
 
 ============================================== 128 passed in 70.03s (0:01:10) =============================================== 
 ```
+
+## Datasets
+
+For more information about the script below and their arguments, you can type:
+
+```bash
+python <script_path> --help
+```
+
+### Process molecular datasets
+
+If you want to use molecular datasets such as QM9, you first need to run the two following commands:
+
+```bash
+python ccsd/data/preprocess.py --dataset <dataset_name> --folder <folder_name>
+python ccsd/data/preprocess_for_nspdk.py --dataset <dataset_name>  --folder <folder_name>
+```
+
+`<dataset_name>` has to be chosen from this list: `["QM9"]`. `<folder_name>` is the location of the `data` folder that contains the datasets (default to `./`).
+
+### Generate generic graphs datasets
+
+If you want to generate generic graphs datasets, you can run the following command:
+
+```bash
+python ccsd/data/data_generators.py --dataset <dataset_name> --folder <folder_name>
+```
+
+`<dataset_name>` has to be chosen from this list: `["community_small", "grid", "ego_small", "ENZYMES"]`. `<folder_name>` is the location of the `data` folder that will contain the generated dataset (default to `./`).
 
 ## Usage
 

@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # Go root
+echo "Go root"
 sudo su
 
 # Update the system and install Git and git-lfs (for MOSES)
+echo "Update the system and install Git and git-lfs (for MOSES)"
 sudo apt update
 sudo apt install -y git
 # git-lfs
@@ -12,29 +14,33 @@ sudo apt-get install git-lfs
 git-lfs install
 
 # Set up Git configurations (replace with your details)
-git config --global user.name "<username>"
-git config --global user.email "<email>"
+echo "Set up Git configurations"
+git config --global user.name ""
+git config --global user.email ""
 
 # Install CUDA (https://hackmd.io/@MarconiJiang/nvidia_v100_ubuntu1804)
 # distribution=$(. /etc/os-release;echo $ID$VERSION_ID | sed -e 's/\.//g')
+echo "Install CUDA"
 distribution="ubuntu1804"
 arch="x86_64"
 wget https://developer.download.nvidia.com/compute/cuda/repos/$distribution/$arch/cuda-keyring_1.0-1_all.deb
 sudo dpkg -i cuda-keyring_1.0-1_all.deb
-sudo apt-get update
-sudo apt-get -y install cuda-drivers
-sudo apt-get install cuda
+sudo apt-get -y update
+sudo NEEDRESTART_MODE=a apt-get -y install cuda-drivers
+sudo NEEDRESTART_MODE=a apt-get -y install cuda
 export PATH=/usr/local/cuda-12.2/bin${PATH:+:${PATH}}
 export LD_LIBRARY_PATH=/usr/local/cuda-12.2/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 sudo apt-get install zlib1g
-sudo apt-get install libcudnn8
+sudo NEEDRESTART_MODE=a apt-get install libcudnn8
 
 # Install Python 3 and pip
-sudo apt install -y python3 python3-pip
+echo "Install Python 3 and pip"
+sudo NEEDRESTART_MODE=a apt install -y python3 python3-pip python3-venv
 python3 -m venv ccsd_env
 source ccsd_env/bin/activate
 
 # Install the required Python packages (with special cases)
+echo "Install the required Python packages (with special cases)"
 pip install --upgrade pip setuptools wheel
 pip install torch==2.0.1 --extra-index-url https://download.pytorch.org/whl/cu118
 pip install torch-scatter torch-sparse -f https://data.pyg.org/whl/torch-2.0.1+cu118.html
@@ -45,22 +51,35 @@ git lfs install
 pip install git+https://github.com/molecularsets/moses.git
 pip install git+https://github.com/pyt-team/TopoNetX.git
 
-# Clone the repository (replace with your repository URL)
-git clone git@github.com:AdrienC21/CCSD.git
-
 # Additionnal installations
+echo "Additionnal installations"
 sudo apt-get install libxrender1
+
+# Generate SSH keys
+echo "Generate SSH keys"
+ssh-keygen
+echo "######################"
+echo "Add the following SSH key to your GitHub account:"
+cat ~/.ssh/id_rsa.pub
+
+read -n 1 -s -r -p "Press any key to continue when the SSH key has been added to your GitHub account..."
+
+# Clone the repository
+echo "Clone the repository"
+git clone git@github.com:AdrienC21/CCSD.git
 
 # Navigate to the cloned repository directory
 cd CCSD
 
 # Apply fixes
+echo "Apply fixes"
 python ./.github/workflows/apply_fixes.py
 # Install the required Python packages (others)
+echo "Install the required Python packages"
 pip install -r requirements.txt
 
 # Finished!
 echo "Post-installation script completed!"
 echo "Executing tests ..."
 pytest tests/ -W ignore::DeprecationWarning
-echo "Test completed!"
+echo "Test completed! Reboot your system to finish the installation."
