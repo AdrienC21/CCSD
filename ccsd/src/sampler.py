@@ -104,6 +104,13 @@ class Sampler_Graph(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
+        # Device to compute the score metrics
+        if self.device0 == "cpu":
+            self.device_score = "cpu"
+        elif "cuda" in self.device0:
+            self.device_score = self.device0
+        else:
+            self.device_score = f"cuda:{self.device0}"
         self.n_samples = None
 
     def __repr__(self) -> str:
@@ -268,6 +275,13 @@ class Sampler_CC(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
+        # Device to compute the score metrics
+        if self.device0 == "cpu":
+            self.device_score = "cpu"
+        elif "cuda" in self.device0:
+            self.device_score = self.device0
+        else:
+            self.device_score = f"cuda:{self.device0}"
         self.n_samples = None
 
     def __repr__(self) -> str:
@@ -489,6 +503,13 @@ class Sampler_mol_Graph(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
+        # Device to compute the score metrics
+        if self.device0 == "cpu":
+            self.device_score = "cpu"
+        elif "cuda" in self.device0:
+            self.device_score = self.device0
+        else:
+            self.device_score = f"cuda:{self.device0}"
         self.n_samples = self.config.sample.n_samples
 
     def __repr__(self) -> str:
@@ -585,7 +606,7 @@ class Sampler_mol_Graph(Sampler):
         scores = get_all_metrics(
             gen=gen_smiles,
             k=len(gen_smiles),
-            device=self.device0,
+            device=self.device_score,
             n_jobs=8,
             test=test_smiles,
             train=train_smiles,
@@ -750,6 +771,13 @@ class Sampler_mol_CC(Sampler):
         self.config = config
         self.device = load_device()
         self.device0 = self.device[0] if isinstance(self.device, list) else self.device
+        # Device to compute the score metrics
+        if self.device0 == "cpu":
+            self.device_score = "cpu"
+        elif "cuda" in self.device0:
+            self.device_score = self.device0
+        else:
+            self.device_score = f"cuda:{self.device0}"
         self.n_samples = self.config.sample.n_samples
 
     def __repr__(self) -> str:
@@ -864,7 +892,7 @@ class Sampler_mol_CC(Sampler):
         scores = get_all_metrics(
             gen=gen_smiles,
             k=len(gen_smiles),
-            device=self.device0,
+            device=self.device_score,
             n_jobs=8,
             test=test_smiles,
             train=train_smiles,

@@ -1023,7 +1023,8 @@ def eval_CC_list(
     if methods is None:  # by default, evaluate the methods ["rank2_distrib"]
         methods = ["rank2_distrib"]
     results = {}
-    for method in methods:
+    for method_id, method in enumerate(methods):
+        print(f"Evaluating method: {method} ({method_id+1}/{len(methods)}) ...")
         results[method] = round(
             CC_METHOD_NAME_TO_FUNC[method](
                 cc_ref_list, cc_pred_list, d_min, d_max, kernels[method]

@@ -457,7 +457,8 @@ def eval_graph_list(
     ):  # by default, evaluate the methods ["degree", "cluster", "orbit"]
         methods = ["degree", "cluster", "orbit"]
     results = {}
-    for method in methods:
+    for method_id, method in enumerate(methods):
+        print(f"Evaluating method: {method} ({method_id+1}/{len(methods)}) ...")
         if (
             method == "nspdk"
         ):  # nspdk requires a different function signature as there is no kernel as input
