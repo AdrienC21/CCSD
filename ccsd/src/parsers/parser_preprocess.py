@@ -29,6 +29,12 @@ class ParserPreprocess:
             choices=["ZINC250k", "QM9"],
             help="Dataset name",
         )
+        self.parser.add_argument(
+            "--folder",
+            type=str,
+            default="./",
+            help="Directory to save the results, load checkpoints, load config, etc",
+        )
 
     def parse(self) -> argparse.Namespace:
         """Parse the arguments and check for unknown arguments.

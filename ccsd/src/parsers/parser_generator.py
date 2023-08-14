@@ -31,6 +31,12 @@ class ParserGenerator:
             help="type of dataset to generate",
             choices=["ego_small", "community_small", "ENZYMES", "grid"],
         )
+        self.parser.add_argument(
+            "--folder",
+            type=str,
+            default="./",
+            help="Directory to save the results, load checkpoints, load config, etc",
+        )
 
     def parse(self) -> argparse.Namespace:
         """Parse the arguments and check for unknown arguments.

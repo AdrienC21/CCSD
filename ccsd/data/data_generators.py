@@ -394,7 +394,7 @@ def save_dataset(data_dir: str, graphs: List[nx.Graph], save_name: str) -> None:
     """
     if not os.path.isdir(data_dir):
         os.makedirs(data_dir)
-    file_path = os.path.join("data", save_name)
+    file_path = os.path.join(data_dir, save_name)
     print(save_name, len(graphs))
     with open(file_path + ".pkl", "wb") as f:
         pickle.dump(obj=graphs, file=f, protocol=pickle.HIGHEST_PROTOCOL)
@@ -412,7 +412,7 @@ def generate_dataset(args: argparse.Namespace) -> None:
     Raises:
         NotImplementedError: raise and error if the specified dataset is not implemented
     """
-    data_dir = args.data_dir  # default: "data"
+    data_dir = os.path.join(args.folder, args.data_dir)  # default: "data"
     dataset = args.dataset  # default: "community_small"
 
     if dataset == "community_small":

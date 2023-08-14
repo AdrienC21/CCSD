@@ -36,10 +36,11 @@ def preprocess_nspdk(args: argparse.Namespace, print_elapsed_time: bool = True) 
     """
 
     dataset = args.dataset
+    folder = args.folder
     start_time = time()
 
     # Load the test indices
-    with open(f"data/valid_idx_{dataset.lower()}.json") as f:
+    with open(os.path.join(folder, "data", f"valid_idx_{dataset.lower()}.json")) as f:
         test_idx = json.load(f)
 
     # Get the column name of the SMILES
@@ -53,7 +54,7 @@ def preprocess_nspdk(args: argparse.Namespace, print_elapsed_time: bool = True) 
         raise ValueError(f"[ERROR] Unexpected value. Dataset {dataset} not supported.")
 
     # Load the molecules
-    smiles = pd.read_csv(f"data/{dataset.lower()}.csv")[col]
+    smiles = pd.read_csv(os.path.join(folder, "data" f"{dataset.lower()}.csv"))[col]
     # Get the test molecules
     test_smiles = [smiles.iloc[i] for i in test_idx]
     # Convert the test molecules into graphs
@@ -61,7 +62,9 @@ def preprocess_nspdk(args: argparse.Namespace, print_elapsed_time: bool = True) 
     print(f"Converted the test molecules into {len(nx_graphs)} graphs")
 
     # Save the graphs
-    with open(f"data/{dataset.lower()}_test_nx.pkl", "wb") as f:
+    with open(
+        os.path.join(folder, "data", f"{dataset.lower()}_test_nx.pkl"), "wb"
+    ) as f:
         pickle.dump(nx_graphs, f)
 
     # Print the elapsed time

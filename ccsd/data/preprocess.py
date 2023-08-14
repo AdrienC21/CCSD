@@ -36,15 +36,16 @@ def preprocess(args: argparse.Namespace, print_elapsed_time: bool = True) -> Non
     """
     start_time = time.time()
     data_name = args.dataset
+    folder = args.folder
 
     if data_name == "ZINC250k":
         max_atoms = 38
-        path = "data/zinc250k.csv"
+        path = os.path.join(folder, "data", "zinc250k.csv")
         smiles_col = "smiles"
         label_idx = 1
     elif data_name == "QM9":
         max_atoms = 9
-        path = "data/qm9.csv"
+        path = os.path.join(folder, "data", "qm9.csv")
         smiles_col = "SMILES1"
         label_idx = 2
     else:
@@ -66,7 +67,9 @@ def preprocess(args: argparse.Namespace, print_elapsed_time: bool = True) -> Non
     dataset = result["dataset"]
     smiles = result["smiles"]
 
-    NumpyTupleDataset.save(f"data/{data_name.lower()}_kekulized.npz", dataset)
+    NumpyTupleDataset.save(
+        os.path.join(folder, "data", f"{data_name.lower()}_kekulized.npz", dataset)
+    )
 
     if print_elapsed_time:
         print(
