@@ -284,6 +284,7 @@ class Sampler_CC(Sampler):
         else:
             self.device_score = f"cuda:{self.device0}"
         self.n_samples = None
+        self.cc_nb_eval = self.config.sample.cc_nb_eval
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -403,14 +404,18 @@ class Sampler_CC(Sampler):
         # Eval CCs
         methods, kernels = load_cc_eval_settings()
         result_dict_CC = eval_CC_list(
-            self.test_CC_list, gen_CC_list, methods=methods, kernels=kernels
+            self.test_CC_list,
+            gen_CC_list,
+            methods=methods,
+            kernels=kernels,
+            cc_nb_eval=self.cc_nb_eval,
         )
 
         logger.log(
             f"MMD_full {result_dict_graph}", verbose=False
         )  # verbose=False cause already printed
         logger.log(
-            f"CCs eval {result_dict_CC}", verbose=False
+            f"CCs eval @{self.cc_nb_eval} {result_dict_CC}", verbose=False
         )  # verbose=False cause already printed
         logger.log(100 * "=")
         if (
@@ -618,14 +623,6 @@ class Sampler_mol_Graph(Sampler):
             self.test_graph_list, gen_graph_list, methods=["nspdk"]
         )["nspdk"]
 
-        # Eval graphs
-        methods, kernels = load_eval_settings(self.config.data.data)
-        result_dict_graph = eval_graph_list(
-            self.test_graph_list, gen_graph_list, methods=methods, kernels=kernels
-        )
-        logger.log(
-            f"MMD_full {result_dict_graph}", verbose=False
-        )  # verbose=False cause already printed
         logger.log(f"Number of molecules: {num_mols}")
         logger.log(f"validity w/o correction: {num_mols_wo_correction / num_mols}")
         for metric in ["valid", f"unique@{len(gen_smiles)}", "FCD/Test", "Novelty"]:
@@ -645,7 +642,6 @@ class Sampler_mol_Graph(Sampler):
                     "NSPDK MMD": scores_nspdk,
                 }
             )
-            wandb.log(result_dict_graph)
 
         # -------- Save samples & Plot --------
         # Graphs
@@ -782,6 +778,7 @@ class Sampler_mol_CC(Sampler):
         else:
             self.device_score = f"cuda:{self.device0}"
         self.n_samples = self.config.sample.n_samples
+        self.cc_nb_eval = self.config.sample.cc_nb_eval
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -905,23 +902,18 @@ class Sampler_mol_CC(Sampler):
             self.test_graph_list, gen_graph_list, methods=["nspdk"]
         )["nspdk"]
 
-        # Eval graphs
-        methods, kernels = load_eval_settings(self.config.data.data)
-        result_dict_graph = eval_graph_list(
-            self.test_graph_list, gen_graph_list, methods=methods, kernels=kernels
-        )
-
         # Eval CCs
         methods, kernels = load_cc_eval_settings()
         result_dict_CC = eval_CC_list(
-            self.test_CC_list, gen_CC_list, methods=methods, kernels=kernels
+            self.test_CC_list,
+            gen_CC_list,
+            methods=methods,
+            kernels=kernels,
+            cc_nb_eval=self.cc_nb_eval,
         )
 
         logger.log(
-            f"MMD_full {result_dict_graph}", verbose=False
-        )  # verbose=False cause already printed
-        logger.log(
-            f"CCs Eval {result_dict_CC}", verbose=False
+            f"CCs Eval @{self.cc_nb_eval} {result_dict_CC}", verbose=False
         )  # verbose=False cause already printed
         logger.log(f"Number of molecules: {num_mols}")
         logger.log(f"validity w/o correction: {num_mols_wo_correction / num_mols}")
@@ -942,7 +934,6 @@ class Sampler_mol_CC(Sampler):
                     "NSPDK MMD": scores_nspdk,
                 }
             )
-            wandb.log(result_dict_graph)
             wandb.log(result_dict_CC)
 
         # -------- Save samples & Plot --------

@@ -174,10 +174,10 @@ def disc(
     samples1: Iterator[np.ndarray],
     samples2: Iterator[np.ndarray],
     kernel: Callable[[np.ndarray, np.ndarray], float],
-    is_parallel: bool = False,
+    is_parallel: bool = True,
     max_workers: Optional[int] = None,
     debug_mode: bool = False,
-    progress_bar: bool = True,
+    progress_bar: bool = False,
     *args,
     **kwargs
 ) -> float:
@@ -187,10 +187,10 @@ def disc(
         samples1 (Iterator[np.ndarray]): samples 1
         samples2 (Iterator[np.ndarray]): samples 2
         kernel (Callable[[np.ndarray, np.ndarray], float]): kernel function
-        is_parallel (bool, optional): whether or not we use parallel processing. Defaults to False.
+        is_parallel (bool, optional): whether or not we use parallel processing. Defaults to True.
         max_workers (Optional[int], optional): number of workers (if is_parallel). Defaults to None.
         debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to False.
-        progress_bar (bool, optional): whether or not we print progress bar if is_parallel is set to False. Defaults to True.
+        progress_bar (bool, optional): whether or not we print progress bar if is_parallel is set to False. Defaults to False.
 
     Returns:
         float: discrepancy

@@ -942,6 +942,7 @@ def rank2_distrib_stats(
     d_max: int,
     kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
     is_parallel: bool = True,
+    debug_mode: bool = False,
 ) -> float:
     """Compute the MMD distance between the nummber of rank-2 cells distributions of two unordered sets of combinatorial complexes.
 
@@ -952,6 +953,7 @@ def rank2_distrib_stats(
         d_max (int): maximum dimension of the rank-2 cells
         kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
         is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
+        debug_mode (bool, optional): if True, print debug information when is_parallel is set to True. Defaults to False.
 
     Returns:
         float: MMD distance
@@ -964,18 +966,29 @@ def rank2_distrib_stats(
 
     prev = datetime.now()
     if is_parallel:
+        if debug_mode:
+            print("Start parallel computing for rank2 distrib mmd reference objects")
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for rank2_distrib_hist in executor.map(
+            results = executor.map(
                 lambda cc: rank2_distrib_worker(cc, d_min, d_max), cc_ref_list
-            ):
-                sample_ref.append(rank2_distrib_hist)
+            )
+            try:
+                for rank2_distrib_hist in results:
+                    sample_ref.append(rank2_distrib_hist)
+            except Exception as e:
+                raise e
+        if debug_mode:
+            print("Start parallel computing for rank2 distrib mmd predicted objects")
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            for rank2_distrib_hist in executor.map(
+            results = executor.map(
                 lambda cc: rank2_distrib_worker(cc, d_min, d_max),
                 cc_pred_list_remove_empty,
-            ):
-                sample_pred.append(rank2_distrib_hist)
-
+            )
+            try:
+                for rank2_distrib_hist in results:
+                    sample_pred.append(rank2_distrib_hist)
+            except Exception as e:
+                raise e
     else:
         for i in range(len(cc_ref_list)):
             rank2_distrib_temp = rank2_distrib_worker(cc_ref_list[i], d_min, d_max)
@@ -1006,6 +1019,7 @@ def eval_CC_list(
     d_max: int,
     methods: Optional[List[str]] = None,
     kernels: Optional[Dict[str, Callable[[np.ndarray, np.ndarray], float]]] = None,
+    cc_nb_eval: Optional[int] = 1000,
 ) -> Dict[str, float]:
     """Evaluate generated generic combinatorial complexes against a reference set of combinatorial complexes using a set of methods and their corresponding kernels.
 
@@ -1016,6 +1030,7 @@ def eval_CC_list(
         d_max (int): maximum dimension of the rank-2 cells
         methods (Optional[List[str]], optional): methods to be evaluated. Defaults to None.
         kernels (Optional[Dict[str, Callable[[np.ndarray, np.ndarray], float]]], optional): kernels to be used for each methods. Defaults to None.
+        cc_nb_eval (Optional[int], optional): number of reference and predicted combinatorial complexes to be evaluated. If set to None, evaluate on the entire dataset. Defaults to 1000.
 
     Returns:
         Dict[str, float]: dictionary mapping method names to their corresponding scores
@@ -1023,11 +1038,17 @@ def eval_CC_list(
     if methods is None:  # by default, evaluate the methods ["rank2_distrib"]
         methods = ["rank2_distrib"]
     results = {}
+    cc_ref_list_eval = (
+        cc_ref_list[:cc_nb_eval] if cc_nb_eval is not None else cc_ref_list
+    )
+    cc_pred_list_eval = (
+        cc_pred_list[:cc_nb_eval] if cc_nb_eval is not None else cc_pred_list
+    )
     for method_id, method in enumerate(methods):
         print(f"Evaluating method: {method} ({method_id+1}/{len(methods)}) ...")
         results[method] = round(
             CC_METHOD_NAME_TO_FUNC[method](
-                cc_ref_list, cc_pred_list, d_min, d_max, kernels[method]
+                cc_ref_list_eval, cc_pred_list_eval, d_min, d_max, kernels[method]
             ),
             6,
         )
