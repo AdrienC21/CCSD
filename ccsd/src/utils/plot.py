@@ -30,6 +30,7 @@ from ccsd.src.utils.graph_utils import adjs_to_graphs, quantize
 from ccsd.src.utils.mol_utils import construct_mol
 
 warnings.filterwarnings("ignore", category=matplotlib.MatplotlibDeprecationWarning)
+plotly.io.kaleido.scope.mathjax = None
 
 # Parameters to make graph plots look nicer.
 options = {"node_size": 2, "edge_color": "black", "linewidths": 1, "width": 0.5}

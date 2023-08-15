@@ -28,6 +28,9 @@
     - [Using pip](#using-pip)
     - [Manually](#manually)
     - [Next steps](#next-steps)
+      - [Plotly engine](#plotly-engine)
+      - [Dependencies and other packages/libraries](#dependencies-and-other-packageslibraries)
+      - [Tests and errors](#tests-and-errors)
   - [Dependencies](#dependencies)
   - [Testing](#testing)
   - [Datasets](#datasets)
@@ -106,7 +109,25 @@ git clone https://github.com/AdrienC21/CCSD.git
 
 ### Next steps
 
-Then, install the dependencies (see the section **Dependencies** below).
+#### Plotly engine
+
+For Windows users, the recommended version of kaleido is *0.1.0.post1*. You can install it by typing:
+
+```bash
+pip install kaleido==0.1.0post1
+```
+
+For Linux users who want to use `orca`, you can install it via the *npm* command of *Node.js*. For the installation, type:
+
+```bash
+sudo NEEDRESTART_MODE=a apt install -y nodejs
+sudo NEEDRESTART_MODE=a apt install -y npm
+npm install -g electron@6.1.4 orca
+```
+
+#### Dependencies and other packages/libraries
+
+Install the dependencies (see the section **Dependencies** below).
 
 When installing PyTorch and its componenents, or when install TopoModelX along with TopoNetX, run the commands below:
 
@@ -122,6 +143,8 @@ If you are using a **Linux** system, you may need to install libxrender1 by typi
 ```bash
 sudo apt-get install libxrender1
 ```
+
+#### Tests and errors
 
 To test your installation, refer to the section **Testing** below.
 
@@ -232,11 +255,13 @@ To use CCSD, follow the steps outlined below:
 
 **Edit your general configurations:**
 
-- Edit the file `config\general_config.py` to provide your *wandb* (Weights & Biases) information (if you want to use wandb), your timezone, and some other general parameters.
+Edit the file `config\general_config.py` to provide your *wandb* (Weights & Biases) information (if you want to use wandb), your timezone, and some other general parameters.
+
+Edit the `engine` value with the plotly engine you want to use. For Windows users, we recommend `kaleido` (see installation instructions below). For Linux users, we recommend `orca` (see installation instructions below).
 
 **Execute the code:**
 
-- You can either use the command line or directly the CCSD class (more information in the subsections below).
+You can either use the command line or directly the CCSD class (more information in the subsections below).
 
 **Combinatorial Complexes:**
 

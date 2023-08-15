@@ -249,7 +249,7 @@ class Sampler_Graph(Sampler):
             filename=filename,
             fps=25,
             overwrite=True,
-            engine="kaleido",
+            engine=self.config.general_config.engine,
         )
         if (
             self.config.experiment_type == "train"
@@ -486,7 +486,7 @@ class Sampler_CC(Sampler):
             filename=filename,
             fps=25,
             overwrite=True,
-            engine="kaleido",
+            engine=self.config.general_config.engine,
         )
         if (
             self.config.experiment_type == "train"
@@ -710,7 +710,7 @@ class Sampler_mol_Graph(Sampler):
             frames=30,
             rotations_per_sec=1.0,
             overwrite=True,
-            engine="kaleido",
+            engine=self.config.general_config.engine,
         )
         if (
             self.config.experiment_type == "train"
@@ -730,7 +730,7 @@ class Sampler_mol_Graph(Sampler):
             filename=filename,
             fps=25,
             overwrite=True,
-            engine="kaleido",
+            engine=self.config.general_config.engine,
         )
         if (
             self.config.experiment_type == "train"
@@ -746,7 +746,7 @@ class Sampler_mol_Graph(Sampler):
             filename=filename,
             fps=25,
             overwrite=True,
-            engine="kaleido",
+            engine=self.config.general_config.engine,
         )
         if (
             self.config.experiment_type == "train"
@@ -1027,7 +1027,7 @@ class Sampler_mol_CC(Sampler):
             frames=30,
             rotations_per_sec=1.0,
             overwrite=True,
-            engine="kaleido",
+            engine=self.config.general_config.engine,
         )
         if (
             self.config.experiment_type == "train"
@@ -1047,7 +1047,7 @@ class Sampler_mol_CC(Sampler):
             filename=filename,
             fps=25,
             overwrite=True,
-            engine="kaleido",
+            engine=self.config.general_config.engine,
         )
         if (
             self.config.experiment_type == "train"
@@ -1063,7 +1063,7 @@ class Sampler_mol_CC(Sampler):
             filename=filename,
             fps=25,
             overwrite=True,
-            engine="kaleido",
+            engine=self.config.general_config.engine,
         )
         if (
             self.config.experiment_type == "train"
