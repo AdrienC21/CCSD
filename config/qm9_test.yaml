@@ -39,7 +39,7 @@ model:
 
 train:
   name: test
-  num_epochs: 5
+  num_epochs: 3
   save_interval: 100
   print_interval: 1
   reduce_mean: False
