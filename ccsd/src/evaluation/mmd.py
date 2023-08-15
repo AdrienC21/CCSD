@@ -19,6 +19,7 @@ import numpy as np
 import pyemd
 from scipy.linalg import toeplitz
 from sklearn.metrics.pairwise import pairwise_kernels
+from tqdm import tqdm
 
 from ccsd.src.evaluation.eden import vectorize
 
@@ -173,9 +174,10 @@ def disc(
     samples1: Iterator[np.ndarray],
     samples2: Iterator[np.ndarray],
     kernel: Callable[[np.ndarray, np.ndarray], float],
-    is_parallel: bool = True,
+    is_parallel: bool = False,
     max_workers: Optional[int] = None,
     debug_mode: bool = False,
+    progress_bar: bool = True,
     *args,
     **kwargs
 ) -> float:
@@ -185,18 +187,26 @@ def disc(
         samples1 (Iterator[np.ndarray]): samples 1
         samples2 (Iterator[np.ndarray]): samples 2
         kernel (Callable[[np.ndarray, np.ndarray], float]): kernel function
-        is_parallel (bool, optional): whether or not we use parallel processing. Defaults to True.
+        is_parallel (bool, optional): whether or not we use parallel processing. Defaults to False.
         max_workers (Optional[int], optional): number of workers (if is_parallel). Defaults to None.
         debug_mode (bool, optional): whether or not we print debug info for parallel computing. Defaults to False.
+        progress_bar (bool, optional): whether or not we print progress bar if is_parallel is set to False. Defaults to True.
 
     Returns:
         float: discrepancy
     """
     if not is_parallel:
         d = 0
-        for s1 in samples1:
-            for s2 in samples2:
-                d += kernel(s1, s2, *args, **kwargs)
+        if not progress_bar:
+            for s1 in samples1:
+                for s2 in samples2:
+                    d += kernel(s1, s2, *args, **kwargs)
+        else:
+            for i_s1 in tqdm(range(len(samples1))):
+                s1 = samples1[i_s1]
+                for i_s2 in tqdm(range(len(samples2)), leave=False):
+                    s2 = samples2[i_s2]
+                    d += kernel(s1, s2, *args, **kwargs)
     else:  # parallel
         all_dist = []
         if debug_mode:
