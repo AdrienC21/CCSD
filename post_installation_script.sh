@@ -18,6 +18,11 @@ echo "Set up Git configurations"
 git config --global user.name ""
 git config --global user.email ""
 
+# Additionnal installations
+echo "Additionnal installations"
+sudo apt-get install libxss1
+sudo apt-get install libxrender1
+
 # Install CUDA (https://hackmd.io/@MarconiJiang/nvidia_v100_ubuntu1804)
 # distribution=$(. /etc/os-release;echo $ID$VERSION_ID | sed -e 's/\.//g')
 echo "Install CUDA"
@@ -28,8 +33,10 @@ sudo dpkg -i cuda-keyring_1.0-1_all.deb
 sudo apt-get -y update
 sudo NEEDRESTART_MODE=a apt-get -y install cuda-drivers
 sudo NEEDRESTART_MODE=a apt-get -y install cuda
-export PATH=/usr/local/cuda-12.2/bin${PATH:+:${PATH}}
-export LD_LIBRARY_PATH=/usr/local/cuda-12.2/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
+sudo NEEDRESTART_MODE=a apt install -y nvidia-cuda-toolkit
+cuda_version=cuda-12.1
+export PATH=/usr/local/$cuda_version/bin${PATH:+:${PATH}}
+export LD_LIBRARY_PATH=/usr/local/$cuda_version/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 sudo apt-get install zlib1g
 sudo NEEDRESTART_MODE=a apt-get install libcudnn8
 
@@ -51,9 +58,10 @@ git lfs install
 pip install git+https://github.com/molecularsets/moses.git
 pip install git+https://github.com/pyt-team/TopoNetX.git
 
-# Additionnal installations
-echo "Additionnal installations"
-sudo apt-get install libxrender1
+# Install nodejs, npm, and orca for the plotly plots
+sudo NEEDRESTART_MODE=a apt install -y nodejs
+sudo NEEDRESTART_MODE=a apt install -y npm
+npm install -g electron@6.1.4 orca
 
 # Generate SSH keys
 echo "Generate SSH keys"
@@ -77,6 +85,10 @@ python ./.github/workflows/apply_fixes.py
 # Install the required Python packages (others)
 echo "Install the required Python packages"
 pip install -r requirements.txt
+# Preprocess molecules datasets
+echo "Preprocess molecules datasets"
+python ccsd/data/preprocess.py --dataset QM9
+python ccsd/data/preprocess_for_nspdk.py --dataset QM9
 
 # Finished!
 echo "Post-installation script completed!"

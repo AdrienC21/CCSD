@@ -238,25 +238,26 @@ class Sampler_Graph(Sampler):
             )
             wandb.log({"Generated Graphs": wandb.Image(img_path)})
         # Diffusion trajectory animation
-        filedir = os.path.join(
-            *[self.config.folder, "samples", "fig", self.log_folder_name]
-        )
-        filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
-        diffusion_animation(
-            diff_traj=diff_traj,
-            is_molecule=False,
-            filedir=filedir,
-            filename=filename,
-            fps=25,
-            overwrite=True,
-            engine=self.config.general_config.engine,
-        )
-        if (
-            self.config.experiment_type == "train"
-        ) and self.config.general_config.use_wandb:
-            # add plots to wandb
-            img_path = os.path.join(filedir, filename)
-            wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
+        if self.config.general_config.plotly_fig:
+            filedir = os.path.join(
+                *[self.config.folder, "samples", "fig", self.log_folder_name]
+            )
+            filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=False,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
 
 
 class Sampler_CC(Sampler):
@@ -475,25 +476,26 @@ class Sampler_CC(Sampler):
             )
             wandb.log({"Generated Graphs": wandb.Image(img_path)})
         # Diffusion trajectory animation
-        filedir = os.path.join(
-            *[self.config.folder, "samples", "fig", self.log_folder_name]
-        )
-        filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
-        diffusion_animation(
-            diff_traj=diff_traj,
-            is_molecule=False,
-            filedir=filedir,
-            filename=filename,
-            fps=25,
-            overwrite=True,
-            engine=self.config.general_config.engine,
-        )
-        if (
-            self.config.experiment_type == "train"
-        ) and self.config.general_config.use_wandb:
-            # add plots to wandb
-            img_path = os.path.join(filedir, filename)
-            wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
+        if self.config.general_config.plotly_fig:
+            filedir = os.path.join(
+                *[self.config.folder, "samples", "fig", self.log_folder_name]
+            )
+            filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=False,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
 
 
 class Sampler_mol_Graph(Sampler):
@@ -696,64 +698,66 @@ class Sampler_mol_Graph(Sampler):
             )
             wandb.log({"Generated Molecules": wandb.Image(img_path)})
         # 3D Molecule
-        molecule = gen_mols[0]
-        mol_3d = plot_3D_molecule(molecule)
-        filedir = os.path.join(
-            *[self.config.folder, "samples", "fig", self.log_folder_name]
-        )
-        filename = f"{self.config.ckpt}_mols_3d.gif"
-        rotate_molecule_animation(
-            mol_3d,
-            filedir=filedir,
-            filename=filename,
-            duration=1.0,
-            frames=30,
-            rotations_per_sec=1.0,
-            overwrite=True,
-            engine=self.config.general_config.engine,
-        )
-        if (
-            self.config.experiment_type == "train"
-        ) and self.config.general_config.use_wandb:
-            # add plots to wandb
-            img_path = os.path.join(filedir, filename)
-            wandb.log({"Generated Molecules 3D": wandb.Image(img_path)})
+        if self.config.general_config.plotly_fig:
+            molecule = gen_mols[0]
+            mol_3d = plot_3D_molecule(molecule)
+            filedir = os.path.join(
+                *[self.config.folder, "samples", "fig", self.log_folder_name]
+            )
+            filename = f"{self.config.ckpt}_mols_3d.gif"
+            rotate_molecule_animation(
+                mol_3d,
+                filedir=filedir,
+                filename=filename,
+                duration=1.0,
+                frames=30,
+                rotations_per_sec=1.0,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Generated Molecules 3D": wandb.Image(img_path)})
         # Diffusion trajectory animation - Graphs and molecules
-        filedir = os.path.join(
-            *[self.config.folder, "samples", "fig", self.log_folder_name]
-        )
-        filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
-        diffusion_animation(
-            diff_traj=diff_traj,
-            is_molecule=False,
-            filedir=filedir,
-            filename=filename,
-            fps=25,
-            overwrite=True,
-            engine=self.config.general_config.engine,
-        )
-        if (
-            self.config.experiment_type == "train"
-        ) and self.config.general_config.use_wandb:
-            # add plots to wandb
-            img_path = os.path.join(filedir, filename)
-            wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
-        filename = f"{self.config.ckpt}_diff_traj_mol.gif"
-        diffusion_animation(
-            diff_traj=diff_traj,
-            is_molecule=True,
-            filedir=filedir,
-            filename=filename,
-            fps=25,
-            overwrite=True,
-            engine=self.config.general_config.engine,
-        )
-        if (
-            self.config.experiment_type == "train"
-        ) and self.config.general_config.use_wandb:
-            # add plots to wandb
-            img_path = os.path.join(filedir, filename)
-            wandb.log({"Diffusion Trajectory Molecule": wandb.Image(img_path)})
+        if self.config.general_config.plotly_fig:
+            filedir = os.path.join(
+                *[self.config.folder, "samples", "fig", self.log_folder_name]
+            )
+            filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=False,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
+            filename = f"{self.config.ckpt}_diff_traj_mol.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=True,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Diffusion Trajectory Molecule": wandb.Image(img_path)})
 
 
 class Sampler_mol_CC(Sampler):
@@ -1013,64 +1017,66 @@ class Sampler_mol_CC(Sampler):
             )
             wandb.log({"Generated Molecules": wandb.Image(img_path)})
         # 3D Molecule
-        molecule = gen_mols[0]
-        mol_3d = plot_3D_molecule(molecule)
-        filedir = os.path.join(
-            *[self.config.folder, "samples", "fig", self.log_folder_name]
-        )
-        filename = f"{self.config.ckpt}_mols_3d.gif"
-        rotate_molecule_animation(
-            mol_3d,
-            filedir=filedir,
-            filename=filename,
-            duration=1.0,
-            frames=30,
-            rotations_per_sec=1.0,
-            overwrite=True,
-            engine=self.config.general_config.engine,
-        )
-        if (
-            self.config.experiment_type == "train"
-        ) and self.config.general_config.use_wandb:
-            # add plots to wandb
-            img_path = os.path.join(filedir, filename)
-            wandb.log({"Generated Molecule 3D": wandb.Image(img_path)})
+        if self.config.general_config.plotly_fig:
+            molecule = gen_mols[0]
+            mol_3d = plot_3D_molecule(molecule)
+            filedir = os.path.join(
+                *[self.config.folder, "samples", "fig", self.log_folder_name]
+            )
+            filename = f"{self.config.ckpt}_mols_3d.gif"
+            rotate_molecule_animation(
+                mol_3d,
+                filedir=filedir,
+                filename=filename,
+                duration=1.0,
+                frames=30,
+                rotations_per_sec=1.0,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Generated Molecule 3D": wandb.Image(img_path)})
         # Diffusion trajectory animation - Graphs and molecules
-        filedir = os.path.join(
-            *[self.config.folder, "samples", "fig", self.log_folder_name]
-        )
-        filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
-        diffusion_animation(
-            diff_traj=diff_traj,
-            is_molecule=False,
-            filedir=filedir,
-            filename=filename,
-            fps=25,
-            overwrite=True,
-            engine=self.config.general_config.engine,
-        )
-        if (
-            self.config.experiment_type == "train"
-        ) and self.config.general_config.use_wandb:
-            # add plots to wandb
-            img_path = os.path.join(filedir, filename)
-            wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
-        filename = f"{self.config.ckpt}_diff_traj_mol.gif"
-        diffusion_animation(
-            diff_traj=diff_traj,
-            is_molecule=True,
-            filedir=filedir,
-            filename=filename,
-            fps=25,
-            overwrite=True,
-            engine=self.config.general_config.engine,
-        )
-        if (
-            self.config.experiment_type == "train"
-        ) and self.config.general_config.use_wandb:
-            # add plots to wandb
-            img_path = os.path.join(filedir, filename)
-            wandb.log({"Diffusion Trajectory Molecule": wandb.Image(img_path)})
+        if self.config.general_config.plotly_fig:
+            filedir = os.path.join(
+                *[self.config.folder, "samples", "fig", self.log_folder_name]
+            )
+            filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=False,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
+            filename = f"{self.config.ckpt}_diff_traj_mol.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=True,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Diffusion Trajectory Molecule": wandb.Image(img_path)})
 
 
 def get_sampler_from_config(
