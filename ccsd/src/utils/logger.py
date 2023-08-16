@@ -12,6 +12,8 @@ from typing import Any, List, Optional, Tuple, Union
 import torch
 from easydict import EasyDict
 
+from ccsd.src.utils.models_utils import get_nb_parameters
+
 
 class Logger:
     """Logger class for logging to a file."""
@@ -233,19 +235,6 @@ def sample_log(logger: Logger, config: EasyDict) -> None:
         )
     logger.log(sample_log)
     logger.log(100 * "-")
-
-
-def get_nb_parameters(model: torch.nn.Module) -> int:
-    """Get the number of parameters of the model.
-
-    Args:
-        model (torch.nn.Module): model.
-
-    Returns:
-        int: number of parameters of the model.
-    """
-
-    return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
 
 def model_parameters_log(logger: Logger, models: List[torch.nn.Module]) -> None:

@@ -37,18 +37,25 @@ model:
   conv_hodge: HCN
   num_heads: 4
   depth: 2
-  adim: 16
-  nhid: 16
+  adim: 10
+  nhid: 10
   num_layers: 3
   num_linears: 3
   c_init: 2
   c_hid: 8
   c_final: 4
   use_bn: False
-  cnum: 4  # only for cc
-  num_layers_mlp: 2  # only for cc
-  use_hodge_mask: True  # only for cc
-  conv_hodge: "HCN"  # only for cc
+  cnum: 3  # only for cc and ScoreNetworkF
+  num_layers_mlp: 3  # only for cc and ScoreNetworkF
+  use_hodge_mask: True  # only for cc and ScoreNetworkF
+  conv_hodge: "HCN"  # only for cc and ScoreNetworkA_CC
+  nhid_h: 3 # only for cc and ScoreNetworkA_CC
+  num_layers_h: 2  # only for cc and ScoreNetworkA_CC
+  num_linears_h: 2  # only for cc and ScoreNetworkA_CC
+  c_hid_h: 4  # only for cc and ScoreNetworkA_CC
+  c_final_h: 2  # only for cc and ScoreNetworkA_CC
+  adim_h: 4  # only for cc and ScoreNetworkA_CC
+  num_heads_h: 4  # only for cc and ScoreNetworkA_CC
 
 train:
   name: test

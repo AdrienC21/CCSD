@@ -69,6 +69,13 @@ def create_model_param_config() -> Dict[str, Any]:
         "conv_hodge": "HCN",
         "use_bn": False,
         "is_cc": True,
+        "nhid_h": 4,
+        "num_layers_h": 4,
+        "num_linears_h": 8,
+        "c_hid_h": 64,
+        "c_final_h": 32,
+        "adim_h": 4,
+        "num_heads_h": 4,
     }
     return params
 
@@ -98,6 +105,13 @@ def create_model_param_config_v2() -> Dict[str, Any]:
         "conv_hodge": "HCN",
         "use_bn": False,
         "is_cc": True,
+        "nhid_h": 2,
+        "num_layers_h": 2,
+        "num_linears_h": 2,
+        "c_hid_h": 2,
+        "c_final_h": 2,
+        "adim_h": 2,
+        "num_heads_h": 2,
     }
     return params
 
@@ -137,11 +151,11 @@ def test_ScoreNetworkA_CC(
     expected_out = torch.tensor(
         [
             [
-                [-0.0000, 0.0071, -0.0212, -0.0339, -0.0357],
-                [0.0071, -0.0000, 0.0119, -0.0226, 0.0219],
-                [-0.0212, 0.0119, -0.0000, 0.0167, 0.0295],
-                [-0.0339, -0.0226, 0.0167, 0.0000, -0.0308],
-                [-0.0357, 0.0219, 0.0295, -0.0308, -0.0000],
+                [0.0000, 0.0395, 0.3004, 0.1763, 0.1736],
+                [0.0395, 0.0000, 0.0444, 0.2976, 0.1845],
+                [0.3004, 0.0444, 0.0000, 0.0434, 0.1877],
+                [0.1763, 0.2976, 0.0434, 0.0000, 0.1727],
+                [0.1736, 0.1845, 0.1877, 0.1727, 0.0000],
             ]
         ]
     )

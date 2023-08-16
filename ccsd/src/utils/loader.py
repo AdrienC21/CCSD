@@ -493,21 +493,29 @@ def load_model_params(
     }
     if not (is_cc):
         return params_x, params_adj
-    # If is_cc, also load rank-2 parameters and some additional parameters to params_adj
+    # If is_cc, also load rank-2 parameters and some additional parameters to params_adj if ScoreNetworkA_CC
     d_min = config.data.d_min
     d_max = config.data.d_max
-    params_adj["d_min"] = d_min
-    params_adj["d_max"] = d_max
-    params_adj["conv_hodge"] = config_m.conv_hodge
+    if config_m.adj == "ScoreNetworkA_CC":
+        params_adj["d_min"] = d_min
+        params_adj["d_max"] = d_max
+        params_adj["nhid_h"] = config_m.nhid_h
+        params_adj["num_layers_h"] = config_m.num_layers_h
+        params_adj["num_linears_h"] = config_m.num_linears_h
+        params_adj["c_hid_h"] = config_m.c_hid_h
+        params_adj["c_final_h"] = config_m.c_final_h
+        params_adj["adim_h"] = config_m.adim_h
+        params_adj["num_heads_h"] = config_m.num_heads_h
+        params_adj["conv_hodge"] = config_m.conv_hodge
     params_rank2 = {
         "is_cc": config.is_cc,
         "model_type": config_m.rank2,
         "num_layers_mlp": config_m.num_layers_mlp,
-        "num_layers": config_m.num_layers,
-        "num_linears": config_m.num_linears,
-        "nhid": config_m.nhid,
-        "c_hid": config_m.c_hid,
-        "c_final": config_m.c_final,
+        "num_layers": config_m.num_layers_h,
+        "num_linears": config_m.num_linears_h,
+        "nhid": config_m.nhid_h,
+        "c_hid": config_m.c_hid_h,
+        "c_final": config_m.c_final_h,
         "cnum": config_m.cnum,
         "max_node_num": max_node_num,
         "d_min": d_min,

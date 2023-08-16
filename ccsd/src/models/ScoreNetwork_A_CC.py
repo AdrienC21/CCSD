@@ -27,13 +27,20 @@ class ScoreNetworkA_CC(torch.nn.Module):
         d_min: int,
         d_max: int,
         nhid: int,
+        nhid_h: int,
         num_layers: int,
+        num_layers_h: int,
         num_linears: int,
+        num_linears_h: int,
         c_init: int,
         c_hid: int,
+        c_hid_h: int,
         c_final: int,
+        c_final_h: int,
         adim: int,
+        adim_h: int,
         num_heads: int = 4,
+        num_heads_h: int = 4,
         conv: str = "GCN",
         conv_hodge: str = "HCN",
         use_bn: bool = False,
@@ -47,15 +54,23 @@ class ScoreNetworkA_CC(torch.nn.Module):
             d_min (int): minimum dimension of the rank-2 cells
             d_max (int): maximum dimension of the rank-2 cells
             nhid (int): number of hidden units in AttentionLayer layers
+            nhid_h (int): number of hidden units in HodgeAdjAttentionLayer layers
             num_layers (int): number of AttentionLayer layers
+            num_layers_h (int): number of HodgeAdjAttentionLayer layers
             num_linears (int): number of linear layers in the MLP of each AttentionLayer
-            c_init (int): input dimension of the AttentionLayer (number of DenseHCNConv)
+            num_linears_h (int): number of linear layers in the MLP of each HodgeAdjAttentionLayer
+            c_init (int): input dimension of the AttentionLayer and the HodgeAdjAttentionLayer
+                (number of DenseGCNConv and DenseHCNConv)
                 Also the number of power iterations to "duplicate" the adjacency matrix
                 as an input
             c_hid (int): number of hidden units in the MLP of each AttentionLayer
+            c_hid_h (int): number of hidden units in the MLP of each HodgeAdjAttentionLayer
             c_final (int): output dimension of the MLP of the last AttentionLayer
-            adim (int): attention dimension (except for the first layer).
+            c_final_h (int): output dimension of the MLP of the last HodgeAdjAttentionLayer
+            adim (int): attention dimension for the AttentionLayer (except for the first layer).
+            adim_h (int): attention dimension for the HodgeAdjAttentionLayer (except for the first layer).
             num_heads (int, optional): number of heads for the Attention. Defaults to 4.
+            num_heads_h (int, optional): number of heads for the HodgeAdjAttention. Defaults to 4.
             conv (str, optional): type of convolutional layer, choose from [HCN, MLP]. Defaults to "GCN".
             conv_hodge (str, optional): type of convolutional layer for the hodge layers, choose from [HCN, MLP]. Defaults to "HCN".
             use_bn (bool, optional): whether to use batch normalization in the MLP and the AttentionLayer(s). Defaults to False.
@@ -67,25 +82,32 @@ class ScoreNetworkA_CC(torch.nn.Module):
         # Initialize the parameters
         self.max_feat_num = max_feat_num
         self.max_node_num = max_node_num
+        self.N = max_node_num
+        self.d_min = d_min
+        self.d_max = d_max
         self.nhid = nhid
+        self.nhid_h = nhid_h
         self.num_layers = num_layers
+        self.num_layers_h = num_layers_h
         self.num_linears = num_linears
+        self.num_linears_h = num_linears_h
         self.c_init = c_init
         self.c_hid = c_hid
+        self.c_hid_h = c_hid_h
         self.c_final = c_final
+        self.c_final_h = c_final_h
         self.adim = adim
+        self.adim_h = adim_h
         self.num_heads = num_heads
+        self.num_heads_h = num_heads_h
         self.conv = conv
         self.conv_hodge = conv_hodge
         self.use_bn = use_bn
         self.is_cc = is_cc
-        self.N = max_node_num
-        self.d_min = d_min
-        self.d_max = d_max
 
         # Initialize the layers
+        # AttentionLayer layers
         self.layers = torch.nn.ModuleList()
-        self.layers_hodge = torch.nn.ModuleList()
         for k in range(self.num_layers):
             if not (k):  # first layer
                 self.layers.append(
@@ -98,20 +120,6 @@ class ScoreNetworkA_CC(torch.nn.Module):
                         self.c_hid,
                         self.num_heads,
                         self.conv,
-                        self.use_bn,
-                    )
-                )
-                self.layers_hodge.append(
-                    HodgeAdjAttentionLayer(
-                        self.num_linears,
-                        self.c_init,
-                        self.nhid,
-                        self.c_hid,
-                        self.N,
-                        self.d_min,
-                        self.d_max,
-                        self.num_heads,
-                        self.conv_hodge,
                         self.use_bn,
                     )
                 )
@@ -129,20 +137,6 @@ class ScoreNetworkA_CC(torch.nn.Module):
                         self.use_bn,
                     )
                 )
-                self.layers_hodge.append(
-                    HodgeAdjAttentionLayer(
-                        self.num_linears,
-                        self.c_hid,
-                        self.adim,
-                        self.c_final,
-                        self.N,
-                        self.d_min,
-                        self.d_max,
-                        self.num_heads,
-                        self.conv_hodge,
-                        self.use_bn,
-                    )
-                )
             else:  # intermediate layers
                 self.layers.append(
                     AttentionLayer(
@@ -157,24 +151,63 @@ class ScoreNetworkA_CC(torch.nn.Module):
                         self.use_bn,
                     )
                 )
+        # HodgeAdjAttentionLayer layers
+        self.layers_hodge = torch.nn.ModuleList()
+        for k in range(self.num_layers_h):
+            if not (k):  # first layer
                 self.layers_hodge.append(
                     HodgeAdjAttentionLayer(
-                        self.num_linears,
-                        self.c_hid,
-                        self.adim,
-                        self.c_hid,
+                        self.num_linears_h,
+                        self.c_init,
+                        self.nhid_h,
+                        self.c_hid_h,
                         self.N,
                         self.d_min,
                         self.d_max,
-                        self.num_heads,
+                        self.num_heads_h,
+                        self.conv_hodge,
+                        self.use_bn,
+                    )
+                )
+            elif k == (self.num_layers_h - 1):  # last layer
+                self.layers_hodge.append(
+                    HodgeAdjAttentionLayer(
+                        self.num_linears_h,
+                        self.c_hid_h,
+                        self.adim_h,
+                        self.c_final_h,
+                        self.N,
+                        self.d_min,
+                        self.d_max,
+                        self.num_heads_h,
+                        self.conv_hodge,
+                        self.use_bn,
+                    )
+                )
+            else:  # intermediate layers
+                self.layers_hodge.append(
+                    HodgeAdjAttentionLayer(
+                        self.num_linears_h,
+                        self.c_hid_h,
+                        self.adim_h,
+                        self.c_hid_h,
+                        self.N,
+                        self.d_min,
+                        self.d_max,
+                        self.num_heads_h,
                         self.conv_hodge,
                         self.use_bn,
                     )
                 )
 
         # Initialize the final MLP
-        self.fdim = 2 * (
-            self.c_hid * (self.num_layers - 1) + self.c_final + self.c_init
+        self.fdim = (
+            self.c_hid * (self.num_layers - 1)
+            + self.c_final
+            + self.c_init
+            + self.c_hid_h * (self.num_layers_h - 1)
+            + self.c_final_h
+            + self.c_init
         )
         self.final = MLP(
             num_layers=3,
@@ -204,7 +237,7 @@ class ScoreNetworkA_CC(torch.nn.Module):
         return (
             f"{self.__class__.__name__}("
             f"max_feat_num={self.max_feat_num}, "
-            f"max_node_num={self.max_node_num}, "
+            f"max_node_num (N)={self.max_node_num}, "
             f"nhid={self.nhid}, "
             f"num_layers={self.num_layers}, "
             f"num_linears={self.num_linears}, "
@@ -258,22 +291,22 @@ class ScoreNetworkA_CC(torch.nn.Module):
         # Apply all the HodgeAdjAttentionLayer layers
         hodge_adj_list = [hodge_adjc]
         _rank2 = rank2.clone()
-        for k in range(self.num_layers):
+        for k in range(self.num_layers_h):
             hodge_adjc, _rank2 = self.layers_hodge[k](hodge_adjc, _rank2, flags)
             hodge_adj_list.append(hodge_adjc)
 
         # Concatenate the output of the AttentionLayer layers (B x N x N x (c_init + c_hid * (num_layers - 1) + c_final)
         adjs = torch.cat(adj_list, dim=1).permute(0, 2, 3, 1)
         out_shape = adjs.shape[:-1]  # B x N x N
-        # Concatenate the output of the HodgeAdjAttentionLayer layers (B x (NC2) x (NC2) x (c_init + c_hid * (num_layers - 1) + c_final)
+        # Concatenate the output of the HodgeAdjAttentionLayer layers (B x (NC2) x (NC2) x (c_init + c_hid * (num_layers_h - 1) + c_final_h)
         hodge_adjs = torch.cat(hodge_adj_list, dim=1)
         adj_hodge_adjs = hodgedual_to_adj(hodge_adjs).permute(
             0, 2, 3, 1
-        )  # (B x N x N x (c_init + c_hid * (num_layers - 1) + c_final)
+        )  # (B x N x N x (c_init + c_hid_h * (num_layers_h - 1) + c_final_h)
         # Concatenate the two outputs
         out = torch.cat(
             [adjs, adj_hodge_adjs], dim=-1
-        )  # B x N x N x (2 * (c_init + c_hid * (num_layers - 1) + c_final))
+        )  # B x N x N x (c_init + c_hid * (num_layers - 1) + c_final + c_init + c_hid_h * (num_layers_h - 1) + c_final_h)
         # Apply the final MLP on the concatenated adjacency tensor to compute the score
         score = self.final(out).view(*out_shape)
 

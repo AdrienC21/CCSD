@@ -63,7 +63,7 @@ def create_layer_param_config_HodgeAttention(
     params = {
         "in_dim": rank2.shape[-1],
         "attn_dim": 4,
-        "out_dim": 2,
+        "out_dim": rank2.shape[-1],
         "num_heads": 4,
         "conv": "HCN",
     }
@@ -121,32 +121,19 @@ def test_HodgeAttention(
     assert out_value.shape == (batch_size, nb_edges, params["out_dim"])
     assert out_attention.shape == (batch_size, nb_edges, nb_edges)
 
-    expected_value_0 = torch.tensor(
-        [
-            -0.0677,
-            0.0000,
-            -0.2025,
-            -0.1348,
-            -0.0677,
-            0.0000,
-            0.0000,
-            -0.0677,
-            0.0000,
-            -0.1348,
-        ]
-    )
+    expected_value_0 = torch.tensor([0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
     expected_attention_0 = torch.tensor(
         [
-            -0.0141,
+            -0.0063,
             0.0000,
-            0.0186,
-            0.0326,
-            -0.0141,
+            -0.0285,
+            -0.0222,
+            -0.0063,
             0.0000,
             0.0000,
-            -0.0141,
+            -0.0063,
             0.0000,
-            0.0326,
+            -0.0222,
         ]
     )
     assert torch.allclose(out_value[0, :, 0], expected_value_0, atol=1e-4)
@@ -185,35 +172,35 @@ def test_HodgeAdjAttentionLayer(
     assert out_rank2.shape == rank2.shape
     expected_out_hodge_adj_0_0_0 = torch.tensor(
         [
-            0.5701,
-            0.5655,
-            0.5712,
-            0.5666,
-            0.5701,
-            0.5655,
-            0.5655,
-            0.5701,
-            0.5655,
-            0.5666,
+            -0.6113,
+            -0.6019,
+            -0.6113,
+            -0.6017,
+            -0.6113,
+            -0.6019,
+            -0.6019,
+            -0.6113,
+            -0.6019,
+            -0.6017,
         ]
     )
     expected_out_rank2_0_0 = torch.tensor(
         [
-            0.2798,
-            0.3881,
-            0.3431,
-            0.3085,
-            0.2685,
-            0.2759,
-            0.4419,
-            0.4073,
-            0.3661,
-            0.3170,
-            0.4945,
-            0.3513,
-            0.3112,
-            0.2753,
-            0.3210,
+            0.1288,
+            0.1288,
+            0.1288,
+            0.1288,
+            0.1288,
+            0.1288,
+            0.1288,
+            0.1288,
+            0.1288,
+            0.1288,
+            -0.2295,
+            0.1288,
+            0.1288,
+            0.1288,
+            0.1288,
         ]
     )
     assert torch.allclose(

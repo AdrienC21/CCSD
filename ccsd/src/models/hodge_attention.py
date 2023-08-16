@@ -76,7 +76,7 @@ class HodgeAttention(torch.nn.Module):
         """Reset the parameters of the HodgeAttention layer"""
         self.ccnn_q.reset_parameters()
         self.ccnn_k.reset_parameters()
-        self.ccnn_v.reset_parameters()
+        # self.ccnn_v.reset_parameters()
 
     def forward(
         self,
@@ -104,7 +104,8 @@ class HodgeAttention(torch.nn.Module):
             Q = self.ccnn_q(hodge_adj)
             K = self.ccnn_k(hodge_adj)
 
-        V = self.ccnn_v(hodge_adj, rank2)
+        # V = self.ccnn_v(hodge_adj, rank2)
+        V = torch.bmm(hodge_adj, self.ccnn_v(rank2))
         dim_split = self.attn_dim // self.num_heads
         Q_ = torch.cat(Q.split(dim_split, 2), 0)
         K_ = torch.cat(K.split(dim_split, 2), 0)
@@ -160,7 +161,8 @@ class HodgeAttention(torch.nn.Module):
         if conv == "HCN":
             ccnn_q = DenseHCNConv(in_dim, attn_dim)
             ccnn_k = DenseHCNConv(in_dim, attn_dim)
-            ccnn_v = DenseHCNConv(in_dim, out_dim)
+            # ccnn_v = DenseHCNConv(in_dim, out_dim)
+            ccnn_v = torch.nn.Identity()
 
             return ccnn_q, ccnn_k, ccnn_v
 
@@ -172,7 +174,8 @@ class HodgeAttention(torch.nn.Module):
             ccnn_k = MLP(
                 num_layers, in_dim, 2 * attn_dim, attn_dim, activate_func=torch.tanh
             )
-            ccnn_v = DenseHCNConv(in_dim, out_dim)
+            # ccnn_v = DenseHCNConv(in_dim, out_dim)
+            ccnn_v = torch.nn.Identity()
 
             return ccnn_q, ccnn_k, ccnn_v
 

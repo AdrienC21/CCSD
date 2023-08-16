@@ -20,3 +20,16 @@ def get_model_device(model: Union[torch.nn.Module, torch.nn.DataParallel]) -> st
     """
 
     return next(model.parameters()).device.type
+
+
+def get_nb_parameters(model: torch.nn.Module) -> int:
+    """Get the number of parameters of the model.
+
+    Args:
+        model (torch.nn.Module): model.
+
+    Returns:
+        int: number of parameters of the model.
+    """
+
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)
