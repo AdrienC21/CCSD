@@ -334,6 +334,8 @@ def create_mock_configs() -> Tuple[EasyDict, EasyDict, EasyDict, EasyDict, str]:
     Returns:
         Tuple[EasyDict, EasyDict, EasyDict, EasyDict, str]: a tuple of mock configurations
     """
+    # Mock configurations
+    # Config not CC
     config_train = EasyDict(
         {
             "is_cc": False,
@@ -392,6 +394,7 @@ def create_mock_configs() -> Tuple[EasyDict, EasyDict, EasyDict, EasyDict, str]:
         }
     )
 
+    # Config train CC
     config_train_cc = EasyDict(config_train.copy())
     config_train_cc.sde.rank2 = {
         "type": "VE",
@@ -406,7 +409,16 @@ def create_mock_configs() -> Tuple[EasyDict, EasyDict, EasyDict, EasyDict, str]:
     config_train_cc.model.use_hodge_mask = True
     config_train_cc.data.d_min = 3
     config_train_cc.data.d_max = 4
+    config_train_cc.model.conv_hodge = "HCN"
+    config_train_cc.model.nhid_h = 3
+    config_train_cc.model.num_layers_h = 2
+    config_train_cc.model.num_linears_h = 2
+    config_train_cc.model.c_hid_h = 4
+    config_train_cc.model.c_final_h = 2
+    config_train_cc.model.adim_h = 4
+    config_train_cc.model.num_heads_h = 4
 
+    # Config module
     config_module = EasyDict(
         {
             "predictor": "Euler",
@@ -416,6 +428,7 @@ def create_mock_configs() -> Tuple[EasyDict, EasyDict, EasyDict, EasyDict, str]:
             "n_steps": 10,
         }
     )
+    # Config sample
     config_sample = EasyDict(
         {
             "n_samples": 10,
@@ -424,6 +437,7 @@ def create_mock_configs() -> Tuple[EasyDict, EasyDict, EasyDict, EasyDict, str]:
             "eps": 1e-6,
         }
     )
+    # Device
     device = "cpu"  # Assume we are using CPU for testing
     return config_train, config_train_cc, config_module, config_sample, device
 
