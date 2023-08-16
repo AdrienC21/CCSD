@@ -493,9 +493,12 @@ def load_model_params(
     }
     if not (is_cc):
         return params_x, params_adj
-    # If is_cc, also load rank-2 parameters
+    # If is_cc, also load rank-2 parameters and some additional parameters to params_adj
     d_min = config.data.d_min
     d_max = config.data.d_max
+    params_adj["d_min"] = d_min
+    params_adj["d_max"] = d_max
+    params_adj["conv_hodge"] = config_m.conv_hodge
     params_rank2 = {
         "is_cc": config.is_cc,
         "model_type": config_m.rank2,

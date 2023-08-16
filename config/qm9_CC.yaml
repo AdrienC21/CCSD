@@ -48,6 +48,7 @@ model:
   cnum: 4  # only for cc
   num_layers_mlp: 2  # only for cc
   use_hodge_mask: True  # only for cc
+  conv_hodge: "HCN"  # only for cc
 
 train:
   name: test
