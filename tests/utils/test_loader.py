@@ -180,7 +180,7 @@ def test_load_model_optimizer(mock_load_model):
             "eps": 1.0e-5,
         }
     )
-    device = "cuda:0"
+    device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
     model, optimizer, scheduler = load_model_optimizer(params, config_train, device)
 

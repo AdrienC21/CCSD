@@ -519,13 +519,13 @@ def get_rank2_flags(
     nb_edges, K = rank2.shape[-2:]
     flags_left = get_ones((rank2.shape[0], nb_edges), rank2.device)
     flags_right = get_ones((rank2.shape[0], K), rank2.device)
-    for b in range(flags.shape[0]):
-        for n in range(flags.shape[1]):
-            if not (flags[b, n]):  # node n is not in the CC
-                for i in dic_int_edge[n]:  # remove the flags of the edges containing n
-                    flags_left[b, i] = 0
-                for j in dic_int[n]:  # remove the flags of the rank2 cells containing n
-                    flags_right[b, j] = 0
+    for b, n in torch.nonzero(flags == 0):  # node n is not in the CC (flag = 0)
+        flags_left[
+            b, dic_int_edge[n.item()]
+        ] = 0  # remove the flags of the edges containing n
+        flags_right[
+            b, dic_int[n.item()]
+        ] = 0  # remove the flags of the rank2 cells containing n
     return flags_left, flags_right
 
 
@@ -1194,11 +1194,10 @@ def get_hodge_adj_flags(
     _, _, _, _, _, dic_int_edge = get_cells(flags.shape[1], 1, 1)
     nb_edges = hodge_adj.shape[-1]
     flags_out = get_ones((hodge_adj.shape[0], nb_edges), device=hodge_adj.device)
-    for b in range(flags.shape[0]):
-        for n in range(flags.shape[1]):
-            if not (flags[b, n]):  # node n is not in the CC
-                for i in dic_int_edge[n]:  # remove the flags of the edges containing n
-                    flags_out[b, i] = 0
+    for b, n in torch.nonzero(flags == 0):  # node n is not in the CC (flag = 0)
+        flags_out[
+            b, dic_int_edge[n.item()]
+        ] = 0  # remove the flags of the edges containing n
     return flags_out
 
 

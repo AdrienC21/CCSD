@@ -590,13 +590,17 @@ def test_get_rank2_flags() -> None:
     N = 4
     d_min = 3
     d_max = 3
-    rank2 = torch.tensor([[[1, 1, 1, 1] for _ in range(6)]])
-    flags = torch.tensor([[1, 1, 0, 1]])  # remove node 2
+    rank2 = torch.tensor([[[1, 1, 1, 1] for _ in range(6)]], dtype=torch.float32)
+    flags = torch.tensor([[1, 1, 0, 1]], dtype=torch.float32)  # remove node 2
     flags_left, flags_right = get_rank2_flags(rank2, N, d_min, d_max, flags)
     assert flags_left.shape == (1, 6)
     assert flags_right.shape == (1, 4)
-    assert torch.allclose(flags_left, torch.tensor([[1.0, 0.0, 1.0, 0.0, 1.0, 0.0]]))
-    assert torch.allclose(flags_right, torch.tensor([[0.0, 1.0, 0.0, 0.0]]))
+    assert torch.allclose(
+        flags_left, torch.tensor([[1.0, 0.0, 1.0, 0.0, 1.0, 0.0]], dtype=torch.float32)
+    )
+    assert torch.allclose(
+        flags_right, torch.tensor([[0.0, 1.0, 0.0, 0.0]], dtype=torch.float32)
+    )
 
 
 def test_mask_rank2() -> None:
@@ -621,7 +625,8 @@ def test_mask_rank2() -> None:
                     [0.0, 1.0, 0.0, 0.0],
                     [0.0, 0.0, 0.0, 0.0],
                 ]
-            ]
+            ],
+            dtype=torch.float32,
         ),
     )
 
@@ -1240,10 +1245,12 @@ def test_get_hodge_adj_flags() -> None:
     N = 4
     nb_edges = 6  # number of different possible edges with N=4
     hodge_adj = torch.ones((nb_edges, nb_edges), dtype=torch.float32).unsqueeze(0)
-    flags = torch.tensor([[1, 1, 0, 1]])  # remove node 2
+    flags = torch.tensor([[1, 1, 0, 1]], dtype=torch.float32)  # remove node 2
     flags_hodge = get_hodge_adj_flags(hodge_adj, flags)
     assert flags_hodge.shape == (1, nb_edges)
-    assert torch.allclose(flags_hodge, torch.tensor([[1.0, 0.0, 1.0, 0.0, 1.0, 0.0]]))
+    assert torch.allclose(
+        flags_hodge, torch.tensor([[1.0, 0.0, 1.0, 0.0, 1.0, 0.0]], dtype=torch.float32)
+    )
 
 
 def test_mask_hodge_adjs() -> None:
@@ -1266,7 +1273,8 @@ def test_mask_hodge_adjs() -> None:
                     [1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
                     [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                 ]
-            ]
+            ],
+            dtype=torch.float32,
         ),
     )
 
