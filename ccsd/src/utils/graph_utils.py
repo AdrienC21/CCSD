@@ -16,6 +16,7 @@ from easydict import EasyDict
 from rdkit import Chem
 
 from ccsd.src.utils.errors import SymmetryError
+from ccsd.src.utils.models_utils import get_ones
 from ccsd.src.utils.mol_utils import bond_decoder
 
 
@@ -30,7 +31,7 @@ def mask_x(x: torch.Tensor, flags: Optional[torch.Tensor] = None) -> torch.Tenso
         torch.Tensor: Mask batch of node features
     """
     if flags is None:
-        flags = torch.ones((x.shape[0], x.shape[1]), device=x.device)
+        flags = get_ones((x.shape[0], x.shape[1]), x.device)
     return x * flags[:, :, None]
 
 
@@ -47,7 +48,7 @@ def mask_adjs(adjs: torch.Tensor, flags: Optional[torch.Tensor] = None) -> torch
         torch.Tensor: Mask batch of adjacency matrices
     """
     if flags is None:
-        flags = torch.ones((adjs.shape[0], adjs.shape[-1]), device=adjs.device)
+        flags = get_ones((adjs.shape[0], adjs.shape[-1]), adjs.device)
 
     if len(adjs.shape) == 4:
         flags = flags.unsqueeze(1)  # B x 1 x N
@@ -97,9 +98,7 @@ def init_features(init: str, adjs: torch.Tensor, nfeat: int = 10) -> torch.Tenso
             (adjs.size(0), adjs.size(1), nfeat), dtype=torch.float32, device=adjs.device
         )
     elif init == "ones":
-        feature = torch.ones(
-            (adjs.size(0), adjs.size(1), nfeat), dtype=torch.float32, device=adjs.device
-        )
+        feature = get_ones((adjs.size(0), adjs.size(1), nfeat), adjs.device)
     elif init == "deg":
         feature = adjs.sum(dim=-1).to(torch.long)
         num_classes = nfeat
@@ -182,7 +181,7 @@ def quantize(t: torch.Tensor, thr: float = 0.5) -> torch.Tensor:
     Returns:
         torch.Tensor: quantized/cropped/clipped an adjacency or rank2 incidence matrix
     """
-    t_ = torch.where(t < thr, torch.zeros_like(t), torch.ones_like(t))
+    t_ = torch.where(t < thr, torch.zeros_like(t), get_ones(t.shape, t.device))
     return t_
 
 

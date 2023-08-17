@@ -18,6 +18,7 @@ from ccsd.src.utils.cc_utils import (
     mask_rank2,
     pow_tensor_cc,
 )
+from ccsd.src.utils.models_utils import get_ones
 
 
 class ScoreNetworkF(torch.nn.Module):
@@ -131,13 +132,14 @@ class ScoreNetworkF(torch.nn.Module):
         )
 
         # Initialize the masks (hodge mask and score mask)
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
         self.hodge_mask = (
             default_mask(self.rows)
             if self.use_hodge_mask
-            else torch.ones((self.rows, self.rows), dtype=torch.float32)
+            else get_ones((self.rows, self.rows), device)
         )
         self.hodge_mask.unsqueeze_(0)
-        self.mask = torch.ones((self.rows, self.cols), dtype=torch.float32)
+        self.mask = get_ones((self.rows, self.cols), device)
         self.mask.unsqueeze_(0)
 
         # Initialize the parameters (glorot weights, zeros bias), default reset for batchnorm (if any)

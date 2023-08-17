@@ -243,7 +243,8 @@ class BaselineNetwork(torch.nn.Module):
             activate_func=torch_func.elu,
         )
         # Initialize the mask
-        self.mask = default_mask(self.max_node_num)
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        self.mask = default_mask(self.max_node_num, device)
         self.mask.unsqueeze_(0)
 
         # Pick the right forward function
@@ -457,7 +458,8 @@ class ScoreNetworkA(torch.nn.Module):
             activate_func=torch_func.elu,
         )
         # Initialize the mask
-        self.mask = default_mask(self.max_node_num)
+        device = "cuda:0" if torch.cuda.is_available() else "cpu"
+        self.mask = default_mask(self.max_node_num, device)
         self.mask.unsqueeze_(0)
 
         # Pick the right forward function

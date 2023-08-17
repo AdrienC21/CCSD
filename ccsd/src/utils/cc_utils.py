@@ -7,6 +7,7 @@
 import concurrent.futures
 from collections import defaultdict
 from datetime import datetime
+from functools import lru_cache
 from itertools import combinations
 from math import comb
 from typing import Any, Callable, Dict, FrozenSet, List, Optional, Set, Tuple, Union
@@ -21,11 +22,13 @@ from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from ccsd.src.evaluation.mmd import compute_mmd, gaussian, gaussian_emd, gaussian_tv
 from ccsd.src.evaluation.stats import PRINT_TIME
 from ccsd.src.utils.graph_utils import graphs_to_tensor, node_flags, pad_adjs
+from ccsd.src.utils.models_utils import get_ones
 from ccsd.src.utils.mol_utils import AN_TO_SYMBOL, SYMBOL_TO_AN, bond_decoder
 
 DIC_MOL_CONV = {0: "C", 1: "N", 2: "O", 3: "F"}
 
 
+@lru_cache(maxsize=1)
 def get_cells(
     N: int, d_min: int, d_max: int
 ) -> Tuple[
@@ -242,6 +245,7 @@ def cc_from_incidence(
         )
 
 
+@lru_cache(maxsize=1)
 def get_rank2_dim(N: int, d_min: int, d_max: int) -> int:
     """Get the dimension of the rank-2 incidence matrix of a combinatorial complex
     with the given parameters.
@@ -459,6 +463,7 @@ def ccs_to_mol(ccs: List[CombinatorialComplex]) -> List[Chem.Mol]:
     return mols
 
 
+@lru_cache(maxsize=1)
 def get_N_from_nb_edges(nb_edges: int) -> int:
     """Get number of nodes from number of edges
 
@@ -512,8 +517,8 @@ def get_rank2_flags(
     """
     _, _, dic_int, _, _, dic_int_edge = get_cells(N, d_min, d_max)
     nb_edges, K = rank2.shape[-2:]
-    flags_left = torch.ones((rank2.shape[0], nb_edges), device=rank2.device)
-    flags_right = torch.ones((rank2.shape[0], K), device=rank2.device)
+    flags_left = get_ones((rank2.shape[0], nb_edges), rank2.device)
+    flags_right = get_ones((rank2.shape[0], K), rank2.device)
     for b in range(flags.shape[0]):
         for n in range(flags.shape[1]):
             if not (flags[b, n]):  # node n is not in the CC
@@ -546,7 +551,7 @@ def mask_rank2(
         torch.Tensor: Mask batch of rank2 incidence matrices
     """
     if flags is None:
-        flags = torch.ones((rank2.shape[0], N), device=rank2.device)
+        flags = get_ones((rank2.shape[0], N), rank2.device)
 
     flags_left, flags_right = get_rank2_flags(rank2, N, d_min, d_max, flags)
 
@@ -861,7 +866,8 @@ def hodge_laplacian(rank2: torch.Tensor) -> torch.Tensor:
     return rank2 @ rank2.transpose(-1, -2)
 
 
-def default_mask(n: int) -> torch.Tensor:
+@lru_cache(maxsize=2)
+def default_mask(n: int, device: str = "cpu") -> torch.Tensor:
     """Create default adjacency or Hodge Laplacian mask (no diagonal elements)
 
     Args:
@@ -870,7 +876,7 @@ def default_mask(n: int) -> torch.Tensor:
     Returns:
         torch.Tensor: default adjacency or Hodge Laplacian mask
     """
-    return torch.ones([n, n]) - torch.eye(n)
+    return get_ones((n, n), device) - torch.eye(n, device=device)
 
 
 def pow_tensor_cc(
@@ -1065,6 +1071,7 @@ def eval_CC_list(
     return results
 
 
+@lru_cache(maxsize=1)
 def load_cc_eval_settings() -> (
     Tuple[List[str], Dict[str, Callable[[np.ndarray, np.ndarray], float]]]
 ):
@@ -1186,7 +1193,7 @@ def get_hodge_adj_flags(
     """
     _, _, _, _, _, dic_int_edge = get_cells(flags.shape[1], 1, 1)
     nb_edges = hodge_adj.shape[-1]
-    flags_out = torch.ones((hodge_adj.shape[0], nb_edges), device=hodge_adj.device)
+    flags_out = get_ones((hodge_adj.shape[0], nb_edges), device=hodge_adj.device)
     for b in range(flags.shape[0]):
         for n in range(flags.shape[1]):
             if not (flags[b, n]):  # node n is not in the CC
@@ -1211,7 +1218,7 @@ def mask_hodge_adjs(
         torch.Tensor: Mask batch of hodge adjacency matrices
     """
     if flags is None:
-        flags = torch.ones(
+        flags = get_ones(
             (hodge_adjs.shape[0], hodge_adjs.shape[-1]), device=hodge_adjs.device
         )
 

@@ -142,6 +142,10 @@ class Trainer_Graph(Trainer):
         self.model_adj, self.optimizer_adj, self.scheduler_adj = load_model_optimizer(
             self.params_adj, self.config.train, self.device
         )
+        for m in [self.model_x, self.model_adj]:
+            logger.log(
+                f"Model {m.__class__.__name__} loaded on {next(m.parameters()).device.type}"
+            )
         self.ema_x = load_ema(self.model_x, decay=self.config.train.ema)
         self.ema_adj = load_ema(self.model_adj, decay=self.config.train.ema)
 
@@ -373,6 +377,10 @@ class Trainer_CC(Trainer):
             self.optimizer_rank2,
             self.scheduler_rank2,
         ) = load_model_optimizer(self.params_rank2, self.config.train, self.device)
+        for m in [self.model_x, self.model_adj, self.model_rank2]:
+            logger.log(
+                f"Model {m.__class__.__name__} loaded on {next(m.parameters()).device.type}"
+            )
         self.ema_x = load_ema(self.model_x, decay=self.config.train.ema)
         self.ema_adj = load_ema(self.model_adj, decay=self.config.train.ema)
         self.ema_rank2 = load_ema(self.model_rank2, decay=self.config.train.ema)

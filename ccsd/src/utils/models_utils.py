@@ -4,7 +4,8 @@
 """models_utils.py: utility functions related to the models.
 """
 
-from typing import Union
+from functools import lru_cache
+from typing import Sequence, Union
 
 import torch
 
@@ -33,3 +34,17 @@ def get_nb_parameters(model: torch.nn.Module) -> int:
     """
 
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
+
+
+@lru_cache(maxsize=64)
+def get_ones(shape: Sequence[int], device: str) -> torch.Tensor:
+    """Cached function to get a tensor of ones of the given shape and device.
+
+    Args:
+        shape (Sequence[int]): shape of the tensor
+        device (str): device on which the tensor should be allocated
+
+    Returns:
+        torch.Tensor: tensor of ones of the given shape and device
+    """
+    return torch.ones(shape, dtype=torch.float32, device=device)

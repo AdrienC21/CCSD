@@ -99,7 +99,9 @@ def load_model(params: Dict[str, Any]) -> torch.nn.Module:
 
 
 def load_model_optimizer(
-    params: Dict[str, Any], config_train: EasyDict, device: Union[str, List[str]]
+    params: Dict[str, Any],
+    config_train: EasyDict,
+    device: Union[str, List[str], List[int]],
 ) -> Tuple[
     Union[torch.nn.Module, torch.nn.DataParallel],
     torch.optim.Optimizer,
@@ -110,7 +112,7 @@ def load_model_optimizer(
     Args:
         params (Dict[str, Any]): model parameters
         config_train (EasyDict): configuration for training
-        device (str): device to use
+        device (Union[str, List[str], List[int]]): device to use
 
     Returns:
         Tuple[Union[torch.nn.Module, torch.nn.DataParallel], torch.optim.Optimizer, torch.optim.lr_scheduler.LRScheduler]: return the model, the optimizer and the scheduler
@@ -119,7 +121,12 @@ def load_model_optimizer(
     if isinstance(device, list):  # check for multi-gpu
         if len(device) > 1:  # multi-gpu
             model = torch.nn.DataParallel(model, device_ids=device)
-        model = model.to(f"cuda:{device[0]}")
+        if "cuda" in device[0]:
+            model = model.to(device[0])
+        else:
+            model = model.to(f"cuda:{device[0]}")
+    else:
+        model = model.to(device)
 
     optimizer = torch.optim.Adam(
         model.parameters(), lr=config_train.lr, weight_decay=config_train.weight_decay

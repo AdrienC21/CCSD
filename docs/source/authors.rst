@@ -4,7 +4,7 @@ Authors & Acknowledgements
 Authors
 ------------
 
-* Adrien Carrel (a.carrel@hotmail.fr)
+Adrien Carrel (a.carrel@hotmail.fr)
 
 Acknowledgements
 --------------------

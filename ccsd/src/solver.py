@@ -18,6 +18,7 @@ from ccsd.src.losses import get_score_fn, get_score_fn_cc
 from ccsd.src.sde import SDE, VPSDE, subVPSDE
 from ccsd.src.utils.cc_utils import gen_noise_rank2, mask_rank2
 from ccsd.src.utils.graph_utils import gen_noise, mask_adjs, mask_x
+from ccsd.src.utils.models_utils import get_ones
 
 
 class Predictor(abc.ABC):
@@ -674,7 +675,7 @@ class LangevinCorrector(Corrector):
             timestep = (t * (sde.N - 1) / sde.T).long()
             alpha = sde.alphas.to(t.device)[timestep]
         else:
-            alpha = torch.ones_like(t)
+            alpha = get_ones(t.shape, t.device)
 
         # Reverse SDE for the node features
         if self.obj == "x":
@@ -742,7 +743,7 @@ class LangevinCorrector(Corrector):
             timestep = (t * (sde.N - 1) / sde.T).long()
             alpha = sde.alphas.to(t.device)[timestep]
         else:
-            alpha = torch.ones_like(t)
+            alpha = get_ones(t.shape, t.device)
 
         # Reverse SDE for the node features
         if self.obj == "x":
@@ -963,7 +964,7 @@ def get_pc_sampler(
                     0, (diff_steps), desc="[Sampling]", position=1, leave=False
                 ):
                     t = timesteps[i]
-                    vec_t = torch.ones(shape_adj[0], device=t.device) * t
+                    vec_t = get_ones((shape_adj[0],), device=t.device) * t
 
                     _x = x
                     x, x_mean = corrector_obj_x.update_fn(x, adj, flags, vec_t)
@@ -1113,7 +1114,7 @@ def get_pc_sampler(
                     0, (diff_steps), desc="[Sampling]", position=1, leave=False
                 ):
                     t = timesteps[i]
-                    vec_t = torch.ones(shape_adj[0], device=t.device) * t
+                    vec_t = get_ones((shape_adj[0],), device=t.device) * t
 
                     _x = x
                     _adj = adj
@@ -1270,8 +1271,8 @@ def S4_solver(
                     0, (diff_steps), desc="[Sampling]", position=1, leave=False
                 ):
                     t = timesteps[i]
-                    vec_t = torch.ones(shape_adj[0], device=t.device) * t
-                    vec_dt = torch.ones(shape_adj[0], device=t.device) * (dt / 2)
+                    vec_t = get_ones((shape_adj[0],), device=t.device) * t
+                    vec_dt = get_ones((shape_adj[0],), device=t.device) * (dt / 2)
 
                     # Score computation
                     score_x = score_fn_x(x, adj, flags, vec_t)
@@ -1295,7 +1296,7 @@ def S4_solver(
                     if isinstance(sde_x, VPSDE):
                         alpha = sde_x.alphas.to(vec_t.device)[timestep]
                     else:
-                        alpha = torch.ones_like(vec_t)
+                        alpha = get_ones(vec_t.shape, vec_t.device)
 
                     step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
                     x_mean = x + step_size[:, None, None] * score_x
@@ -1314,7 +1315,7 @@ def S4_solver(
                     if isinstance(sde_adj, VPSDE):
                         alpha = sde_adj.alphas.to(vec_t.device)[timestep]  # VP
                     else:
-                        alpha = torch.ones_like(vec_t)  # VE
+                        alpha = get_ones(vec_t.shape, vec_t.device)  # VE
                     step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
                     adj_mean = adj + step_size[:, None, None] * score_adj
                     adj = (
@@ -1414,8 +1415,8 @@ def S4_solver(
                     0, (diff_steps), desc="[Sampling]", position=1, leave=False
                 ):
                     t = timesteps[i]
-                    vec_t = torch.ones(shape_adj[0], device=t.device) * t
-                    vec_dt = torch.ones(shape_adj[0], device=t.device) * (dt / 2)
+                    vec_t = get_ones((shape_adj[0],), device=t.device) * t
+                    vec_dt = get_ones((shape_adj[0],), device=t.device) * (dt / 2)
 
                     # Score computation
                     score_x = score_fn_x(x, adj, rank2, flags, vec_t)
@@ -1444,7 +1445,7 @@ def S4_solver(
                     if isinstance(sde_x, VPSDE):
                         alpha = sde_x.alphas.to(vec_t.device)[timestep]
                     else:
-                        alpha = torch.ones_like(vec_t)
+                        alpha = get_ones(vec_t.shape, vec_t.device)
 
                     step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
                     x_mean = x + step_size[:, None, None] * score_x
@@ -1463,7 +1464,7 @@ def S4_solver(
                     if isinstance(sde_adj, VPSDE):
                         alpha = sde_adj.alphas.to(vec_t.device)[timestep]  # VP
                     else:
-                        alpha = torch.ones_like(vec_t)  # VE
+                        alpha = get_ones(vec_t.shape, vec_t.device)  # VE
                     step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
                     adj_mean = adj + step_size[:, None, None] * score_adj
                     adj = (
@@ -1481,7 +1482,7 @@ def S4_solver(
                     if isinstance(sde_rank2, VPSDE):
                         alpha = sde_rank2.alphas.to(vec_t.device)[timestep]
                     else:
-                        alpha = torch.ones_like(vec_t)
+                        alpha = get_ones(vec_t.shape, vec_t.device)
 
                     step_size = (snr * noise_norm / grad_norm) ** 2 * 2 * alpha
                     rank2_mean = rank2 + step_size[:, None, None] * score_rank2
