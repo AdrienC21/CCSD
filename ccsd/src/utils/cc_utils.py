@@ -894,6 +894,7 @@ def pow_tensor_cc(
     if hodge_mask is not None:
         if len(hodge_mask.shape) == 2:  # make it batched
             hodge_mask = hodge_mask.unsqueeze(0)
+    hodge_mask = hodge_mask.to(x.device) if hodge_mask is not None else None
     H = H * hodge_mask if hodge_mask is not None else H
     xc = [x.unsqueeze(1)]
     for _ in range(cnum - 1):
