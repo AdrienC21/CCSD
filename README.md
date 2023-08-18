@@ -481,7 +481,13 @@ sed -i "24s/.*/\t\t\tpd.concat([_mcf, _pains], sort=True)[\o047smarts\o047].valu
 
 #### Error due to TopoNetX when running the tests
 
-Replace the file `combinatorial_complex.py` of TopoNetX by the updated one provided in this repository: **fixes\combinatorial_complex.py**
+Install an old version of `TopoNetX`, by running for example the command:
+
+```bash
+pip install git+https://github.com/pyt-team/TopoNetX.git@a389bd8bb11c731bb98d79da8392e3396ea9db8c
+```
+
+Then, replace the file `combinatorial_complex.py` of TopoNetX by the updated one provided in this repository: **fixes\combinatorial_complex.py**
 
 The file in TopoNetX should be located somewhere like:
 
