@@ -520,11 +520,12 @@ def get_rank2_flags(
     flags_left = get_ones((rank2.shape[0], nb_edges), rank2.device)
     flags_right = get_ones((rank2.shape[0], K), rank2.device)
     for b, n in torch.nonzero(flags == 0):  # node n is not in the CC (flag = 0)
+        n_int = n.item()
         flags_left[
-            b, dic_int_edge[n.item()]
+            b, dic_int_edge[n_int]
         ] = 0  # remove the flags of the edges containing n
         flags_right[
-            b, dic_int[n.item()]
+            b, dic_int[n_int]
         ] = 0  # remove the flags of the rank2 cells containing n
     return flags_left, flags_right
 

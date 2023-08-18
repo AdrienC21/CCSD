@@ -37,7 +37,7 @@ def get_nb_parameters(model: torch.nn.Module) -> int:
 
 
 @lru_cache(maxsize=64)
-def get_ones(shape: Sequence[int], device: str) -> torch.Tensor:
+def get_ones_cache(shape: Sequence[int], device: str) -> torch.Tensor:
     """Cached function to get a tensor of ones of the given shape and device.
 
     Args:
@@ -48,3 +48,17 @@ def get_ones(shape: Sequence[int], device: str) -> torch.Tensor:
         torch.Tensor: tensor of ones of the given shape and device
     """
     return torch.ones(shape, dtype=torch.float32, device=device)
+
+
+def get_ones(shape: Sequence[int], device: str) -> torch.Tensor:
+    """Function to get a tensor of ones of the given shape and device.
+    Call the cached version of the function and clone it.
+
+    Args:
+        shape (Sequence[int]): shape of the tensor
+        device (str): device on which the tensor should be allocated
+
+    Returns:
+        torch.Tensor: tensor of ones of the given shape and device
+    """
+    return get_ones_cache(shape, device).clone()
