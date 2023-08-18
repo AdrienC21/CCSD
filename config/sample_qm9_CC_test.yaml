@@ -8,7 +8,7 @@ data:
   d_min: 3
   d_max: 9
 
-ckpt: cdss_qm9_CC_test
+ckpt: ccsd_qm9_CC_test
 
 sampler:
   predictor: Reverse

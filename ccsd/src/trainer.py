@@ -495,6 +495,18 @@ class Trainer_CC(Trainer):
                 verbose=False,
             )
 
+            # Wandb
+            wandb.log(
+                {
+                    "epoch": epoch + 1,
+                    "time": time.time() - t_start,
+                    "test_x_loss": mean_test_x,
+                    "test_adj_loss": mean_test_adj,
+                    "train_x_loss": mean_train_x,
+                    "train_adj_loss": mean_train_adj,
+                }
+            )
+
             # -------- Save checkpoints --------
             if (
                 epoch % self.config.train.save_interval
