@@ -40,7 +40,7 @@ jobs:
           pip install Cython
           pip install pomegranate
           pip install git+https://github.com/molecularsets/moses.git
-          pip install git+https://github.com/pyt-team/TopoNetX.git
+          pip install git+https://github.com/pyt-team/TopoNetX.git@a389bd8bb11c731bb98d79da8392e3396ea9db8c
       - name: Fix moses and TopoNetX
         run: |
           python ./.github/workflows/apply_fixes.py

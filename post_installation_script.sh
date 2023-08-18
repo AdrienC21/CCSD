@@ -1,7 +1,6 @@
 #!/bin/bash
 
 # Go root
-echo "Go root"
 sudo su
 
 # Update the system and install Git and git-lfs (for MOSES)
@@ -10,7 +9,7 @@ sudo apt update
 sudo apt install -y git
 # git-lfs
 curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | sudo bash
-sudo apt-get install git-lfs
+sudo NEEDRESTART_MODE=a apt-get install git-lfs
 git-lfs install
 
 # Set up Git configurations (replace with your details)
@@ -20,8 +19,16 @@ git config --global user.email ""
 
 # Additionnal installations
 echo "Additionnal installations"
-sudo apt-get install libxss1
-sudo apt-get install libxrender1
+sudo NEEDRESTART_MODE=a apt-get install -y libxss1
+sudo NEEDRESTART_MODE=a apt-get install -y libxrender1
+# sudo apt-get install xauth
+# cp /home/ubuntu/.Xauthority /root/
+# sed -i '$a AllowAgentForwarding yes' /etc/ssh/sshd_config
+# sed -i '$a AllowTcpForwarding yes' /etc/ssh/sshd_config
+# sed -i '$a X11DisplayOffset 10' /etc/ssh/sshd_config
+# sed -i '$a X11UseLocalhost no' /etc/ssh/sshd_config
+# sudo ufw allow ssh
+# sudo ufw enable
 
 # Install CUDA (https://hackmd.io/@MarconiJiang/nvidia_v100_ubuntu1804)
 # distribution=$(. /etc/os-release;echo $ID$VERSION_ID | sed -e 's/\.//g')
@@ -56,7 +63,7 @@ pip install Cython
 pip install pomegranate
 git lfs install
 pip install git+https://github.com/molecularsets/moses.git
-pip install git+https://github.com/pyt-team/TopoNetX.git
+pip install git+https://github.com/pyt-team/TopoNetX.git@a389bd8bb11c731bb98d79da8392e3396ea9db8c
 
 # Install nodejs, npm, and orca for the plotly plots
 sudo NEEDRESTART_MODE=a apt install -y nodejs

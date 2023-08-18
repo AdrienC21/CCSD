@@ -121,7 +121,7 @@ def load_model_optimizer(
     if isinstance(device, list):  # check for multi-gpu
         if len(device) > 1:  # multi-gpu
             model = torch.nn.DataParallel(model, device_ids=device)
-        if "cuda" in device[0]:
+        if "cuda" in str(device[0]):
             model = model.to(device[0])
         else:
             model = model.to(f"cuda:{device[0]}")
