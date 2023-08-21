@@ -150,9 +150,19 @@ data/QM9_cc_True_train.pkl
 data/QM9_cc_True_test.pkl
 data/QM9_cc_False_train.pkl
 data/QM9_cc_False_test.pkl
+data/QM9_graphs_True_train.pkl
+data/QM9_graphs_True_test.pkl
+data/QM9_graphs_False_train.pkl
+data/QM9_graphs_False_test.pkl
 
 # images
 notes.txt
 
 # Post-installation script when creating instances (with my credentials)
 post_installation_script_adrien.sh
+
+# Just keep our checkpoints
+checkpoints/*
+checkpoints/QM9/*.ckpt
+!checkpoints/QM9/ccsd_qm9_CC_test.pth
+!checkpoints/QM9/gdss_qm9.pth
