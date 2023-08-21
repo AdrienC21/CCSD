@@ -11,8 +11,10 @@ Left untouched.
 """
 
 import numpy
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 from rdkit.Chem import rdmolops
+
+RDLogger.DisableLog("rdApp.*")
 
 
 class GGNNPreprocessor(object):

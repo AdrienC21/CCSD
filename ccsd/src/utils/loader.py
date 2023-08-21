@@ -119,6 +119,15 @@ def load_model_optimizer(
     """
     model = load_model(params)
     if isinstance(device, list):  # check for multi-gpu
+        assert len(device) > 0, "At least one device must be provided"
+        assert all(
+            (
+                isinstance(dev, int)
+                or isinstance(dev, torch.device)
+                or isinstance(dev, str)
+            )
+            for dev in device
+        ), "Device(s) must be device ids (integers, strings, or torch.device objects)"
         if len(device) > 1:  # multi-gpu
             model = torch.nn.DataParallel(model, device_ids=device)
         if "cuda" in str(device[0]):
@@ -126,7 +135,7 @@ def load_model_optimizer(
         else:
             model = model.to(f"cuda:{device[0]}")
     else:
-        model = model.to(device)
+        model = model.to(device)  # "cpu" or "cuda"
 
     optimizer = torch.optim.Adam(
         model.parameters(), lr=config_train.lr, weight_decay=config_train.weight_decay
@@ -550,7 +559,7 @@ def load_ckpt(
         is_cc (bool, optional): whether to model using combinatorial complexes. Defaults to False.
 
     Returns:
-        Dict[str, Any]: _description_
+        Dict[str, Any]: loaded checkpoint parameters and configuration
     """
     device_id = f"cuda:{device[0]}" if isinstance(device, list) else device
     ckpt_dict = {}
@@ -578,6 +587,8 @@ def load_ckpt(
             ckpt_dict["ema_rank2"] = ckpt["ema_rank2"]
     if return_ckpt:
         ckpt_dict["ckpt"] = ckpt
+    # Change folder with the one provided
+    ckpt_dict["config"]["folder"] = config.folder
     return ckpt_dict
 
 
@@ -601,18 +612,22 @@ def load_model_from_ckpt(
         # strip 'module.' at front; for DataParallel models
         state_dict = {k[7:]: v for k, v in state_dict.items()}
     model.load_state_dict(state_dict)
-    if isinstance(device, list):
+    if isinstance(device, list):  # check for multi-gpu
         assert len(device) > 0, "At least one device must be provided"
         assert all(
-            (isinstance(dev, int) or isinstance(dev, torch.device)) for dev in device
-        ), "Device(s) must be device ids (integers or torch.device objects)"
-        if len(device) > 1:
+            (
+                isinstance(dev, int)
+                or isinstance(dev, torch.device)
+                or isinstance(dev, str)
+            )
+            for dev in device
+        ), "Device(s) must be device ids (integers, strings, or torch.device objects)"
+        if len(device) > 1:  # multi-gpu
             model = torch.nn.DataParallel(model, device_ids=device)
-        if isinstance(device[0], int):
-            new_device = torch.device(f"cuda:{device[0]}")
+        if "cuda" in str(device[0]):
+            model = model.to(device[0])
         else:
-            new_device = device[0]
-        model = model.to(new_device)
+            model = model.to(f"cuda:{device[0]}")
     else:
         model = model.to(device)  # "cpu" or "cuda"
     return model

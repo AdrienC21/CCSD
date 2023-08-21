@@ -81,6 +81,8 @@ The research has been conducted by **Adrien Carrel** as part of his requirements
 <a href="https://www.instagram.com/adrien.carrel" target="_blank"><img align="center" src="https://cdn.jsdelivr.net/npm/simple-icons@3.0.1/icons/instagram.svg" alt="instagram" height="39" width="52" /></a>
 <a href="https://github.com/AdrienC21/" target="_blank"><img align="center" src="https://cdn.jsdelivr.net/npm/simple-icons@3.0.1/icons/github.svg" alt="github" height="39" width="52" /></a>
 
+This project has been **supervised by [Dr. Tolga Birdal](https://www.imperial.ac.uk/people/t.birdal)**, Assistant Professor (Lecturer) in the Department of Computing of Imperial College London.
+
 ### Contributions
 
 We welcome new contributors with various background and programming levels who would like to contribute to the fields of diffusion models and topological deep learning. Feel free to suggest new ideas, submit pull requests, etc.
@@ -117,7 +119,7 @@ For Windows users, the recommended version of kaleido is *0.1.0.post1*. You can 
 pip install kaleido==0.1.0post1
 ```
 
-For Linux users who want to use `orca`, you can install it via the *npm* command of *Node.js*. For the installation, type:
+For Linux users, the latest version of kaleido seems fine. For those who want to use `orca`, you can install it via the *npm* command of *Node.js*. For the installation, type:
 
 ```bash
 sudo NEEDRESTART_MODE=a apt install -y nodejs
@@ -505,7 +507,7 @@ Carrel, A. (2023). CCSD - Combinatorial Complex Score-based Diffusion model usin
 
 The Laboratory for Computational Physiology (LCP) at the Massachusetts Institute of Technology (MIT) for hosting me during the redaction of my thesis.
 
-Dr. Tolga Birdal for his supervision and for the valuable advice and ressources that he provided.
+[Dr. Tolga Birdal](https://www.imperial.ac.uk/people/t.birdal) for his supervision and for the valuable advice and ressources that he provided.
 
 All my friends and my family for the support.
 

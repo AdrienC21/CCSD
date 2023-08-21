@@ -22,16 +22,16 @@ import plotly.graph_objs as go
 import torch
 from easydict import EasyDict
 from rdkit import Chem
-from rdkit.Chem import AllChem, Draw
+from rdkit.Chem import AllChem, Draw, RDLogger
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from tqdm import tqdm
 
-from ccsd.src.utils.graph_utils import adjs_to_graphs, quantize
-from ccsd.src.utils.mol_utils import construct_mol
+from ccsd.src.utils.graph_utils import adjs_to_graphs, quantize, quantize_mol
+from ccsd.src.utils.mol_utils import construct_mol, gen_mol
 
 warnings.filterwarnings("ignore", category=matplotlib.MatplotlibDeprecationWarning)
 plotly.io.kaleido.scope.mathjax = None
-
+RDLogger.DisableLog("rdApp.*")
 # Parameters to make graph plots look nicer.
 options = {"node_size": 2, "edge_color": "black", "linewidths": 1, "width": 0.5}
 
@@ -516,10 +516,14 @@ def rotate_molecule_animation(
                 f"{filename}.gif already exists. Set overwrite=True to overwrite the file."
             )
 
+    # Define the frame range
+    animation_range = range(int(duration * frames))
+
     # Create the animation frames
-    animation_figures = []
-    print("Creating the animation ...")
-    for i in range(int(duration * frames)):
+    print("Creating the rotating molecule animation ...")
+    if not (os.path.isdir("tempdir_animation")):
+        os.makedirs("tempdir_animation")  # put the images in a temporary directory
+    for i in tqdm(animation_range):
         layout = figure.layout
         layout["scene"]["camera"]["eye"] = dict(
             x=2 * np.sin(2 * np.pi * i * rotations_per_sec / frames),
@@ -527,33 +531,45 @@ def rotate_molecule_animation(
             z=1,
         )
         fig = go.Figure(data=figure.data, layout=layout)
-        animation_figures.append(fig)
-
-    # Write the images to disk
-    print("Saving the images ...")
-    for i in tqdm(range(len(animation_figures))):
-        fig = animation_figures[i]
-        fig.write_image(f"{filename}_{i}.png", engine=engine)
+        if isinstance(fig, plotly.graph_objs.Figure):  # plotly
+            fig.write_image(
+                os.path.join("tempdir_animation", f"{filename}_{i}.png"), engine=engine
+            )
+            plt.close()
+        elif isinstance(fig, matplotlib.figure.Figure):  # matplotlib
+            fig.savefig(os.path.join("tempdir_animation", f"{filename}_{i}.png"))
+            plt.close()
+        else:
+            raise TypeError(
+                "The figure must be either a plotly.graph_objs.Figure or a matplotlib.figure.Figure. "
+                "Otherwise, it has not been implemented yet."
+            )
 
     # Create the GIF
     print("Loading the images ...")
     images = []
-    for i in tqdm(range(int(duration * frames))):
-        images.append(imageio.imread(f"{filename}_{i}.png"))
+    for i in tqdm(animation_range):
+        images.append(
+            imageio.imread(os.path.join("tempdir_animation", f"{filename}_{i}.png"))
+        )
     print("Creating the gif ...")
     imageio.imwrite(
         os.path.join(filedir, f"{filename}.gif"), images, duration=(1 / frames), loop=0
     )
 
-    # Delete the images
+    # Delete the images and the folder
     print("Deleting the images ...")
-    for i in range(int(duration * frames)):
-        if os.path.exists(f"{filename}_{i}.png"):
-            os.remove(f"{filename}_{i}.png")
+    for i in animation_range:
+        if os.path.exists(os.path.join("tempdir_animation", f"{filename}_{i}.png")):
+            os.remove(os.path.join("tempdir_animation", f"{filename}_{i}.png"))
+    os.rmdir("tempdir_animation")  # delete the folder
 
 
 def plot_diffusion_trajectory(
-    gen_obj: List[torch.Tensor], is_molecule: bool = False, dataset: str = "QM9"
+    gen_obj: List[torch.Tensor],
+    is_molecule: bool = False,
+    dataset: str = "QM9",
+    largest_connected_comp: bool = True,
 ) -> Union[plotly.graph_objs.Figure, matplotlib.figure.Figure]:
     """Return the figure of one generated object as part of a diffusion trajectory.
 
@@ -561,23 +577,53 @@ def plot_diffusion_trajectory(
         gen_obj (List[torch.Tensor]): The generated object (node features (x) and adjacency matrix (adj), and rank-2 incidence matrix (rank2) if we generated combinatorial complexes).
         is_molecule (bool, optional): if True, we plot a molecule, otherwise a graph. Defaults to False.
         dataset (str, optional): The dataset from which the object was generated. Defaults to "QM9" (only used if is_molecule=True).
+        largest_connected_comp (bool, optional): whether or not we keep only the largest connected component. Defaults to True.
 
     Returns:
         Union[plotly.graph_objs.Figure, matplotlib.figure.Figure]: The figure of the generated object.
     """
-    x, adj = gen_obj[0], gen_obj[1]
+    x_, adj_ = gen_obj[0], gen_obj[1]
+
     fig = plt.figure(figsize=(10, 10))
     if is_molecule:
-        if dataset == "QM9":
-            atomic_num_list = [6, 7, 8, 9, 0]
+        # Preprocess the matrices
+        x, adj = x_.unsqueeze(0), adj_.unsqueeze(0)  # batch it
+        samples_int = quantize_mol(adj)
+
+        samples_int = samples_int - 1
+        samples_int[samples_int == -1] = 3  # 0, 1, 2, 3 (no, S, D, T) -> 3, 0, 1, 2
+
+        adj = torch.nn.functional.one_hot(
+            torch.tensor(samples_int), num_classes=4
+        ).permute(0, 3, 1, 2)
+        x = torch.where(x > 0.5, 1, 0)
+        x = torch.concat([x, 1 - x.sum(dim=-1, keepdim=True)], dim=-1)
+        # Generate the molecule
+        mol = gen_mol(x, adj, dataset, largest_connected_comp)[0]
+        if not (mol):  # if it failed, try to build the molecule without adjustment
+            if dataset == "QM9":
+                atomic_num_list = [6, 7, 8, 9, 0]
+            else:
+                atomic_num_list = [6, 7, 8, 9, 15, 16, 17, 35, 53, 0]
+            mol = construct_mol(
+                x[0].detach().cpu().numpy(),
+                adj[0].detach().cpu().numpy(),
+                atomic_num_list,
+            )
+        else:  # else, keep the generated molecule
+            mol = mol[0]
+        # Plot
+        if (
+            mol is None
+        ):  # if the molecule is not built by rdkit, draw a blank image instead
+            mol_img = np.ones((300, 300))
+            plt.imshow(mol_img, cmap="binary")
         else:
-            atomic_num_list = [6, 7, 8, 9, 15, 16, 17, 35, 53, 0]
-        mol = construct_mol(x, adj, atomic_num_list)
-        mol_img = Draw.MolToImage(mol, size=(300, 300))
-        plt.imshow(mol_img)
+            mol_img = Draw.MolToImage(mol, size=(300, 300))
+            plt.imshow(mol_img)
         title_str = f"{Chem.MolToSmiles(mol)}"
     else:
-        samples_int = quantize(adj.unsqueeze(0))
+        samples_int = quantize(adj_.unsqueeze(0))
         G = adjs_to_graphs(samples_int, True)[0]
         G.remove_nodes_from(list(nx.isolates(G)))
         e = G.number_of_edges()
@@ -599,6 +645,8 @@ def diffusion_animation(
     fps: int = 25,
     overwrite: bool = True,
     engine: str = "kaleido",
+    duration: float = 4.0,
+    cropped: bool = False,
 ) -> None:
     """Creates an animated GIF of the diffusion trajectory.
 
@@ -610,7 +658,22 @@ def diffusion_animation(
         fps (int, optional): Number of frames per second. Defaults to 25.
         overwrite (bool, optional): If True, overwrite the file if it already exists. Defaults to True.
         engine (str, optional): engine to use for the .write_image plotly method if plotly is used. Defaults to "kaleido".
+        duration (float, optional): duration of the animation (in seconds). Defaults to 4.0.
+        cropped (bool, optional): if True, we select the first frames. Otherwise, we skip some frames to build the animation. Defaults to False.
     """
+    # Check if we have enough frames
+    nb_frames = int(np.ceil(duration * fps))
+    assert nb_frames < len(
+        diff_traj
+    ), f"Not enough frames ({len(diff_traj)}/{nb_frames}) to build a {fps}FPS animation of {duration} secondes."
+
+    # Define the frame range
+    if cropped:
+        animation_range = range(nb_frames)
+    else:
+        step = len(diff_traj) // nb_frames
+        animation_range = range(0, len(diff_traj), step)
+
     # Remove .gif extension if provided
     if filename.lower().endswith(".gif"):
         filename = filename[:-4]
@@ -623,20 +686,20 @@ def diffusion_animation(
             )
 
     # Create the animation frames
-    animation_figures = []
-    print("Creating the animation ...")
-    for i in tqdm(range(len(diff_traj))):
+    fig_type = "molecule" if is_molecule else "graph"
+    print(f"Creating the {fig_type} diffusion animation ...")
+    if not (os.path.isdir("tempdir_animation")):
+        os.makedirs("tempdir_animation")  # put the images in a temporary directory
+    for i in tqdm(animation_range):
         fig = plot_diffusion_trajectory(diff_traj[i], is_molecule=is_molecule)
-        animation_figures.append(fig)
-
-    # Write the images to disk
-    print("Saving the images ...")
-    for i in tqdm(range(len(animation_figures))):
-        fig = animation_figures[i]
         if isinstance(fig, plotly.graph_objs.Figure):  # plotly
-            fig.write_image(f"diffusion_{i}.png", engine=engine)
+            fig.write_image(
+                os.path.join("tempdir_animation", f"diffusion_{i}.png"), engine=engine
+            )
+            plt.close()
         elif isinstance(fig, matplotlib.figure.Figure):  # matplotlib
-            fig.savefig(f"diffusion_{i}.png")
+            fig.savefig(os.path.join("tempdir_animation", f"diffusion_{i}.png"))
+            plt.close()
         else:
             raise TypeError(
                 "The figure must be either a plotly.graph_objs.Figure or a matplotlib.figure.Figure. "
@@ -646,14 +709,17 @@ def diffusion_animation(
     # Create the GIF
     print("Loading the images ...")
     images = []
-    for i in tqdm(range(len(animation_figures))):
-        images.append(imageio.imread(f"diffusion_{i}.png"))
+    for i in tqdm(animation_range):
+        images.append(
+            imageio.imread(os.path.join("tempdir_animation", f"diffusion_{i}.png"))
+        )
     print("Creating the gif ...")
     filepath = os.path.join(filedir, filename)
     imageio.imwrite(f"{filepath}.gif", images, duration=(1 / fps), loop=0)
 
     # Delete the images
     print("Deleting the images ...")
-    for i in range(len(animation_figures)):
-        if os.path.exists(f"diffusion_{i}.png"):
-            os.remove(f"diffusion_{i}.png")
+    for i in animation_range:
+        if os.path.exists(os.path.join("tempdir_animation", f"diffusion_{i}.png")):
+            os.remove(os.path.join("tempdir_animation", f"diffusion_{i}.png"))
+    os.rmdir("tempdir_animation")  # delete the folder

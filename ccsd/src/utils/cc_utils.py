@@ -16,7 +16,7 @@ import networkx as nx
 import numpy as np
 import torch
 from easydict import EasyDict
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 
 from ccsd.src.evaluation.mmd import compute_mmd, gaussian, gaussian_emd, gaussian_tv
@@ -24,6 +24,8 @@ from ccsd.src.evaluation.stats import PRINT_TIME
 from ccsd.src.utils.graph_utils import graphs_to_tensor, node_flags, pad_adjs
 from ccsd.src.utils.models_utils import get_ones
 from ccsd.src.utils.mol_utils import AN_TO_SYMBOL, SYMBOL_TO_AN, bond_decoder
+
+RDLogger.DisableLog("rdApp.*")
 
 DIC_MOL_CONV = {0: "C", 1: "N", 2: "O", 3: "F"}
 

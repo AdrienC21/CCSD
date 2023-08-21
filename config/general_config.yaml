@@ -5,5 +5,5 @@ project_name: "CCSD"  # name of the project in wandb
 entity: "a-carrel"  # name of the entity in wandb
 timezone: "Europe/London"  # timezone to name the output files
 print_initial: True  # print an initial message with logo and current experiment
-plotly_fig: False  # if True, create plotly figures (rotating 3D plots, diffusion animation, etc)
-engine: "orca"  # engine for the plotly plots. Windows users should use "kaleido" instead of "orca"
+plotly_fig: True  # if True, create plotly figures (rotating 3D plots, diffusion animation, etc)
+engine: "kaleido"  # engine for the plotly plots. Windows users should use "kaleido" instead of "orca"

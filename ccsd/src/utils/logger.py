@@ -182,7 +182,11 @@ def device_log(
         device_str_list = [
             f"cuda:{dev}" if "cuda" not in str(dev) else str(dev) for dev in device
         ]
-        device_str = f"GPU: {device_str_list}"
+        device_str_list_names = [
+            torch.cuda.get_device_name(int(d.split("cuda:")[1]))
+            for d in device_str_list
+        ]
+        device_str = f"GPU: {device_str_list}\nGPU names: {device_str_list_names}"
     else:
         device_str = f"{device}"
     logger.log(f"Using device: {device_str}")

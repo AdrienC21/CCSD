@@ -272,7 +272,12 @@ class Trainer_Graph(Trainer):
                         "ema_x": self.ema_x.state_dict(),
                         "ema_adj": self.ema_adj.state_dict(),
                     },
-                    f"./checkpoints/{self.config.data.data}/{self.ckpt + save_name}.pth",
+                    os.path.join(
+                        self.config.folder,
+                        "checkpoints",
+                        f"{self.config.data.data}",
+                        f"{self.ckpt + save_name}.pth",
+                    ),
                 )
 
             if (
@@ -295,7 +300,12 @@ class Trainer_Graph(Trainer):
                 "ema_x": self.ema_x.state_dict(),
                 "ema_adj": self.ema_adj.state_dict(),
             },
-            f"./checkpoints/{self.config.data.data}/{self.ckpt}_final.pth",
+            os.path.join(
+                self.config.folder,
+                "checkpoints",
+                f"{self.config.data.data}",
+                f"{self.ckpt}_final.pth",
+            ),
         )
         # -------- Save learning curves and plots --------
         learning_curves = {
@@ -529,7 +539,12 @@ class Trainer_CC(Trainer):
                         "ema_adj": self.ema_adj.state_dict(),
                         "ema_rank2": self.ema_rank2.state_dict(),
                     },
-                    f"./checkpoints/{self.config.data.data}/{self.ckpt + save_name}.pth",
+                    os.path.join(
+                        self.config.folder,
+                        "checkpoints",
+                        f"{self.config.data.data}",
+                        f"{self.ckpt + save_name}.pth",
+                    ),
                 )
 
             if (
@@ -556,7 +571,12 @@ class Trainer_CC(Trainer):
                 "ema_adj": self.ema_adj.state_dict(),
                 "ema_rank2": self.ema_rank2.state_dict(),
             },
-            f"./checkpoints/{self.config.data.data}/{self.ckpt}_final.pth",
+            os.path.join(
+                self.config.folder,
+                "checkpoints",
+                f"{self.config.data.data}",
+                f"{self.ckpt}_final.pth",
+            ),
         )
         # -------- Save learning curves and plots --------
         learning_curves = {

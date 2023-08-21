@@ -151,6 +151,11 @@ class Sampler_Graph(Sampler):
             self.ckpt_dict["params_adj"], self.ckpt_dict["adj_state_dict"], self.device
         )
 
+        for m in [self.model_x, self.model_adj]:
+            logger.log(
+                f"Model {m.__class__.__name__} loaded on {next(m.parameters()).device.type}"
+            )
+
         if self.config.sample.use_ema:
             self.ema_x = load_ema_from_ckpt(
                 self.model_x, self.ckpt_dict["ema_x"], self.configt.train.ema
@@ -222,7 +227,7 @@ class Sampler_Graph(Sampler):
         plot_graphs_list(
             config=self.config,
             graphs=sample_graph_list,
-            title=f"{self.config.ckpt}_graphs",
+            title=f"graphs_{self.log_name}",
             max_num=16,
             save_dir=self.log_folder_name,
         )
@@ -234,7 +239,7 @@ class Sampler_Graph(Sampler):
                 os.path.join(
                     *[self.config.folder, "samples", "fig", self.log_folder_name]
                 ),
-                f"{self.config.ckpt}_graphs.png",
+                f"graphs_{self.log_name}.png",
             )
             wandb.log({"Generated Graphs": wandb.Image(img_path)})
         # Diffusion trajectory animation
@@ -242,7 +247,7 @@ class Sampler_Graph(Sampler):
             filedir = os.path.join(
                 *[self.config.folder, "samples", "fig", self.log_folder_name]
             )
-            filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+            filename = f"diff_traj_graphs_{self.log_name}.gif"
             diffusion_animation(
                 diff_traj=diff_traj,
                 is_molecule=False,
@@ -258,6 +263,24 @@ class Sampler_Graph(Sampler):
                 # add plots to wandb
                 img_path = os.path.join(filedir, filename)
                 wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
+            # Cropped
+            filename = f"diff_traj_graphs_cropped_{self.log_name}.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=False,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+                cropped=True,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Diffusion Trajectory Graph Cropped": wandb.Image(img_path)})
 
 
 class Sampler_CC(Sampler):
@@ -329,6 +352,10 @@ class Sampler_CC(Sampler):
             self.ckpt_dict["rank2_state_dict"],
             self.device,
         )
+        for m in [self.model_x, self.model_adj, self.model_rank2]:
+            logger.log(
+                f"Model {m.__class__.__name__} loaded on {next(m.parameters()).device.type}"
+            )
 
         if self.config.sample.use_ema:
             self.ema_x = load_ema_from_ckpt(
@@ -436,7 +463,7 @@ class Sampler_CC(Sampler):
         plot_cc_list(
             config=self.config,
             ccs=sample_CC_list,
-            title=f"{self.config.ckpt}_ccs",
+            title=f"ccs_{self.log_name}",
             max_num=16,
             save_dir=self.log_folder_name,
         )
@@ -448,7 +475,7 @@ class Sampler_CC(Sampler):
                 os.path.join(
                     *[self.config.folder, "samples", "fig", self.log_folder_name]
                 ),
-                f"{self.config.ckpt}_ccs.png",
+                f"ccs_{self.log_name}.png",
             )
             wandb.log({"Generated Combinatorial Complexes": wandb.Image(img_path)})
         # Graphs
@@ -460,7 +487,7 @@ class Sampler_CC(Sampler):
         plot_graphs_list(
             config=self.config,
             graphs=sample_graph_list,
-            title=f"{self.config.ckpt}_graphs",
+            title=f"graphs_{self.log_name}",
             max_num=16,
             save_dir=self.log_folder_name,
         )
@@ -472,7 +499,7 @@ class Sampler_CC(Sampler):
                 os.path.join(
                     *[self.config.folder, "samples", "fig", self.log_folder_name]
                 ),
-                f"{self.config.ckpt}_graphs.png",
+                f"graphs_{self.log_name}.png",
             )
             wandb.log({"Generated Graphs": wandb.Image(img_path)})
         # Diffusion trajectory animation
@@ -480,7 +507,7 @@ class Sampler_CC(Sampler):
             filedir = os.path.join(
                 *[self.config.folder, "samples", "fig", self.log_folder_name]
             )
-            filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+            filename = f"diff_traj_graphs_{self.log_name}.gif"
             diffusion_animation(
                 diff_traj=diff_traj,
                 is_molecule=False,
@@ -496,6 +523,24 @@ class Sampler_CC(Sampler):
                 # add plots to wandb
                 img_path = os.path.join(filedir, filename)
                 wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
+            # Cropped
+            filename = f"diff_traj_graphs_cropped_{self.log_name}.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=False,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+                cropped=True,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Diffusion Trajectory Graph Cropped": wandb.Image(img_path)})
 
 
 class Sampler_mol_Graph(Sampler):
@@ -555,6 +600,10 @@ class Sampler_mol_Graph(Sampler):
         self.model_adj = load_model_from_ckpt(
             self.ckpt_dict["params_adj"], self.ckpt_dict["adj_state_dict"], self.device
         )
+        for m in [self.model_x, self.model_adj]:
+            logger.log(
+                f"Model {m.__class__.__name__} loaded on {next(m.parameters()).device.type}"
+            )
 
         self.sampling_fn = load_sampling_fn(
             self.configt, self.config.sampler, self.config.sample, self.device
@@ -572,7 +621,14 @@ class Sampler_mol_Graph(Sampler):
         self.train_graph_list, _ = load_data(
             self.configt, get_list=True
         )  # for init_flags
-        with open(f"data/{self.configt.data.data.lower()}_test_nx.pkl", "rb") as f:
+        with open(
+            os.path.join(
+                self.config.folder,
+                "data",
+                f"{self.configt.data.data.lower()}_test_nx.pkl",
+            ),
+            "rb",
+        ) as f:
             self.test_graph_list = pickle.load(f)  # for NSPDK MMD
 
         logger.log(f"Sampling {self.n_samples} samples ...")
@@ -658,7 +714,7 @@ class Sampler_mol_Graph(Sampler):
         plot_graphs_list(
             config=self.config,
             graphs=sample_graph_list,
-            title=f"{self.config.ckpt}_mol_graphs",
+            title=f"mol_graphs_{self.log_name}",
             max_num=16,
             save_dir=self.log_folder_name,
         )
@@ -670,7 +726,7 @@ class Sampler_mol_Graph(Sampler):
                 os.path.join(
                     *[self.config.folder, "samples", "fig", self.log_folder_name]
                 ),
-                f"{self.config.ckpt}_mol_graphs.png",
+                f"mol_graphs_{self.log_name}.png",
             )
             wandb.log({"Generated Mol Graphs": wandb.Image(img_path)})
         # Molecules
@@ -682,7 +738,7 @@ class Sampler_mol_Graph(Sampler):
         plot_molecule_list(
             config=self.config,
             mols=sample_mol_list,
-            title=f"{self.config.ckpt}_mols",
+            title=f"mols_{self.log_name}",
             max_num=16,
             save_dir=self.log_folder_name,
         )
@@ -694,7 +750,7 @@ class Sampler_mol_Graph(Sampler):
                 os.path.join(
                     *[self.config.folder, "samples", "fig", self.log_folder_name]
                 ),
-                f"{self.config.ckpt}_mols.png",
+                f"mols_{self.log_name}.png",
             )
             wandb.log({"Generated Molecules": wandb.Image(img_path)})
         # 3D Molecule
@@ -704,7 +760,7 @@ class Sampler_mol_Graph(Sampler):
             filedir = os.path.join(
                 *[self.config.folder, "samples", "fig", self.log_folder_name]
             )
-            filename = f"{self.config.ckpt}_mols_3d.gif"
+            filename = f"mols_3d_{self.log_name}.gif"
             rotate_molecule_animation(
                 mol_3d,
                 filedir=filedir,
@@ -723,10 +779,11 @@ class Sampler_mol_Graph(Sampler):
                 wandb.log({"Generated Molecules 3D": wandb.Image(img_path)})
         # Diffusion trajectory animation - Graphs and molecules
         if self.config.general_config.plotly_fig:
+            # Graph
             filedir = os.path.join(
                 *[self.config.folder, "samples", "fig", self.log_folder_name]
             )
-            filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+            filename = f"diff_traj_graphs_{self.log_name}.gif"
             diffusion_animation(
                 diff_traj=diff_traj,
                 is_molecule=False,
@@ -742,7 +799,26 @@ class Sampler_mol_Graph(Sampler):
                 # add plots to wandb
                 img_path = os.path.join(filedir, filename)
                 wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
-            filename = f"{self.config.ckpt}_diff_traj_mol.gif"
+            # Graph Cropped
+            filename = f"diff_traj_graphs_cropped_{self.log_name}.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=False,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+                cropped=True,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Diffusion Trajectory Graph Cropped": wandb.Image(img_path)})
+            # Molecule
+            filename = f"diff_traj_mol_{self.log_name}.gif"
             diffusion_animation(
                 diff_traj=diff_traj,
                 is_molecule=True,
@@ -758,6 +834,26 @@ class Sampler_mol_Graph(Sampler):
                 # add plots to wandb
                 img_path = os.path.join(filedir, filename)
                 wandb.log({"Diffusion Trajectory Molecule": wandb.Image(img_path)})
+            # Molecule Cropped
+            filename = f"diff_traj_mol_cropped_{self.log_name}.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=True,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+                cropped=True,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log(
+                    {"Diffusion Trajectory Molecule Cropped": wandb.Image(img_path)}
+                )
 
 
 class Sampler_mol_CC(Sampler):
@@ -823,6 +919,10 @@ class Sampler_mol_CC(Sampler):
             self.ckpt_dict["rank2_state_dict"],
             self.device,
         )
+        for m in [self.model_x, self.model_adj, self.model_rank2]:
+            logger.log(
+                f"Model {m.__class__.__name__} loaded on {next(m.parameters()).device.type}"
+            )
 
         self.sampling_fn = load_sampling_fn(
             self.configt,
@@ -846,7 +946,14 @@ class Sampler_mol_CC(Sampler):
         self.train_CC_list, _ = load_data(
             self.configt, get_list=True, is_cc=True
         )  # for init_flags
-        with open(f"data/{self.configt.data.data.lower()}_test_nx.pkl", "rb") as f:
+        with open(
+            os.path.join(
+                self.config.folder,
+                "data",
+                f"{self.configt.data.data.lower()}_test_nx.pkl",
+            ),
+            "rb",
+        ) as f:
             self.test_graph_list = pickle.load(f)  # for NSPDK MMD
 
         # Create test_CC_list based on test_graph_list via a conversion to molecules
@@ -950,7 +1057,7 @@ class Sampler_mol_CC(Sampler):
         plot_cc_list(
             config=self.config,
             ccs=sample_CC_list,
-            title=f"{self.config.ckpt}_mol_ccs",
+            title=f"mol_ccs_{self.log_name}",
             max_num=16,
             save_dir=self.log_folder_name,
         )
@@ -962,7 +1069,7 @@ class Sampler_mol_CC(Sampler):
                 os.path.join(
                     *[self.config.folder, "samples", "fig", self.log_folder_name]
                 ),
-                f"{self.config.ckpt}_mol_ccs.png",
+                f"mol_ccs_{self.log_name}.png",
             )
             wandb.log({"Generated Mol Combinatorial Complexes": wandb.Image(img_path)})
         # Graphs
@@ -977,7 +1084,7 @@ class Sampler_mol_CC(Sampler):
         plot_graphs_list(
             config=self.config,
             graphs=sample_graph_list,
-            title=f"{self.config.ckpt}_mol_graphs",
+            title=f"mol_graphs_{self.log_name}",
             max_num=16,
             save_dir=self.log_folder_name,
         )
@@ -989,7 +1096,7 @@ class Sampler_mol_CC(Sampler):
                 os.path.join(
                     *[self.config.folder, "samples", "fig", self.log_folder_name]
                 ),
-                f"{self.config.ckpt}_mol_graphs.png",
+                f"mol_graphs_{self.log_name}.png",
             )
             wandb.log({"Generated Mol Graphs": wandb.Image(img_path)})
         # Molecules
@@ -1001,7 +1108,7 @@ class Sampler_mol_CC(Sampler):
         plot_molecule_list(
             config=self.config,
             mols=sample_mol_list,
-            title=f"{self.config.ckpt}_mols",
+            title=f"mols_{self.log_name}",
             max_num=16,
             save_dir=self.log_folder_name,
         )
@@ -1013,7 +1120,7 @@ class Sampler_mol_CC(Sampler):
                 os.path.join(
                     *[self.config.folder, "samples", "fig", self.log_folder_name]
                 ),
-                f"{self.config.ckpt}_mols.png",
+                f"mols_{self.log_name}.png",
             )
             wandb.log({"Generated Molecules": wandb.Image(img_path)})
         # 3D Molecule
@@ -1023,7 +1130,7 @@ class Sampler_mol_CC(Sampler):
             filedir = os.path.join(
                 *[self.config.folder, "samples", "fig", self.log_folder_name]
             )
-            filename = f"{self.config.ckpt}_mols_3d.gif"
+            filename = f"mols_3d_{self.log_name}.gif"
             rotate_molecule_animation(
                 mol_3d,
                 filedir=filedir,
@@ -1042,10 +1149,11 @@ class Sampler_mol_CC(Sampler):
                 wandb.log({"Generated Molecule 3D": wandb.Image(img_path)})
         # Diffusion trajectory animation - Graphs and molecules
         if self.config.general_config.plotly_fig:
+            # Graph
             filedir = os.path.join(
                 *[self.config.folder, "samples", "fig", self.log_folder_name]
             )
-            filename = f"{self.config.ckpt}_diff_traj_graphs.gif"
+            filename = f"diff_traj_graphs_{self.log_name}.gif"
             diffusion_animation(
                 diff_traj=diff_traj,
                 is_molecule=False,
@@ -1061,7 +1169,26 @@ class Sampler_mol_CC(Sampler):
                 # add plots to wandb
                 img_path = os.path.join(filedir, filename)
                 wandb.log({"Diffusion Trajectory Graph": wandb.Image(img_path)})
-            filename = f"{self.config.ckpt}_diff_traj_mol.gif"
+            # Graph Cropped
+            filename = f"diff_traj_graphs_cropped_{self.log_name}.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=False,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+                cropped=True,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log({"Diffusion Trajectory Graph Cropped": wandb.Image(img_path)})
+            # Molecule
+            filename = f"diff_traj_mol_{self.log_name}.gif"
             diffusion_animation(
                 diff_traj=diff_traj,
                 is_molecule=True,
@@ -1077,6 +1204,26 @@ class Sampler_mol_CC(Sampler):
                 # add plots to wandb
                 img_path = os.path.join(filedir, filename)
                 wandb.log({"Diffusion Trajectory Molecule": wandb.Image(img_path)})
+            # Molecule Cropped
+            filename = f"diff_traj_mol_cropped_{self.log_name}.gif"
+            diffusion_animation(
+                diff_traj=diff_traj,
+                is_molecule=True,
+                filedir=filedir,
+                filename=filename,
+                fps=25,
+                overwrite=True,
+                engine=self.config.general_config.engine,
+                cropped=True,
+            )
+            if (
+                self.config.experiment_type == "train"
+            ) and self.config.general_config.use_wandb:
+                # add plots to wandb
+                img_path = os.path.join(filedir, filename)
+                wandb.log(
+                    {"Diffusion Trajectory Molecule Cropped": wandb.Image(img_path)}
+                )
 
 
 def get_sampler_from_config(

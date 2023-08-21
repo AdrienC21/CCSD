@@ -20,11 +20,13 @@ from typing import Callable, List, Optional, Tuple, Union
 sys.path.insert(0, os.getcwd())
 
 import numpy
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 from tqdm import tqdm
 
 from ccsd.data.utils.numpytupledataset import NumpyTupleDataset
 from ccsd.data.utils.smile_to_graph import GGNNPreprocessor, MolFeatureExtractionError
+
+RDLogger.DisableLog("rdApp.*")
 
 
 class DataFrameParser(object):

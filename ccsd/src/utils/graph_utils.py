@@ -13,11 +13,13 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from easydict import EasyDict
-from rdkit import Chem
+from rdkit import Chem, RDLogger
 
 from ccsd.src.utils.errors import SymmetryError
 from ccsd.src.utils.models_utils import get_ones
 from ccsd.src.utils.mol_utils import bond_decoder
+
+RDLogger.DisableLog("rdApp.*")
 
 
 def mask_x(x: torch.Tensor, flags: Optional[torch.Tensor] = None) -> torch.Tensor:

@@ -7,6 +7,7 @@ Adapted from Jo, J. & al (2022), almost left untouched.
 """
 
 import json
+import os
 import re
 from typing import List, Optional, Tuple, Union
 
@@ -112,9 +113,9 @@ def load_smiles(dataset: str = "QM9") -> Tuple[List[str], List[str]]:
     else:
         raise ValueError(f"Wrong dataset name {dataset} in load_smiles")
 
-    df = pd.read_csv(f"data/{dataset.lower()}.csv")
+    df = pd.read_csv(os.path.join("data", f"{dataset.lower()}.csv"))
 
-    with open(f"data/valid_idx_{dataset.lower()}.json") as f:
+    with open(os.path.join("data", f"valid_idx_{dataset.lower()}.json")) as f:
         test_idx = json.load(f)
 
     if dataset == "QM9":  # special case for QM9
@@ -124,6 +125,53 @@ def load_smiles(dataset: str = "QM9") -> Tuple[List[str], List[str]]:
     train_idx = [i for i in range(len(df)) if i not in test_idx]
 
     return list(df[col].loc[train_idx]), list(df[col].loc[test_idx])
+
+
+def construct_mol(
+    x: np.ndarray,
+    adj: np.ndarray,
+    atomic_num_list: List[int],
+) -> Chem.Mol:
+    """Constructs molecule(s) from the model output.
+
+    Args:
+        x (np.ndarray): node features
+        adj (np.ndarray): adjacency matrix
+        atomic_num_list (List[int]): atomic number list
+
+    Returns:
+        Chem.Mol: molecule
+    """
+    # x: 9, 5; adj: 4, 9, 9
+    mol = Chem.RWMol()
+
+    atoms = np.argmax(x, axis=1)
+    atoms_exist = atoms != len(atomic_num_list) - 1
+    atoms = atoms[atoms_exist]  # 9,
+    for atom in atoms:
+        mol.AddAtom(Chem.Atom(int(atomic_num_list[atom])))
+
+    adj = np.argmax(adj, axis=0)  # 9, 9
+    adj = adj[atoms_exist, :][:, atoms_exist]
+    adj[adj == 3] = -1
+    adj += 1  # bonds 0, 1, 2, 3 -> 1, 2, 3, 0 (0 denotes the virtual bond)
+
+    for start, end in zip(*np.nonzero(adj)):
+        if start > end:
+            mol.AddBond(int(start), int(end), bond_decoder[adj[start, end]])
+            # add formal charge to atom: e.g. [O+], [N+], [S+]
+            # not support [O-], [N-], [S-], [NH+] etc.
+            flag, atomid_valence = check_valency(mol)
+            if flag:
+                continue
+            else:
+                assert len(atomid_valence) == 2
+                idx = atomid_valence[0]
+                v = atomid_valence[1]
+                an = mol.GetAtomWithIdx(idx).GetAtomicNum()
+                if an in (7, 8, 16) and (v - ATOM_VALENCY[an]) == 1:
+                    mol.GetAtomWithIdx(idx).SetFormalCharge(1)
+    return mol
 
 
 def gen_mol(
@@ -165,51 +213,6 @@ def gen_mol(
         mols.append(vcmol)
     mols = [mol for mol in mols if mol is not None]
     return mols, num_no_correct
-
-
-def construct_mol(
-    x: np.ndarray, adj: np.ndarray, atomic_num_list: List[int]
-) -> Chem.Mol:
-    """Constructs a molecule from the model output.
-
-    Args:
-        x (np.ndarray): node features
-        adj (np.ndarray): adjacency matrix
-        atomic_num_list (List[int]): atomic number list
-
-    Returns:
-        Chem.Mol: molecule
-    """
-    # x: 9, 5; adj: 4, 9, 9
-    mol = Chem.RWMol()
-
-    atoms = np.argmax(x, axis=1)
-    atoms_exist = atoms != len(atomic_num_list) - 1
-    atoms = atoms[atoms_exist]  # 9,
-    for atom in atoms:
-        mol.AddAtom(Chem.Atom(int(atomic_num_list[atom])))
-
-    adj = np.argmax(adj, axis=0)  # 9, 9
-    adj = adj[atoms_exist, :][:, atoms_exist]
-    adj[adj == 3] = -1
-    adj += 1  # bonds 0, 1, 2, 3 -> 1, 2, 3, 0 (0 denotes the virtual bond)
-
-    for start, end in zip(*np.nonzero(adj)):
-        if start > end:
-            mol.AddBond(int(start), int(end), bond_decoder[adj[start, end]])
-            # add formal charge to atom: e.g. [O+], [N+], [S+]
-            # not support [O-], [N-], [S-], [NH+] etc.
-            flag, atomid_valence = check_valency(mol)
-            if flag:
-                continue
-            else:
-                assert len(atomid_valence) == 2
-                idx = atomid_valence[0]
-                v = atomid_valence[1]
-                an = mol.GetAtomWithIdx(idx).GetAtomicNum()
-                if an in (7, 8, 16) and (v - ATOM_VALENCY[an]) == 1:
-                    mol.GetAtomWithIdx(idx).SetFormalCharge(1)
-    return mol
 
 
 def check_valency(mol: Union[Chem.Mol, Chem.RWMol]) -> Tuple[bool, Optional[List[int]]]:
