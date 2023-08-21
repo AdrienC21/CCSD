@@ -212,7 +212,7 @@ def gen_graph_list(
 
 def load_dataset(
     data_dir: str = "data", file_name: Optional[str] = None
-) -> Union[List[nx.Graph], List[CombinatorialComplex], DataLoader]:
+) -> Union[List[nx.Graph], List[CombinatorialComplex]]:
     """Load an existing dataset as a list of graphs or list of combinatorial complexes from a file.
 
     Args:
@@ -387,7 +387,7 @@ def citeseer_ego(
 
 def save_dataset(
     data_dir: str,
-    obj: Union[List[nx.Graph], List[CombinatorialComplex], DataLoader],
+    obj: Union[List[nx.Graph], List[CombinatorialComplex]],
     save_name: str,
     save_txt: bool = True,
 ) -> None:
@@ -395,7 +395,7 @@ def save_dataset(
 
     Args:
         data_dir (str): directory to save the dataset
-        obj (Union[List[nx.Graph], List[CombinatorialComplex], DataLoader]): list of objects to save
+        obj (Union[List[nx.Graph], List[CombinatorialComplex]]): list of objects to save
         save_name (str): name of the dataset
         save_txt (bool, optional): whether to save a txt file with the name and the number of objects (or size of DataLoader). Defaults to True.
     """

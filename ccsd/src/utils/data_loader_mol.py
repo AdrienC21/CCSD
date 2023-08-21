@@ -330,18 +330,6 @@ def dataloader_mol(
     test_dataloader = DataLoader(
         test_dataset, batch_size=config.data.batch_size, shuffle=True
     )
-    save_dataset(
-        data_dir=data_dir,
-        obj=train_dataloader,
-        save_name=f"{dataset_name}_train",
-        save_txt=False,
-    )
-    save_dataset(
-        data_dir=data_dir,
-        obj=test_dataloader,
-        save_name=f"{dataset_name}_test",
-        save_txt=False,
-    )
     print(f"{perf_counter() - start_time:.2f} sec elapsed for data loading")
     return train_dataloader, test_dataloader
 
@@ -466,18 +454,6 @@ def dataloader_mol_cc(
     print("Loading test dataloader...")
     test_dataloader = DataLoader(
         test_dataset, batch_size=config.data.batch_size, shuffle=True
-    )
-    save_dataset(
-        data_dir=data_dir,
-        obj=train_dataloader,
-        save_name=f"{dataset_name}_train",
-        save_txt=False,
-    )
-    save_dataset(
-        data_dir=data_dir,
-        obj=test_dataloader,
-        save_name=f"{dataset_name}_test",
-        save_txt=False,
     )
     print(f"{perf_counter() - start_time:.2f} sec elapsed for data loading")
     return train_dataloader, test_dataloader
