@@ -258,6 +258,7 @@ def dataloader_mol(
     data_dir = os.path.join(config.folder, config.data.dir)
     if os.path.exists(os.path.join(data_dir, f"{dataset_name}_train.pkl")):
         # Load the data
+        print("Loading existing files...")
         train = load_dataset(data_dir=data_dir, file_name=f"{dataset_name}_train")
         test = load_dataset(data_dir=data_dir, file_name=f"{dataset_name}_test")
         return train, test
@@ -321,9 +322,11 @@ def dataloader_mol(
         print(f"{perf_counter() - start_time:.2f} sec elapsed for data loading")
         return train_mols_nx, test_mols_nx
 
+    print("Loading train dataloader...")
     train_dataloader = DataLoader(
         train_dataset, batch_size=config.data.batch_size, shuffle=True
     )
+    print("Loading test dataloader...")
     test_dataloader = DataLoader(
         test_dataset, batch_size=config.data.batch_size, shuffle=True
     )
@@ -362,6 +365,7 @@ def dataloader_mol_cc(
     data_dir = os.path.join(config.folder, config.data.dir)
     if os.path.exists(os.path.join(data_dir, f"{dataset_name}_train.pkl")):
         # Load the data
+        print("Loading existing files...")
         train = load_dataset(data_dir=data_dir, file_name=f"{dataset_name}_train")
         test = load_dataset(data_dir=data_dir, file_name=f"{dataset_name}_test")
         return train, test
@@ -455,9 +459,11 @@ def dataloader_mol_cc(
         print(f"{perf_counter() - start_time:.2f} sec elapsed for data loading")
         return train_mols_cc, test_mols_cc
 
+    print("Loading train dataloader...")
     train_dataloader = DataLoader(
         train_dataset, batch_size=config.data.batch_size, shuffle=True
     )
+    print("Loading test dataloader...")
     test_dataloader = DataLoader(
         test_dataset, batch_size=config.data.batch_size, shuffle=True
     )

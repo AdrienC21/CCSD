@@ -138,6 +138,7 @@ def test_dataloader(sample_graph_list: List[nx.Graph]) -> None:
         pickle.dump(sample_graph_list, f)
     config = EasyDict(
         {
+            "folder": "./",
             "data": {
                 "init": "ones",
                 "dir": temp_dir,
@@ -146,7 +147,7 @@ def test_dataloader(sample_graph_list: List[nx.Graph]) -> None:
                 "max_feat_num": 5,
                 "batch_size": 1,
                 "test_split": 0.5,
-            }
+            },
         }
     )
 
@@ -181,6 +182,7 @@ def test_dataloader_cc(sample_cc_list: List[CombinatorialComplex]) -> None:
         pickle.dump(sample_cc_list, f)
     config = EasyDict(
         {
+            "folder": "./",
             "data": {
                 "init": "ones",
                 "dir": temp_dir,
@@ -191,7 +193,7 @@ def test_dataloader_cc(sample_cc_list: List[CombinatorialComplex]) -> None:
                 "max_feat_num": 5,
                 "batch_size": 1,
                 "test_split": 0.5,
-            }
+            },
         }
     )
 
