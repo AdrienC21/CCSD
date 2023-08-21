@@ -9,7 +9,7 @@ Adapted from Jo, J. & al (2022)
 import argparse
 import os
 import sys
-import time
+from time import perf_counter
 
 sys.path.insert(0, os.getcwd())
 
@@ -34,7 +34,7 @@ def preprocess(args: argparse.Namespace, print_elapsed_time: bool = True) -> Non
         ValueError: raise an error if the dataset is not supported.
             Molecule dataset supported: QM9, ZINC250k
     """
-    start_time = time.time()
+    start_time = perf_counter()
     data_name = args.dataset
     folder = args.folder
 
@@ -74,7 +74,7 @@ def preprocess(args: argparse.Namespace, print_elapsed_time: bool = True) -> Non
     if print_elapsed_time:
         print(
             "Total time:",
-            time.strftime("%H:%M:%S", time.gmtime(time.time() - start_time)),
+            time.strftime("%H:%M:%S", time.gmtime(perf_counter() - start_time)),
         )
 
 

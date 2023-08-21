@@ -146,6 +146,10 @@ logs_train/
 logs_sample/
 wandb/
 dataset/
+data/QM9_cc_True_train.pkl
+data/QM9_cc_True_test.pkl
+data/QM9_cc_False_train.pkl
+data/QM9_cc_False_test.pkl
 
 # images
 notes.txt

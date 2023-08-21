@@ -21,6 +21,7 @@ import networkx as nx
 import numpy as np
 import scipy.sparse as sp
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
+from torch.utils.data import DataLoader
 
 from ccsd.src.parsers.parser_generator import ParserGenerator
 
@@ -211,7 +212,7 @@ def gen_graph_list(
 
 def load_dataset(
     data_dir: str = "data", file_name: Optional[str] = None
-) -> Union[List[nx.Graph], List[CombinatorialComplex]]:
+) -> Union[List[nx.Graph], List[CombinatorialComplex], DataLoader]:
     """Load an existing dataset as a list of graphs or list of combinatorial complexes from a file.
 
     Args:
@@ -384,23 +385,30 @@ def citeseer_ego(
     return graphs
 
 
-def save_dataset(data_dir: str, graphs: List[nx.Graph], save_name: str) -> None:
-    """Save the dataset (graphs) in the specified directory.
+def save_dataset(
+    data_dir: str,
+    obj: Union[List[nx.Graph], List[CombinatorialComplex], DataLoader],
+    save_name: str,
+    save_txt: bool = True,
+) -> None:
+    """Save the dataset (objects) in the specified directory.
 
     Args:
         data_dir (str): directory to save the dataset
-        graphs (List[nx.Graph]): list of graphs
+        obj (Union[List[nx.Graph], List[CombinatorialComplex], DataLoader]): list of objects to save
         save_name (str): name of the dataset
+        save_txt (bool, optional): whether to save a txt file with the name and the number of objects (or size of DataLoader). Defaults to True.
     """
     if not os.path.isdir(data_dir):
         os.makedirs(data_dir)
     file_path = os.path.join(data_dir, save_name)
-    print(save_name, len(graphs))
+    print(save_name, len(obj))
     with open(file_path + ".pkl", "wb") as f:
-        pickle.dump(obj=graphs, file=f, protocol=pickle.HIGHEST_PROTOCOL)
-    with open(file_path + ".txt", "w") as f:
-        f.write(save_name + "\n")
-        f.write(str(len(graphs)))
+        pickle.dump(obj=obj, file=f, protocol=pickle.HIGHEST_PROTOCOL)
+    if save_txt:
+        with open(file_path + ".txt", "w") as f:
+            f.write(save_name + "\n")
+            f.write(str(len(obj)))
 
 
 def generate_dataset(args: argparse.Namespace) -> None:

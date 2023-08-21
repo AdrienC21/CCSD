@@ -9,7 +9,7 @@ Adapted from Jo, J. & al (2022)
 import argparse
 import os
 import sys
-from time import time
+from time import perf_counter
 
 sys.path.insert(0, os.getcwd())
 
@@ -37,7 +37,7 @@ def preprocess_nspdk(args: argparse.Namespace, print_elapsed_time: bool = True) 
 
     dataset = args.dataset
     folder = args.folder
-    start_time = time()
+    start_time = perf_counter()
 
     # Load the test indices
     with open(os.path.join(folder, "data", f"valid_idx_{dataset.lower()}.json")) as f:
@@ -69,7 +69,7 @@ def preprocess_nspdk(args: argparse.Namespace, print_elapsed_time: bool = True) 
 
     # Print the elapsed time
     if print_elapsed_time:
-        print(f"Total {time() - start_time:.2f} sec elapsed")
+        print(f"Total {perf_counter() - start_time:.2f} sec elapsed")
 
 
 if __name__ == "__main__":

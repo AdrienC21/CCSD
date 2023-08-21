@@ -7,7 +7,7 @@
 import abc
 import os
 import pickle
-import time
+from time import perf_counter
 from typing import Dict, List, Optional
 
 import numpy as np
@@ -168,7 +168,7 @@ class Trainer_Graph(Trainer):
             self.train_adj = []
             self.test_x = []
             self.test_adj = []
-            t_start = time.time()
+            t_start = perf_counter()
 
             self.model_x.train()
             self.model_adj.train()
@@ -235,7 +235,7 @@ class Trainer_Graph(Trainer):
             # -------- Log losses --------
             # Logger
             logger.log(
-                f"{epoch+1:03d} | {time.time()-t_start:.2f}s | "
+                f"{epoch+1:03d} | {perf_counter()-t_start:.2f}s | "
                 f"test x: {mean_test_x:.3e} | test adj: {mean_test_adj:.3e} | "
                 f"train x: {mean_train_x:.3e} | train adj: {mean_train_adj:.3e} | ",
                 verbose=False,
@@ -245,7 +245,7 @@ class Trainer_Graph(Trainer):
             wandb.log(
                 {
                     "epoch": epoch + 1,
-                    "time": time.time() - t_start,
+                    "time": perf_counter() - t_start,
                     "test_x_loss": mean_test_x,
                     "test_adj_loss": mean_test_adj,
                     "train_x_loss": mean_train_x,
@@ -406,7 +406,7 @@ class Trainer_CC(Trainer):
             self.test_x = []
             self.test_adj = []
             self.test_rank2 = []
-            t_start = time.time()
+            t_start = perf_counter()
 
             self.model_x.train()
             self.model_adj.train()
@@ -489,7 +489,7 @@ class Trainer_CC(Trainer):
 
             # -------- Log losses --------
             logger.log(
-                f"{epoch+1:03d} | {time.time()-t_start:.2f}s | "
+                f"{epoch+1:03d} | {perf_counter()-t_start:.2f}s | "
                 f"test x: {mean_test_x:.3e} | test adj: {mean_test_adj:.3e} | test rank2: {mean_test_rank2:.3e} | "
                 f"train x: {mean_train_x:.3e} | train adj: {mean_train_adj:.3e} | train rank2: {mean_train_rank2:.3e} |",
                 verbose=False,
@@ -499,7 +499,7 @@ class Trainer_CC(Trainer):
             wandb.log(
                 {
                     "epoch": epoch + 1,
-                    "time": time.time() - t_start,
+                    "time": perf_counter() - t_start,
                     "test_x_loss": mean_test_x,
                     "test_adj_loss": mean_test_adj,
                     "train_x_loss": mean_train_x,

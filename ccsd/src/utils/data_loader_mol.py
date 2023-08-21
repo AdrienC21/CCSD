@@ -8,7 +8,7 @@ Only dataloader_mol left untouched from Jo, J. & al (2022)
 
 import json
 import os
-from time import time
+from time import perf_counter
 from typing import Any, Callable, List, Tuple, Union
 
 import networkx as nx
@@ -17,7 +17,9 @@ import torch
 from easydict import EasyDict
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from torch.utils.data import DataLoader, Dataset
+from tqdm import tqdm
 
+from ccsd.data.data_generators import load_dataset, save_dataset
 from ccsd.src.utils.cc_utils import (
     cc_from_incidence,
     create_incidence_1_2,
@@ -252,20 +254,34 @@ def dataloader_mol(
     Returns:
         Union[Tuple[DataLoader, DataLoader], Tuple[List[nx.Graph], List[nx.Graph]]]: train and test dataloader (tensors or lists of graphs)
     """
-    start_time = time()
+    dataset_name = f"{config.data.data}_graphs_{get_graph_list}"
+    data_dir = os.path.join(config.folder, config.data.dir)
+    if os.path.exists(os.path.join(data_dir, f"{dataset_name}_train.pkl")):
+        # Load the data
+        train = load_dataset(data_dir=data_dir, file_name=f"{dataset_name}_train")
+        test = load_dataset(data_dir=data_dir, file_name=f"{dataset_name}_test")
+        return train, test
+    # If the data does not exist, create it
+    start_time = perf_counter()
 
     mols = load_mol(
-        os.path.join(config.data.dir, f"{config.data.data.lower()}_kekulized.npz")
+        os.path.join(
+            config.folder, config.data.dir, f"{config.data.data.lower()}_kekulized.npz"
+        )
     )
 
     with open(
-        os.path.join(config.data.dir, f"valid_idx_{config.data.data.lower()}.json")
+        os.path.join(
+            config.folder, config.data.dir, f"valid_idx_{config.data.data.lower()}.json"
+        )
     ) as f:
         test_idx = json.load(f)
 
     if config.data.data == "QM9":  # process QM9 differently
         test_idx = test_idx["valid_idxs"]
         test_idx = [int(i) for i in test_idx]
+
+    test_idx = set(test_idx)  # convert to set to speed up the process
 
     train_idx = [i for i in range(len(mols)) if i not in test_idx]
     print(
@@ -280,10 +296,29 @@ def dataloader_mol(
     test_dataset = MolDataset(test_mols, get_transform_fn(config.data.data))
 
     if get_graph_list:
-        train_mols_nx = [
-            nx.from_numpy_matrix(np.array(adj)) for x, adj in train_dataset
-        ]
-        test_mols_nx = [nx.from_numpy_matrix(np.array(adj)) for x, adj in test_dataset]
+        print("Loading train graphs...")
+        train_mols_nx = []
+        for i in tqdm(range(len(train_dataset))):
+            _, adj = train_dataset[i]
+            train_mols_nx.append(nx.from_numpy_matrix(np.array(adj)))
+        print("Loading test graphs...")
+        test_mols_nx = []
+        for i in tqdm(range(len(test_dataset))):
+            _, adj = test_dataset[i]
+            test_mols_nx.append(nx.from_numpy_matrix(np.array(adj)))
+        save_dataset(
+            data_dir=data_dir,
+            obj=train_mols_nx,
+            save_name=f"{dataset_name}_train",
+            save_txt=False,
+        )
+        save_dataset(
+            data_dir=data_dir,
+            obj=test_mols_nx,
+            save_name=f"{dataset_name}_test",
+            save_txt=False,
+        )
+        print(f"{perf_counter() - start_time:.2f} sec elapsed for data loading")
         return train_mols_nx, test_mols_nx
 
     train_dataloader = DataLoader(
@@ -292,8 +327,19 @@ def dataloader_mol(
     test_dataloader = DataLoader(
         test_dataset, batch_size=config.data.batch_size, shuffle=True
     )
-
-    print(f"{time() - start_time:.2f} sec elapsed for data loading")
+    save_dataset(
+        data_dir=data_dir,
+        obj=train_dataloader,
+        save_name=f"{dataset_name}_train",
+        save_txt=False,
+    )
+    save_dataset(
+        data_dir=data_dir,
+        obj=test_dataloader,
+        save_name=f"{dataset_name}_test",
+        save_txt=False,
+    )
+    print(f"{perf_counter() - start_time:.2f} sec elapsed for data loading")
     return train_dataloader, test_dataloader
 
 
@@ -312,20 +358,34 @@ def dataloader_mol_cc(
     Returns:
         Union[Tuple[DataLoader, DataLoader], Tuple[List[CombinatorialComplex], List[CombinatorialComplex]]]: train and test dataloader (tensors or lists of combinatorial complexes)
     """
-    start_time = time()
+    dataset_name = f"{config.data.data}_cc_{get_cc_list}"
+    data_dir = os.path.join(config.folder, config.data.dir)
+    if os.path.exists(os.path.join(data_dir, f"{dataset_name}_train.pkl")):
+        # Load the data
+        train = load_dataset(data_dir=data_dir, file_name=f"{dataset_name}_train")
+        test = load_dataset(data_dir=data_dir, file_name=f"{dataset_name}_test")
+        return train, test
+    # If the data does not exist, create it
+    start_time = perf_counter()
 
     mols = load_mol(
-        os.path.join(config.data.dir, f"{config.data.data.lower()}_kekulized.npz")
+        os.path.join(
+            config.folder, config.data.dir, f"{config.data.data.lower()}_kekulized.npz"
+        )
     )
 
     with open(
-        os.path.join(config.data.dir, f"valid_idx_{config.data.data.lower()}.json")
+        os.path.join(
+            config.folder, config.data.dir, f"valid_idx_{config.data.data.lower()}.json"
+        )
     ) as f:
         test_idx = json.load(f)
 
     if config.data.data == "QM9":  # process QM9 differently
         test_idx = test_idx["valid_idxs"]
         test_idx = [int(i) for i in test_idx]
+
+    test_idx = set(test_idx)  # convert to set to speed up the process
 
     train_idx = [i for i in range(len(mols)) if i not in test_idx]
     print(
@@ -356,18 +416,43 @@ def dataloader_mol_cc(
     )
 
     if get_cc_list:
-        train_mols_cc = [
-            cc_from_incidence(
-                [x, adj, rank2], config.data.d_min, config.data.d_max, is_molecule=True
+        print("Loading train combinatorial complexes...")
+        train_mols_cc = []
+        for i in tqdm(range(len(train_dataset))):
+            x, adj, rank2 = train_dataset[i]
+            train_mols_cc.append(
+                cc_from_incidence(
+                    [x, adj, rank2],
+                    config.data.d_min,
+                    config.data.d_max,
+                    is_molecule=True,
+                )
             )
-            for x, adj, rank2 in train_dataset
-        ]
-        test_mols_cc = [
-            cc_from_incidence(
-                [x, adj, rank2], config.data.d_min, config.data.d_max, is_molecule=True
+        print("Loading test combinatorial complexes...")
+        test_mols_cc = []
+        for i in tqdm(range(len(test_dataset))):
+            x, adj, rank2 = test_dataset[i]
+            test_mols_cc.append(
+                cc_from_incidence(
+                    [x, adj, rank2],
+                    config.data.d_min,
+                    config.data.d_max,
+                    is_molecule=True,
+                )
             )
-            for x, adj, rank2 in test_dataset
-        ]
+        save_dataset(
+            data_dir=data_dir,
+            obj=train_mols_cc,
+            save_name=f"{dataset_name}_train",
+            save_txt=False,
+        )
+        save_dataset(
+            data_dir=data_dir,
+            obj=test_mols_cc,
+            save_name=f"{dataset_name}_test",
+            save_txt=False,
+        )
+        print(f"{perf_counter() - start_time:.2f} sec elapsed for data loading")
         return train_mols_cc, test_mols_cc
 
     train_dataloader = DataLoader(
@@ -376,6 +461,17 @@ def dataloader_mol_cc(
     test_dataloader = DataLoader(
         test_dataset, batch_size=config.data.batch_size, shuffle=True
     )
-
-    print(f"{time() - start_time:.2f} sec elapsed for data loading")
+    save_dataset(
+        data_dir=data_dir,
+        obj=train_dataloader,
+        save_name=f"{dataset_name}_train",
+        save_txt=False,
+    )
+    save_dataset(
+        data_dir=data_dir,
+        obj=test_dataloader,
+        save_name=f"{dataset_name}_test",
+        save_txt=False,
+    )
+    print(f"{perf_counter() - start_time:.2f} sec elapsed for data loading")
     return train_dataloader, test_dataloader

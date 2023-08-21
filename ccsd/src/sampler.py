@@ -8,7 +8,7 @@ import abc
 import math
 import os
 import pickle
-import time
+from time import perf_counter
 
 import torch
 import wandb
@@ -178,7 +178,7 @@ class Sampler_Graph(Sampler):
             f"Number sampling rounds: {num_sampling_rounds}, number of samples per round: {self.config.data.batch_size}"
         )
         for r in range(num_sampling_rounds):
-            t_start = time.time()
+            t_start = perf_counter()
 
             self.init_flags = init_flags(
                 self.train_graph_list, self.configt, self.n_samples
@@ -188,7 +188,7 @@ class Sampler_Graph(Sampler):
                 self.model_x, self.model_adj, self.init_flags
             )
 
-            logger.log(f"Round {r} : {time.time()-t_start:.2f}s")
+            logger.log(f"Round {r} : {perf_counter()-t_start:.2f}s")
 
             samples_int = quantize(adj)
             gen_graph_list.extend(adjs_to_graphs(samples_int, True))
@@ -367,7 +367,7 @@ class Sampler_CC(Sampler):
             f"Number sampling rounds: {num_sampling_rounds}, number of samples per round: {self.config.data.batch_size}"
         )
         for r in range(num_sampling_rounds):
-            t_start = time.time()
+            t_start = perf_counter()
 
             self.init_flags = init_flags(
                 self.train_CC_list, self.configt, self.n_samples, is_cc=True
@@ -377,7 +377,7 @@ class Sampler_CC(Sampler):
                 self.model_x, self.model_adj, self.model_rank2, self.init_flags
             )
 
-            logger.log(f"Round {r} : {time.time()-t_start:.2f}s")
+            logger.log(f"Round {r} : {perf_counter()-t_start:.2f}s")
 
             samples_int = quantize(adj)
             sample_int_rank2 = quantize(rank2)

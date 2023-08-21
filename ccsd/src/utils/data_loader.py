@@ -6,6 +6,7 @@
 Only dataloader left untouched from Jo, J. & al (2022)
 """
 
+import os
 from typing import List, Tuple, Union
 
 import networkx as nx
@@ -72,7 +73,10 @@ def dataloader(
     Returns:
         Union[Tuple[DataLoader, DataLoader], Tuple[List[nx.Graph], List[nx.Graph]]]: train and test dataloader (tensors or lists of graphs)
     """
-    graph_list = load_dataset(data_dir=config.data.dir, file_name=config.data.data)
+    graph_list = load_dataset(
+        data_dir=os.path.join(config.folder, config.data.dir),
+        file_name=config.data.data,
+    )
     test_size = int(config.data.test_split * len(graph_list))
     train_graph_list, test_graph_list = graph_list[test_size:], graph_list[:test_size]
     if get_graph_list:  # return dataloader as lists of graphs
@@ -98,7 +102,10 @@ def dataloader_cc(
     Returns:
         Union[Tuple[DataLoader, DataLoader], Tuple[List[CombinatorialComplex], List[CombinatorialComplex]]]: train and test dataloader (tensors or lists of combinatorial complexes)
     """
-    cc_list = load_dataset(data_dir=config.data.dir, file_name=config.data.data)
+    cc_list = load_dataset(
+        data_dir=os.path.join(config.folder, config.data.dir),
+        file_name=config.data.data,
+    )
     test_size = int(config.data.test_split * len(cc_list))
     train_cc_list, test_cc_list = cc_list[test_size:], cc_list[:test_size]
     if get_cc_list:  # return dataloader as lists of combinatorial complexes

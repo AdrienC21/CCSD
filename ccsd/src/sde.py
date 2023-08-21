@@ -8,7 +8,7 @@ Adapted from Jo, J. & al (2022)
 """
 
 import abc
-from typing import Callable, Optional, Sequence, Tuple
+from typing import Callable, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import torch
@@ -112,9 +112,21 @@ class SDE(abc.ABC):
 
     def reverse(
         self,
-        score_fn: Callable[
-            [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
-            torch.Tensor,
+        score_fn: Union[
+            Callable[
+                [torch.Tensor, torch.Tensor, Optional[torch.Tensor], torch.Tensor],
+                torch.Tensor,
+            ],
+            Callable[
+                [
+                    torch.Tensor,
+                    torch.Tensor,
+                    torch.Tensor,
+                    Optional[torch.Tensor],
+                    torch.Tensor,
+                ],
+                torch.Tensor,
+            ],
         ],
         probability_flow: bool = False,
         is_cc: bool = False,
