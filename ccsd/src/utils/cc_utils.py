@@ -907,6 +907,8 @@ def pow_tensor_cc(
             hodge_mask = hodge_mask.unsqueeze(0)
     hodge_mask = hodge_mask.to(x.device) if hodge_mask is not None else None
     H = H * hodge_mask if hodge_mask is not None else H
+    if len(H.shape) == 4:  # debug shapes (1, batch, NC2, NC2)
+        H = H.squeeze(0)
     # Calculate power iterations and concatenate on the channel dimension (1)
     xc = [x_.unsqueeze(1)]
     for _ in range(cnum - 1):
