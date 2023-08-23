@@ -888,7 +888,7 @@ def pow_tensor_cc(
     """Create higher order rank-2 incidence matrices from a batch of rank-2 incidence matrices.
 
     Args:
-        x (torch.Tensor): input tensor of shape B x (NC2) x K
+        x (torch.Tensor): input tensor of shape B x (NC2) x K or B x C * (NC2) x K
         cnum (int): number of higher order matrices to create
             (made with consecutive multiplication of the Hodge Laplacian matrix of x)
         hodge_mask (Optional[torch.Tensor], optional): optional mask to apply to the Hodge Laplacian.
@@ -898,6 +898,8 @@ def pow_tensor_cc(
     Returns:
         torch.Tensor: output higher order matrices of shape B x cnum x (NC2) x K
     """
+    if len(x.shape) == 2:  # make it batched
+        x = x.unsqueeze(0)
     x_ = x.clone()
     H = hodge_laplacian(x)
     if hodge_mask is not None:
@@ -905,7 +907,8 @@ def pow_tensor_cc(
             hodge_mask = hodge_mask.unsqueeze(0)
     hodge_mask = hodge_mask.to(x.device) if hodge_mask is not None else None
     H = H * hodge_mask if hodge_mask is not None else H
-    xc = [x.unsqueeze(1)]
+    # Calculate power iterations and concatenate on the channel dimension (1)
+    xc = [x_.unsqueeze(1)]
     for _ in range(cnum - 1):
         x_ = torch.bmm(H, x_)
         xc.append(x_.unsqueeze(1))

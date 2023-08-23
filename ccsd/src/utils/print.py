@@ -5,6 +5,7 @@
 """
 
 import argparse
+import os
 from typing import Any, Dict, Union
 
 
@@ -17,6 +18,11 @@ def get_ascii_logo(ascii_logo_path: str = "ascii_logo.txt") -> str:
     Returns:
         str: the ascii logo.
     """
+    if not (os.path.exists(ascii_logo_path)):
+        ascii_logo_path = os.path.join(os.path.dirname(__file__), ascii_logo_path)
+        if not (os.path.exists(ascii_logo_path)):
+            print("No ascii logo found.")
+            return ""
 
     with open(ascii_logo_path, "r") as f:
         ascii_logo = f.read()
@@ -57,7 +63,7 @@ def initial_print(
     """
 
     # Get the ascii logo and the experiment description
-    ascii_logo = get_ascii_logo(ascii_logo_path)
+    ascii_logo = get_ascii_logo(os.path.join(args.folder, ascii_logo_path))
     experiment_desc = get_experiment_desc(args)
 
     # Print the initial message
