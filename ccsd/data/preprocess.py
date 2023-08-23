@@ -9,6 +9,7 @@ Adapted from Jo, J. & al (2022)
 import argparse
 import os
 import sys
+import time
 from time import perf_counter
 
 sys.path.insert(0, os.getcwd())
