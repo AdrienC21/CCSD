@@ -25,11 +25,9 @@ from ccsd.src.evaluation.eden import vectorize
 
 
 def emd(x: np.ndarray, y: np.ndarray, distance_scaling: float = 1.0) -> float:
-    """
-    Calculate the earth mover's distance (EMD) between two histograms
+    """Calculate the earth mover's distance (EMD) between two histograms
     It corresponds to the Wasserstein metric (see Optimal transport theory)
     The formula is (\inf_{\gama \in \Gama(\mu, \nu) \int_{M*M} d(x,y)^p d\gama(x,y))^(1/p).
-
     Adapted from From Niu et al. (2020)
 
     Args:
@@ -91,7 +89,7 @@ def gaussian_emd(
 def gaussian(x: np.ndarray, y: np.ndarray, sigma: float = 1.0) -> float:
     """Gaussian kernel with squared distance in exponential term replaced by L2 distance
     The inputs are PMF (Probability mass function). The Gaussian kernel is defined as
-    k(x,y) = exp(-||x - y||^2/(2*sigma^2)) where ||.|| is the L2 distance function.
+    k(x,y) = exp(-N(x, y)^2/(2*sigma^2)) where N(.,.) is the L2 distance function.
 
     Args:
         x (np.ndarray): 1D pmf of the first distribution with the same support
@@ -113,7 +111,7 @@ def gaussian(x: np.ndarray, y: np.ndarray, sigma: float = 1.0) -> float:
 def gaussian_tv(x: np.ndarray, y: np.ndarray, sigma: float = 1.0) -> float:
     """Gaussian kernel with squared distance in exponential term replaced by total variation distance (half L1 distance, used in transportation theory)
     The inputs are PMF (Probability mass function). The Gaussian kernel is defined as
-    k(x,y) = exp(-f(x - y)^2/(2*sigma^2)) where f(.) = 0.5 * |x - y| is the total variation distance (half L1 distance).
+    k(x,y) = exp(-f(x, y)^2/(2*sigma^2)) where f(x, y) = 0.5 * N(x, y) is the total variation distance (half L1 distance N).
 
     Args:
         x (np.ndarray): 1D pmf of the first distribution with the same support
@@ -317,7 +315,6 @@ def kernel_compute(
 ) -> np.ndarray:
     """Function to compute the kernel matrix with list of graphs as inputs and
     a custom metric
-
     Adapted from https://github.com/idea-iitd/graphgen/blob/master/metrics/mmd.py
 
     Args:
@@ -361,7 +358,6 @@ def compute_nspdk_mmd(
 ) -> float:
     """
     Compute the MMD between two samples of graphs using the NSPDK kernel
-
     Adapted from https://github.com/idea-iitd/graphgen/blob/master/metrics/mmd.py
 
     Args:

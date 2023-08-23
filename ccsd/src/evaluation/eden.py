@@ -13,6 +13,7 @@ from __future__ import absolute_import, division, print_function
 import math
 from collections import defaultdict, deque
 from itertools import tee
+from typing import List
 
 import dill
 import joblib
@@ -182,61 +183,76 @@ class Vectorizer(AbstractVectorizer):
         key_svec="svec",
     ):
         """Constructor.
-        Parameters
-        ----------
-        complexity : int (default 3)
-            The complexity of the features extracted.
-            This is equivalent to setting r = complexity, d = complexity.
-        r : int
-            The maximal radius size.
-        d : int
-            The maximal distance size.
-        min_r : int
-            The minimal radius size.
-        min_d : int
-            The minimal distance size.
-        weights_dict : dict of floats
-            Dictionary with keys = pairs (radius, distance) and
-            value = weights.
-        auto_weights : bool (default False)
-            Flag to set to 1 the weight of the kernels for r=i, d=i
-            for i in range(complexity)
-        nbits : int (default 16)
-            The number of bits that defines the feature space size:
-            |feature space|=2^nbits.
-        normalization : bool (default True)
-            Flag to set the resulting feature vector to have unit euclidean
-            norm.
-        inner_normalization : bool (default True)
-            Flag to set the feature vector for a specific combination of the
-            radius and distance size to have unit euclidean norm.
-            When used together with the 'normalization' flag it will be applied
-            first and then the resulting feature vector will be normalized.
-        positional : bool (default False)
-            Flag to make the relative position be sorted by the node ID value.
-            This is useful for ensuring isomorphism for sequences.
-        discrete: bool (default False)
-            Flag to activate more efficient computation of vectorization
-            considering only discrete labels and ignoring vector attributes.
-        use_only_context: bool (default False)
-            Flag to deactivate the central part of the information
-            and retain only the context.
-        key_label : string (default 'label')
-            The key used to indicate the label information in nodes.
-        key_weight : string (default 'weight')
-            The key used to indicate the weight information in nodes.
-        key_nesting : string (default 'nesting')
-            The key used to indicate the nesting type in edges.
-        key_importance : string (default 'importance')
-            The key used to indicate the importance information in nodes.
-        key_class : string (default 'class')
-            The key used to indicate the predicted class associated to
-            the node.
-        key_vec : string (default 'vec')
-            The key used to indicate the vector label information in nodes.
-        key_svec : string (default 'svec')
-            The key used to indicate the sparse vector label information
-            in nodes.
+
+        Args:
+            complexity (int, optional):
+                The complexity of the features extracted.
+                This is equivalent to setting r = complexity, d = complexity.
+                Defaults to 3.
+            r (int):
+                The maximal radius size.
+            d (int):
+                The maximal distance size.
+            min_r (int):
+                The minimal radius size.
+            min_d (int):
+                The minimal distance size.
+            weights_dict (Dict[Tuple[float, float], float]):
+                Dictionary with keys = pairs (radius, distance) and
+                value = weights.
+            auto_weights (bool, optional):
+                Flag to set to 1 the weight of the kernels for r=i, d=i
+                for i in range(complexity)
+                Defaults to False.
+            nbits (int, optional):
+                The number of bits that defines the feature space size:
+                size(feature space)=2^nbits.
+                Defaults to 16.
+            normalization (bool, optional):
+                Flag to set the resulting feature vector to have unit euclidean
+                norm.
+                Defaults to True.
+            inner_normalization (bool, optional):
+                Flag to set the feature vector for a specific combination of the
+                radius and distance size to have unit euclidean norm.
+                When used together with the 'normalization' flag it will be applied
+                first and then the resulting feature vector will be normalized.
+                Defaults to True.
+            positional (bool, optional):
+                Flag to make the relative position be sorted by the node ID value.
+                This is useful for ensuring isomorphism for sequences.
+                Defaults to False.
+            discrete (bool, optional):
+                Flag to activate more efficient computation of vectorization
+                considering only discrete labels and ignoring vector attributes.
+                Defaults to False.
+            use_only_context (bool, optional):
+                Flag to deactivate the central part of the information
+                and retain only the context.
+                Defaults to False.
+            key_label (string, optional):
+                The key used to indicate the label information in nodes.
+                Defaults to "label".
+            key_weight (string, optional):
+                The key used to indicate the weight information in nodes.
+                Defaults to "weight".
+            key_nesting (string, optional):
+                The key used to indicate the nesting type in edges.
+                Defaults to "nesting".
+            key_importance (string, optional):
+                The key used to indicate the importance information in nodes.
+                Defaults to "importance".
+            key_class (string, optional):
+                The key used to indicate the predicted class associated to
+                the node.
+                Defaults to "class".
+            key_vec (string, optional):
+                The key used to indicate the vector label information in nodes.
+                Defaults to "vec".
+            key_svec (string, optional):
+                The key used to indicate the sparse vector label information
+                in nodes.
+                Defaults to "svec".
         """
         self.name = self.__class__.__name__
         self.__version__ = "1.0.1"
@@ -314,33 +330,36 @@ class Vectorizer(AbstractVectorizer):
         """load."""
         self.__dict__.update(joblib.load(obj).__dict__)
 
-    def transform(self, graphs):
+    def transform(self, graphs: List[nx.Graph]):
         """Transform a list of networkx graphs into a sparse matrix.
-        Parameters
-        ----------
-        graphs : list[graphs]
-            The input list of networkx graphs.
-        Returns
-        -------
-        data_matrix : array-like, shape = [n_samples, n_features]
-            Vector representation of input graphs.
-        >>> # transforming the same graph
-        >>> import networkx as nx
-        >>> def get_path_graph(length=4):
-        ...     g = nx.path_graph(length)
-        ...     for n,d in g.nodes(data=True):
-        ...         d['label'] = 'C'
-        ...     for a,b,d in g.edges(data=True):
-        ...         d['label'] = '1'
-        ...     return g
-        >>> g = get_path_graph(4)
-        >>> g2 = get_path_graph(5)
-        >>> g2.remove_node(4)
-        >>> v = Vectorizer()
-        >>> def vec_to_hash(vec):
-        ...     return hash(tuple(vec.data + vec.indices))
-        >>> vec_to_hash(v.transform([g])) == vec_to_hash(v.transform([g2]))
-        True
+
+        Args:
+            graphs (List[nx.Graph]):
+                The input list of networkx graphs.
+
+        Returns:
+            data_matrix (array-like):
+                shape = [n_samples, n_features]
+                Vector representation of input graphs.
+
+        Examples:
+            >>> # transforming the same graph
+            >>> import networkx as nx
+            >>> def get_path_graph(length=4):
+            ...     g = nx.path_graph(length)
+            ...     for n,d in g.nodes(data=True):
+            ...         d['label'] = 'C'
+            ...     for a,b,d in g.edges(data=True):
+            ...         d['label'] = '1'
+            ...     return g
+            >>> g = get_path_graph(4)
+            >>> g2 = get_path_graph(5)
+            >>> g2.remove_node(4)
+            >>> v = Vectorizer()
+            >>> def vec_to_hash(vec):
+            ...     return hash(tuple(vec.data + vec.indices))
+            >>> vec_to_hash(v.transform([g])) == vec_to_hash(v.transform([g2]))
+            True
         """
         instance_id = None
         feature_rows = []
@@ -355,19 +374,20 @@ class Vectorizer(AbstractVectorizer):
         data_matrix = self._convert_dict_to_sparse_matrix(feature_rows)
         return data_matrix
 
-    def vertex_transform(self, graphs):
+    def vertex_transform(self, graphs: List[nx.Graph]):
         """Transform a list of networkx graphs into a list of sparse matrices.
         Each matrix has dimension n_nodes x n_features, i.e. each vertex is
         associated to a sparse vector that encodes the neighborhood of the
         vertex up to radius + distance.
-        Parameters
-        ----------
-        graphs : list[graphs]
-            The input list of networkx graphs.
-        Returns
-        -------
-        matrix_list : array-like, shape = [n_samples, [n_nodes, n_features]]
-            Vector representation of each vertex in the input graphs.
+
+        Args:
+            graphs (List[nx.Graph]):
+                The input list of networkx graphs.
+
+        Returns:
+            matrix_list (array-like):
+                shape = [n_samples, [n_nodes, n_features]]
+                Vector representation of each vertex in the input graphs.
         """
         matrix_list = []
         for instance_id, graph in enumerate(graphs):
@@ -785,31 +805,35 @@ class Vectorizer(AbstractVectorizer):
         of the vertex. The weight value is the absolute value of importance.
         If vertex_features is True then each vertex has additional attributes
         with key 'features' and 'vector'.
-        Parameters
-        ----------
-        estimator : scikit-learn estimator
-            Scikit-learn predictor trained on data sampled from the same
-            distribution. If None the vertex weights are set by default 1.
-        reweight : float (default 1.0)
-            The  coefficient used to weight the linear combination of the
-            current weight and the absolute value of the score computed by the
-            estimator.
-            If reweight = 0 then do not update.
-            If reweight = 1 then discard the current weight information and use
-            only abs( score )
-            If reweight = 0.5 then update with the arithmetic mean of the
-            current weight information and the abs( score )
-        threshold : float (default: None)
-            If not None, threshold the importance value before computing
-            the weight.
-        scale : float (default: 1)
-            Multiplicative factor to rescale all weights.
-        vertex_features : bool (default false)
-            Flag to compute the sparse vector encoding of all features that
-            have that vertex as root. An attribute with key 'features' is
-            created for each node that contains a CRS scipy sparse vector,
-            and an attribute with key 'vector' is created that contains a
-            python dictionary to store the key, values pairs.
+
+        Args:
+            estimator (scikit-learn estimator):
+                Scikit-learn predictor trained on data sampled from the same
+                distribution. If None the vertex weights are set by default 1.
+            reweight (float, optional):
+                The  coefficient used to weight the linear combination of the
+                current weight and the absolute value of the score computed by the
+                estimator.
+                If reweight = 0 then do not update.
+                If reweight = 1 then discard the current weight information and use
+                only abs( score )
+                If reweight = 0.5 then update with the arithmetic mean of the
+                current weight information and the abs( score )
+                Defaults to 1.0.
+            threshold (Optional[float], optional):
+                If not None, threshold the importance value before computing
+                the weight.
+                Defaults to None.
+            scale (float, optional):
+                Multiplicative factor to rescale all weights.
+                Defaults to 1.
+            vertex_features (bool, optional):
+                Flag to compute the sparse vector encoding of all features that
+                have that vertex as root. An attribute with key 'features' is
+                created for each node that contains a CRS scipy sparse vector,
+                and an attribute with key 'vector' is created that contains a
+                python dictionary to store the key, values pairs.
+                Defaults to False.
         """
         self.estimator = estimator
         self.reweight = reweight

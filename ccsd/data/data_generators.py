@@ -6,7 +6,6 @@ Run this script with -h flag to see usage on how to generate graph datasets.
 The arguments are:
     --data-dir: directory to save generated graphs (default "data")
     --dataset: name of dataset to generate (default "grid"), choices are ["ego_small", "community_small", "ENZYMES", "grid"]
-
 Adapted from Jo, J. & al (2022)
 """
 
@@ -30,7 +29,6 @@ def n_community(
     num_communities: int, max_nodes: int, p_inter: float = 0.05
 ) -> nx.Graph:
     """Generate a graph with `num_communities` communities, each of size `max_nodes` and with inter-community edge probability `p_inter`.
-
     From Niu et al. (2020)
 
     Args:
@@ -84,7 +82,6 @@ def n_community(
 NAME_TO_NX_GENERATOR = {
     "community": n_community,
     "grid": nx.generators.grid_2d_graph,
-    # Additional datasets
     "gnp": nx.generators.fast_gnp_random_graph,  # fast_gnp_random_graph(n, p, seed=None, directed=False)
     "ba": nx.generators.barabasi_albert_graph,  # barabasi_albert_graph(n, m, seed=None)
     "pow_law": lambda **kwargs: nx.configuration_model(
