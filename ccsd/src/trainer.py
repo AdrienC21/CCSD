@@ -32,6 +32,7 @@ from ccsd.src.utils.logger import (
     model_parameters_log,
     set_log,
     start_log,
+    time_log,
     train_log,
 )
 from ccsd.src.utils.plot import plot_lc
@@ -161,6 +162,7 @@ class Trainer_Graph(Trainer):
 
         # -------- Training --------
         print("Training started...")
+        start_train_time = perf_counter()
         for epoch in trange(
             0, (self.config.train.num_epochs), desc="[Epoch]", position=1, leave=False
         ):
@@ -289,6 +291,9 @@ class Trainer_Graph(Trainer):
                     f"test x: {mean_test_x:.3e} | train x: {mean_train_x:.3e}"
                 )
         print("Training complete.")
+        training_time = perf_counter() - start_train_time
+        time_log(logger, time_type="train", elapsed_time=training_time)
+        wandb.log({"Training time": training_time})
         # -------- Save final model --------
         torch.save(
             {
@@ -407,6 +412,7 @@ class Trainer_CC(Trainer):
 
         # -------- Training --------
         print("Training started...")
+        start_train_time = perf_counter()
         for epoch in trange(
             0, (self.config.train.num_epochs), desc="[Epoch]", position=1, leave=False
         ):
@@ -557,6 +563,9 @@ class Trainer_CC(Trainer):
                     f"test rank2: {mean_test_rank2:.3e} | train rank2: {mean_train_rank2:.3e}"
                 )
         print("Training complete.")
+        training_time = perf_counter() - start_train_time
+        time_log(logger, time_type="train", elapsed_time=training_time)
+        wandb.log({"Training time": training_time})
         # -------- Save final model --------
         torch.save(
             {

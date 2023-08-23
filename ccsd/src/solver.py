@@ -277,7 +277,9 @@ class EulerMaruyamaPredictor(Predictor):
         # Reverse SDE for the node features
         if self.obj == "x":
             z = gen_noise(x, flags, sym=False)
-            drift, diffusion = self.rsde.sde(x, adj, rank2, flags, t, is_adj=False)
+            drift, diffusion = self.rsde.sde(
+                x, adj, rank2, flags, t, is_adj=False, is_rank2=False
+            )
             x_mean = x + drift * dt
             x = x_mean + diffusion[:, None, None] * np.sqrt(-dt) * z
             return x, x_mean
@@ -285,7 +287,9 @@ class EulerMaruyamaPredictor(Predictor):
         # Reverse SDE for the adjacency matrix
         elif self.obj == "adj":
             z = gen_noise(adj, flags, sym=True)
-            drift, diffusion = self.rsde.sde(x, adj, rank2, flags, t, is_adj=True)
+            drift, diffusion = self.rsde.sde(
+                x, adj, rank2, flags, t, is_adj=True, is_rank2=False
+            )
             adj_mean = adj + drift * dt
             adj = adj_mean + diffusion[:, None, None] * np.sqrt(-dt) * z
 
@@ -424,7 +428,9 @@ class ReverseDiffusionPredictor(Predictor):
         """
         # Reverse SDE for the node features
         if self.obj == "x":
-            f, G = self.rsde.discretize(x, adj, rank2, flags, t, is_adj=False)
+            f, G = self.rsde.discretize(
+                x, adj, rank2, flags, t, is_adj=False, is_rank2=False
+            )
             z = gen_noise(x, flags, sym=False)
             x_mean = x - f
             x = x_mean + G[:, None, None] * z
@@ -432,7 +438,9 @@ class ReverseDiffusionPredictor(Predictor):
 
         # Reverse SDE for the adjacency matrix
         elif self.obj == "adj":
-            f, G = self.rsde.discretize(x, adj, rank2, flags, t, is_adj=True)
+            f, G = self.rsde.discretize(
+                x, adj, rank2, flags, t, is_adj=True, is_rank2=False
+            )
             z = gen_noise(adj, flags)
             adj_mean = adj - f
             adj = adj_mean + G[:, None, None] * z
@@ -440,7 +448,9 @@ class ReverseDiffusionPredictor(Predictor):
 
         # Reverse SDE for the rank2 incidence matrix
         elif self.obj == "rank2":
-            f, G = self.rsde.discretize(x, adj, rank2, flags, t)
+            f, G = self.rsde.discretize(
+                x, adj, rank2, flags, t, is_adj=False, is_rank2=True
+            )
             z = gen_noise_rank2(rank2, adj.shape[1], self.d_min, self.d_max, flags)
             rank2_mean = rank2 - f
             rank2 = rank2_mean + G[:, None, None] * z

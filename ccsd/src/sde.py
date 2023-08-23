@@ -166,7 +166,7 @@ class SDE(abc.ABC):
                     Returns:
                         str: string representation of the reverse-time SDE/ODE.
                     """
-                    return f"{self.__class__.__name__}(N={self.N}, probability_flow={probability_flow}, T={self.T})"
+                    return f"{self.__class__.__name__}(N={self.N}, probability_flow={self.probability_flow}, T={self.T}, is_cc={self.is_cc})"
 
                 @property
                 def T(self) -> int:
@@ -251,7 +251,7 @@ class SDE(abc.ABC):
                     Returns:
                         str: string representation of the reverse-time SDE/ODE.
                     """
-                    return f"{self.__class__.__name__}(N={self.N}, probability_flow={probability_flow}, T={self.T})"
+                    return f"{self.__class__.__name__}(N={self.N}, probability_flow={self.probability_flow}, T={self.T}, is_cc={self.is_cc})"
 
                 @property
                 def T(self) -> int:
@@ -373,7 +373,7 @@ class VPSDE(SDE):
         Returns:
             str: string representation of the SDE.
         """
-        return f"{self.__class__.__name__}(N={self.N}, beta_min={self.beta_0}, beta_max={self.beta_1})"
+        return f"{self.__class__.__name__}(N={self.N}, beta_min={self.beta_0}, beta_max={self.beta_1}, T={self.T})"
 
     @property
     def T(self) -> int:
@@ -531,7 +531,7 @@ class VESDE(SDE):
         Returns:
             str: string representation of the SDE.
         """
-        return f"{self.__class__.__name__}(N={self.N}, beta_min={self.beta_0}, beta_max={self.beta_1})"
+        return f"{self.__class__.__name__}(N={self.N}, sigma_min={self.sigma_min}, sigma_max={self.sigma_max}, T={self.T})"
 
     @property
     def T(self) -> int:
@@ -695,7 +695,7 @@ class subVPSDE(SDE):
         Returns:
             str: string representation of the SDE.
         """
-        return f"{self.__class__.__name__}(N={self.N}, beta_min={self.beta_0}, beta_max={self.beta_1})"
+        return f"{self.__class__.__name__}(N={self.N}, beta_min={self.beta_0}, beta_max={self.beta_1}, T={self.T})"
 
     @property
     def T(self) -> int:

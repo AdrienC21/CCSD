@@ -21,8 +21,8 @@ import plotly
 import plotly.graph_objs as go
 import torch
 from easydict import EasyDict
-from rdkit import Chem
-from rdkit.Chem import AllChem, Draw, RDLogger
+from rdkit import Chem, RDLogger
+from rdkit.Chem import AllChem, Draw
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
 from tqdm import tqdm
 
@@ -145,7 +145,7 @@ def save_graph_list(
     path = os.path.join(*[config.folder, "samples", "pkl", log_folder_name])
     if not (os.path.isdir(path)):
         os.makedirs(path)
-    save_dir = os.path.join(*[path, exp_name])
+    save_dir = os.path.join(*[path, f"{exp_name}.pkl"])
     with open(save_dir, "wb") as f:
         pickle.dump(obj=gen_graph_list, file=f, protocol=pickle.HIGHEST_PROTOCOL)
     return save_dir
@@ -231,7 +231,7 @@ def save_cc_list(
     path = os.path.join(*[config.folder, "samples", "pkl", log_folder_name])
     if not (os.path.isdir(path)):
         os.makedirs(path)
-    save_dir = os.path.join(*[path, exp_name])
+    save_dir = os.path.join(*[path, f"{exp_name}.pkl"])
     with open(save_dir, "wb") as f:
         pickle.dump(obj=gen_cc_list, file=f, protocol=pickle.HIGHEST_PROTOCOL)
     return save_dir
@@ -297,7 +297,7 @@ def save_molecule_list(
     path = os.path.join(*[config.folder, "samples", "pkl", log_folder_name])
     if not (os.path.isdir(path)):
         os.makedirs(path)
-    save_dir = os.path.join(*[path, exp_name])
+    save_dir = os.path.join(*[path, f"{exp_name}.pkl"])
     with open(save_dir, "wb") as f:
         pickle.dump(obj=gen_mol_list, file=f, protocol=pickle.HIGHEST_PROTOCOL)
     return save_dir
@@ -353,15 +353,53 @@ def plot_3D_molecule(
     if cpk_colors is None:
         cpk_colors = {"C": "black", "F": "green", "H": "white", "N": "blue", "O": "red"}
 
-    # Generate 3D coordinates if not already present
+    # Generate 3D coordinates if not already present. If all methods fail, use 2D coordinates instead.
+    z_coordinates = None
     if not molecule.GetNumConformers():
-        AllChem.EmbedMolecule(molecule, AllChem.ETKDG())
+        try:
+            AllChem.EmbedMolecule(molecule, AllChem.ETKDG())
+            atom_symbols = [atom.GetSymbol() for atom in molecule.GetAtoms()]
+            atom_positions = molecule.GetConformer().GetPositions()
+        except:
+            try:
+                AllChem.EmbedMolecule(molecule, AllChem.ETKDGv2())
+                atom_symbols = [atom.GetSymbol() for atom in molecule.GetAtoms()]
+                atom_positions = molecule.GetConformer().GetPositions()
+            except:
+                try:
+                    AllChem.EmbedMolecule(molecule, AllChem.ETKDGv3())
+                    atom_symbols = [atom.GetSymbol() for atom in molecule.GetAtoms()]
+                    atom_positions = molecule.GetConformer().GetPositions()
+                except:
+                    try:
+                        AllChem.EmbedMolecule(molecule, AllChem.ETDG())
+                        atom_symbols = [
+                            atom.GetSymbol() for atom in molecule.GetAtoms()
+                        ]
+                        atom_positions = molecule.GetConformer().GetPositions()
+                    except Exception as e:
+                        try:
+                            current_mol_name = Chem.MolToSmiles(molecule)
+                        except:
+                            current_mol_name = "Unknown molecule"
+                        print(
+                            f"Could not embed molecule {current_mol_name}.\nUsing 2D coordinates instead. \nError: {e}\n"
+                        )
+                        atom_symbols = [
+                            atom.GetSymbol() for atom in molecule.GetAtoms()
+                        ]
+                        AllChem.Compute2DCoords(molecule)
+                        all_pos = [
+                            molecule.GetConformer().GetAtomPosition(atom.GetIdx())
+                            for atom in molecule.GetAtoms()
+                        ]
+                        atom_positions = [(pos.x, pos.y) for pos in all_pos]
+                        z_coordinates = len(atom_symbols) * [0]
 
-    atom_symbols = [atom.GetSymbol() for atom in molecule.GetAtoms()]
-    atom_positions = molecule.GetConformer().GetPositions()
     x_coordinates = [pos[0] for pos in atom_positions]
     y_coordinates = [pos[1] for pos in atom_positions]
-    z_coordinates = [pos[2] for pos in atom_positions]
+    if z_coordinates is None:  # if we generated 3D coordinates
+        z_coordinates = [pos[2] for pos in atom_positions]
     radii = [atomic_radii.get(symbol, 1.0) for symbol in atom_symbols]
 
     # Get atom colors

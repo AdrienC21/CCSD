@@ -12,7 +12,6 @@ Pipeline structure adapted from Jo, J. & al (2022)
 
 import argparse
 import warnings
-from time import perf_counter
 
 import matplotlib
 import plotly
@@ -61,7 +60,6 @@ def main(args: argparse.Namespace) -> None:
 
     # -------- Train --------
     if args.type == "train":
-        start_train_time = perf_counter()
         # Initialize wandb
         if general_config.use_wandb:
             run_name = f"{args.config}_{ts}"
@@ -79,30 +77,21 @@ def main(args: argparse.Namespace) -> None:
         trainer = get_trainer_from_config(config)
         # Train the model
         ckpt = trainer.train(ts)
-        print(f"Training time: {round(perf_counter() - start_train_time, 3)} seconds")
         if "sample" in config.keys():  # then sample from the trained model
-            start_sampling_time = perf_counter()
             config.ckpt = ckpt  # oad the model that has just been trained
             # Select the sampler based on the config
             sampler = get_sampler_from_config(config)
             # Sample from the model
             sampler.sample()
-            print(
-                f"Sampling time: {round(perf_counter() - start_sampling_time, 3)} seconds"
-            )
         # Finish wandb
         wandb.finish()
 
     # -------- Generation --------
     elif args.type == "sample":
-        start_sampling_time = perf_counter()
         # Select the sampler based on the config
         sampler = get_sampler_from_config(config)
         # Sample from the model
         sampler.sample()
-        print(
-            f"Sampling time: {round(perf_counter() - start_sampling_time, 3)} seconds"
-        )
 
     else:
         raise ValueError(

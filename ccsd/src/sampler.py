@@ -47,6 +47,7 @@ from ccsd.src.utils.logger import (
     sample_log,
     set_log,
     start_log,
+    time_log,
     train_log,
 )
 from ccsd.src.utils.mol_utils import (
@@ -115,7 +116,7 @@ class Sampler_Graph(Sampler):
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
-        return self.__class__.__name__
+        return f"{self.__class__.__name__}(batch_size={self.config.data.batch_size})"
 
     def sample(self) -> None:
         """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates, saves and plot them."""
@@ -182,6 +183,7 @@ class Sampler_Graph(Sampler):
         logger.log(
             f"Number sampling rounds: {num_sampling_rounds}, number of samples per round: {self.config.data.batch_size}"
         )
+        start_sampling_time = perf_counter()
         for r in range(num_sampling_rounds):
             t_start = perf_counter()
 
@@ -200,6 +202,12 @@ class Sampler_Graph(Sampler):
 
         gen_graph_list = gen_graph_list[: len(self.test_graph_list)]
         print("Sampling done.")
+        sampling_time = perf_counter() - start_sampling_time
+        time_log(logger, time_type="sample", elapsed_time=sampling_time)
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            wandb.log({"Sampling time": sampling_time})
 
         # -------- Evaluation --------
         # Eval graphs
@@ -312,7 +320,7 @@ class Sampler_CC(Sampler):
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
-        return self.__class__.__name__
+        return f"{self.__class__.__name__}(batch_size={self.config.data.batch_size})"
 
     def sample(self) -> None:
         """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates, saves and plot them."""
@@ -393,6 +401,7 @@ class Sampler_CC(Sampler):
         logger.log(
             f"Number sampling rounds: {num_sampling_rounds}, number of samples per round: {self.config.data.batch_size}"
         )
+        start_sampling_time = perf_counter()
         for r in range(num_sampling_rounds):
             t_start = perf_counter()
 
@@ -417,6 +426,12 @@ class Sampler_CC(Sampler):
 
         gen_CC_list = gen_CC_list[: len(self.test_CC_list)]
         print("Sampling done.")
+        sampling_time = perf_counter() - start_sampling_time
+        time_log(logger, time_type="sample", elapsed_time=sampling_time)
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            wandb.log({"Sampling time": sampling_time})
 
         # -------- Evaluation --------
         # Convert CC into graphs for evaluation
@@ -434,6 +449,8 @@ class Sampler_CC(Sampler):
         result_dict_CC = eval_CC_list(
             self.test_CC_list,
             gen_CC_list,
+            d_min=self.config.data.d_min,
+            d_max=self.config.data.d_max,
             methods=methods,
             kernels=kernels,
             cc_nb_eval=self.cc_nb_eval,
@@ -568,7 +585,7 @@ class Sampler_mol_Graph(Sampler):
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
-        return self.__class__.__name__
+        return f"{self.__class__.__name__}(n_samples={self.n_samples})"
 
     def sample(self) -> None:
         """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates and saves them."""
@@ -632,6 +649,7 @@ class Sampler_mol_Graph(Sampler):
             self.test_graph_list = pickle.load(f)  # for NSPDK MMD
 
         logger.log(f"Sampling {self.n_samples} samples ...")
+        start_sampling_time = perf_counter()
         self.init_flags = init_flags(
             self.train_graph_list, self.configt, self.n_samples
         ).to(self.device0)
@@ -661,6 +679,12 @@ class Sampler_mol_Graph(Sampler):
         # Convert generated molecules into graphs
         gen_graph_list = mols_to_nx(gen_mols)
         print("Sampling done.")
+        sampling_time = perf_counter() - start_sampling_time
+        time_log(logger, time_type="sample", elapsed_time=sampling_time)
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            wandb.log({"Sampling time": sampling_time})
 
         # -------- Save generated molecules --------
         with open(os.path.join(self.log_dir, f"{self.log_name}.txt"), "a") as f:
@@ -882,7 +906,7 @@ class Sampler_mol_CC(Sampler):
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
-        return self.__class__.__name__
+        return f"{self.__class__.__name__}(n_samples={self.n_samples}, cc_nb_eval={self.cc_nb_eval})"
 
     def sample(self) -> None:
         """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates and saves them."""
@@ -958,10 +982,11 @@ class Sampler_mol_CC(Sampler):
 
         # Create test_CC_list based on test_graph_list via a conversion to molecules
         test_mol_list = nxs_to_mols(self.test_graph_list)
-        self.test_cc_list = mols_to_cc(test_mol_list)
+        self.test_CC_list = mols_to_cc(test_mol_list)
 
         # Generate samples
         logger.log(f"Sampling {self.n_samples} samples ...")
+        start_sampling_time = perf_counter()
         self.init_flags = init_flags(
             self.train_CC_list, self.configt, self.n_samples, is_cc=True
         ).to(self.device0)
@@ -993,6 +1018,12 @@ class Sampler_mol_CC(Sampler):
         gen_graph_list = mols_to_nx(gen_mols)
         gen_CC_list = mols_to_cc(gen_mols)
         print("Sampling done.")
+        sampling_time = perf_counter() - start_sampling_time
+        time_log(logger, time_type="sample", elapsed_time=sampling_time)
+        if (
+            self.config.experiment_type == "train"
+        ) and self.config.general_config.use_wandb:
+            wandb.log({"Sampling time": sampling_time})
 
         # -------- Save generated molecules --------
         with open(os.path.join(self.log_dir, f"{self.log_name}_smiles.txt"), "a") as f:
@@ -1018,6 +1049,8 @@ class Sampler_mol_CC(Sampler):
         result_dict_CC = eval_CC_list(
             self.test_CC_list,
             gen_CC_list,
+            d_min=self.config.data.d_min,
+            d_max=self.config.data.d_max,
             methods=methods,
             kernels=kernels,
             cc_nb_eval=self.cc_nb_eval,

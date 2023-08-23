@@ -6,7 +6,6 @@
 
 import os
 import warnings
-from time import perf_counter
 
 import matplotlib
 import plotly
@@ -124,7 +123,6 @@ class CCSD:
 
         # -------- Train --------
         if self.args.type == "train":
-            start_train_time = perf_counter()
             # Initialize wandb
             if general_config.use_wandb:
                 run_name = f"{self.args.config}_{ts}"
@@ -142,35 +140,24 @@ class CCSD:
             trainer = get_trainer_from_config(config)
             # Train the model
             ckpt = trainer.train(ts)
-            print(
-                f"Training time: {round(perf_counter() - start_train_time, 3)} seconds"
-            )
             self.trainer = trainer  # save the trainer object
             if "sample" in config.keys():  # then sample from the trained model
-                start_sampling_time = perf_counter()
                 config.ckpt = ckpt  # load the model that has just been trained
                 self.cfg = config  # save the updated config object
                 # Select the sampler based on the config
                 sampler = get_sampler_from_config(config)
                 # Sample from the model
                 sampler.sample()
-                print(
-                    f"Sampling time: {round(perf_counter() - start_sampling_time, 3)} seconds"
-                )
                 self.sampler = sampler  # save the sampler object
             # Finish wandb
             wandb.finish()
 
         # -------- Generation --------
         elif self.args.type == "sample":
-            start_sampling_time = perf_counter()
             # Select the sampler based on the config
             sampler = get_sampler_from_config(config)
             # Sample from the model
             sampler.sample()
-            print(
-                f"Sampling time: {round(perf_counter() - start_sampling_time, 3)} seconds"
-            )
             self.sampler = sampler  # save the sampler object
 
         else:

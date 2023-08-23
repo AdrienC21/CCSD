@@ -505,9 +505,13 @@ Carrel, A. (2023). CCSD - Combinatorial Complex Score-based Diffusion model usin
 
 ## Acknowledgement
 
-The Laboratory for Computational Physiology (LCP) at the Massachusetts Institute of Technology (MIT) for hosting me during the redaction of my thesis.
+The Laboratory for Computational Physiology (LCP) at the Massachusetts Institute of Technology (MIT) for partially hosting me during the redaction of my thesis.
 
 [Dr. Tolga Birdal](https://www.imperial.ac.uk/people/t.birdal) for his supervision and for the valuable advice and ressources that he provided.
+
+[Dr. Mustafa Hajij](https://www.mustafahajij.com/) and the members of the [pyt-team](https://github.com/pyt-team/) for the package [TopoNetX](https://github.com/pyt-team/TopoNetX) and their work on Combinatorial Complexes and Topological Deep Learning: [Topological Deep Learning: Going Beyond Graph Data](https://arxiv.org/abs/2206.00606).
+
+[Jo, J. & al.](https://harryjo97.github.io/) for their paper [Score-based Generative Modeling of Graphs via the System of Stochastic Differential Equations](https://arxiv.org/abs/2202.02514) that served as a baseline for both the theoretical and empirical part of this work.
 
 All my friends and my family for the support.
 

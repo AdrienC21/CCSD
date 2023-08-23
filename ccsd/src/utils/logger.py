@@ -260,3 +260,22 @@ def model_parameters_log(logger: Logger, models: List[torch.nn.Module]) -> None:
         logger.log(f"\t{model_name}: {nb_param}\n")
     logger.log(f"\nTotal: {total_parameters}\n")
     logger.log(100 * "-")
+
+
+def time_log(logger: Logger, time_type: str, elapsed_time: float) -> None:
+    """Log the time elapsed since the start of the training/sampling
+
+    Args:
+        logger (Logger): Logger object
+        time_type (str): type of time. Must be in ["train", "sample"].
+        elapsed_time (float): elapsed time since the start of the training/sampling
+
+    Raises:
+        ValueError: raise an error if time_type is not in ["train", "sample"]
+    """
+    if time_type == "train":
+        logger.log(f"Training time: {round(elapsed_time, 3)} seconds")
+    elif time_type == "sample":
+        logger.log(f"Sampling time: {round(elapsed_time, 3)} seconds")
+    else:
+        raise ValueError(f"time_type must be in ['train', 'sample'], not {time_type}")
