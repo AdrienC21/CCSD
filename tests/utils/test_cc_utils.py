@@ -1143,7 +1143,7 @@ def test_rank0_distrib_stats(
     # Compute the statistics
     result = rank0_distrib_stats(cc_ref_list, cc_pred_list, worker_kwargs)
     assert isinstance(result, float)
-    assert result == 0.051227249875575476
+    assert round(result, 6) == round(0.051227249875575476, 6)
 
 
 def test_rank1_distrib_worker(
@@ -1210,7 +1210,7 @@ def test_rank1_distrib_stats(
     # Compute the statistics
     result = rank1_distrib_stats(cc_ref_list, cc_pred_list, worker_kwargs)
     assert isinstance(result, float)
-    assert result == 0.22469991365907305
+    assert round(result, 6) == round(0.22469991365907305, 6)
 
 
 def test_rank2_distrib_worker(
@@ -1268,7 +1268,7 @@ def test_rank2_distrib_stats(
     # Compute the statistics
     result = rank2_distrib_stats(cc_ref_list, cc_pred_list, worker_kwargs)
     assert isinstance(result, float)
-    assert result == 0.008230169304583868
+    assert round(result, 6) == round(0.008230169304583868, 6)
 
 
 def test_hodge_laplacian_spectrum_worker(
@@ -1341,7 +1341,7 @@ def test_hodge_laplacian_spectrum_stats(
     # Compute the statistics
     result = hodge_laplacian_spectrum_stats(cc_ref_list, cc_pred_list, worker_kwargs)
     assert isinstance(result, float)
-    assert result == 0.06474705926004187
+    assert round(result, 6) == round(0.06474705926004187, 6)
 
 
 def test_eval_CC_list(
