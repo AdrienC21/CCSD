@@ -963,7 +963,7 @@ def rank0_distrib_worker(
         np.ndarray: rank-0 cell histogram
     """
     rank0_cells = CC.cells.hyperedge_dict.get(0, {})
-    rank0_distrib = np.zeros(max_node_val - min_node_val + 1)
+    rank0_distrib = np.zeros(max_node_val - min_node_val + 1, dtype=np.float32)
     for cell in rank0_cells:
         val = int(rank0_cells[cell][node_label])
         if (min_node_val <= val) and (val <= max_node_val):
@@ -1070,7 +1070,7 @@ def rank1_distrib_worker(
         np.ndarray: rank-1 cell histogram
     """
     rank1_cells = CC.cells.hyperedge_dict.get(1, {})
-    rank1_distrib = np.zeros(max_edge_val - min_edge_val + 1)
+    rank1_distrib = np.zeros(max_edge_val - min_edge_val + 1, dtype=np.float32)
     for cell in rank1_cells:
         val = int(rank1_cells[cell][edge_label])
         if (min_edge_val <= val) and (val <= max_edge_val):
@@ -1172,7 +1172,7 @@ def rank2_distrib_worker(
         np.ndarray: rank-2 cell histogram
     """
     rank2_cells = CC.cells.hyperedge_dict.get(2, {})
-    rank2_distrib = np.zeros(d_max - d_min + 1)
+    rank2_distrib = np.zeros(d_max - d_min + 1, dtype=np.float32)
     for cell in rank2_cells:
         length = len(cell)
         if (d_min <= length) and (length <= d_max):

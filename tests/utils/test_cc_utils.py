@@ -156,7 +156,7 @@ def test_create_incidence_1_2() -> None:
             [0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
         ]
     )
-    assert (F == expected_F).all()
+    assert np.allclose(F, expected_F)
 
 
 @pytest.fixture
@@ -346,9 +346,9 @@ def test_cc_incidence_advanced_test(
     X2 = torch.tensor(X2, dtype=torch.float32)
     A2 = torch.tensor(A2, dtype=torch.float32)
     F2 = torch.tensor(F2, dtype=torch.float32)
-    assert (X == X2).all()
-    assert (A == A2).all()
-    assert (F == F2).all()
+    assert np.allclose(X, X2)
+    assert np.allclose(A, A2)
+    assert np.allclose(F, F2)
 
 
 def test_get_rank2_dim(
@@ -695,10 +695,10 @@ def test_pad_rank2() -> None:
     d_max = 3
     rank2 = np.array([[1, 1, 1, 1] for _ in range(6)], dtype=np.float32)
 
-    assert (pad_rank2(rank2, N, d_min=d_min, d_max=d_max) == rank2).all()
-    assert (
-        pad_rank2(rank2, N + 1, d_min=d_min, d_max=d_max)
-        == np.array(
+    assert np.allclose(pad_rank2(rank2, N, d_min=d_min, d_max=d_max), rank2)
+    assert np.allclose(
+        pad_rank2(rank2, N + 1, d_min=d_min, d_max=d_max),
+        np.array(
             [
                 [1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
                 [1.0, 1.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0],
@@ -711,8 +711,8 @@ def test_pad_rank2() -> None:
                 [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
                 [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             ]
-        )
-    ).all()
+        ),
+    )
     with pytest.raises(ValueError):
         pad_rank2(rank2, N - 1, d_min=d_min, d_max=d_min)
 
@@ -1102,7 +1102,7 @@ def test_rank0_distrib_worker(
     assert result.shape == (max_node_val - min_node_val + 1,)
     assert np.all(result >= 0)
     assert np.sum(result) == len(cc.cells.hyperedge_dict.get(0, {}))
-    assert (result == np.array([2.0, 1.0, 1.0])).all()
+    assert np.allclose(result, np.array([2.0, 1.0, 1.0], dtype=np.float32))
 
 
 def test_rank0_distrib_stats(
@@ -1168,7 +1168,7 @@ def test_rank1_distrib_worker(
     assert result.shape == (max_edge_val - min_edge_val + 1,)
     assert np.all(result >= 0)
     assert np.sum(result) == len(cc.cells.hyperedge_dict.get(1, {}))
-    assert (result == np.array([2.0, 2.0])).all()
+    assert np.allclose(result, np.array([2.0, 2.0], dtype=np.float32))
 
 
 def test_rank1_distrib_stats(
@@ -1231,7 +1231,7 @@ def test_rank2_distrib_worker(
     assert result.shape == (d_max - d_min + 1,)
     assert np.all(result >= 0)
     assert np.sum(result) == len(cc.cells.hyperedge_dict.get(2, {}))
-    assert (result == np.array([1.0, 1.0])).all()
+    assert np.allclose(result, np.array([1.0, 1.0], dtype=np.float32))
 
 
 def test_rank2_distrib_stats(
@@ -1268,7 +1268,7 @@ def test_rank2_distrib_stats(
     # Compute the statistics
     result = rank2_distrib_stats(cc_ref_list, cc_pred_list, worker_kwargs)
     assert isinstance(result, float)
-    assert result == 0.008230171666159913
+    assert result == 0.008230169304583868
 
 
 def test_hodge_laplacian_spectrum_worker(
@@ -1287,9 +1287,9 @@ def test_hodge_laplacian_spectrum_worker(
     result = hodge_laplacian_spectrum_worker(cc, d_min, d_max)
     assert isinstance(result, np.ndarray)
     assert result.shape == (F.shape[0],)
-    assert (
-        result
-        == np.array(
+    assert np.allclose(
+        result,
+        np.array(
             [
                 -2.1627358e-07,
                 -3.8018430e-12,
@@ -1303,8 +1303,8 @@ def test_hodge_laplacian_spectrum_worker(
                 4.6180339e00,
             ],
             dtype=np.float32,
-        )
-    ).all()
+        ),
+    )
 
 
 def test_hodge_laplacian_spectrum_stats(
