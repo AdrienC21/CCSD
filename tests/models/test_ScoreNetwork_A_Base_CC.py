@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""test_ScoreNetwork_A_CC.py: test functions for ScoreNetwork_A_CC.py
+"""test_ScoreNetwork_A_Base_CC.py: test functions for ScoreNetwork_A_Base_CC.py
 """
 
 from typing import Any, Dict, Tuple
@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 import torch
 
-from ccsd.src.models.ScoreNetwork_A_CC import ScoreNetworkA_CC
+from ccsd.src.models.ScoreNetwork_A_Base_CC import ScoreNetworkA_Base_CC
 from ccsd.src.utils.cc_utils import create_incidence_1_2
 
 # Initialize random seeds
@@ -66,7 +66,6 @@ def create_model_param_config() -> Dict[str, Any]:
         "adim": 4,
         "num_heads": 4,
         "conv": "GCN",
-        "conv_hodge": "HCN",
         "use_bn": False,
         "is_cc": True,
         "nhid_h": 4,
@@ -74,8 +73,7 @@ def create_model_param_config() -> Dict[str, Any]:
         "num_linears_h": 8,
         "c_hid_h": 64,
         "c_final_h": 32,
-        "adim_h": 4,
-        "num_heads_h": 4,
+        "hidden_h": 4,
     }
     return params
 
@@ -102,7 +100,6 @@ def create_model_param_config_v2() -> Dict[str, Any]:
         "adim": 2,
         "num_heads": 2,
         "conv": "GCN",
-        "conv_hodge": "HCN",
         "use_bn": False,
         "is_cc": True,
         "nhid_h": 2,
@@ -110,18 +107,17 @@ def create_model_param_config_v2() -> Dict[str, Any]:
         "num_linears_h": 2,
         "c_hid_h": 2,
         "c_final_h": 2,
-        "adim_h": 2,
-        "num_heads_h": 2,
+        "hidden_h": 2,
     }
     return params
 
 
-def test_ScoreNetworkA_CC(
+def test_ScoreNetworkA_Base_CC(
     create_matrices: Tuple[torch.Tensor, torch.Tensor, torch.Tensor],
     create_model_param_config: Dict[str, Any],
     create_model_param_config_v2: Dict[str, Any],
 ) -> None:
-    """Test the ScoreNetworkA_CC class.
+    """Test the ScoreNetworkA_Base_CC class.
 
     Args:
         create_matrices (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): node feature matrix, adjacency matrix, and rank2 incidence matrix
@@ -137,25 +133,25 @@ def test_ScoreNetworkA_CC(
     params = create_model_param_config
     params2 = create_model_param_config_v2
     # Test shape using the first configuration
-    model = ScoreNetworkA_CC(**params)
+    model = ScoreNetworkA_Base_CC(**params)
     model.eval()
     with torch.no_grad():
         out = model(x, adj, rank2)
     assert out.shape == (1, 5, 5)
 
     # Test value using the second configuration
-    model = ScoreNetworkA_CC(**params2)
+    model = ScoreNetworkA_Base_CC(**params2)
     model.eval()
     with torch.no_grad():
         out = model(x, adj, rank2)
     expected_out = torch.tensor(
         [
             [
-                [0.0000, -0.4076, -0.0986, -0.2765, -0.2761],
-                [-0.4076, 0.0000, -0.4024, -0.1000, -0.2555],
-                [-0.0986, -0.4024, 0.0000, -0.4017, -0.2513],
-                [-0.2765, -0.1000, -0.4017, 0.0000, -0.2741],
-                [-0.2761, -0.2555, -0.2513, -0.2741, 0.0000],
+                [0.0000, -0.3713, -0.8301, -0.4415, -0.5598],
+                [-0.3713, -0.0000, -0.3955, -0.7133, -0.4872],
+                [-0.8301, -0.3955, -0.0000, -0.5140, -0.6999],
+                [-0.4415, -0.7133, -0.5140, 0.0000, -0.5388],
+                [-0.5598, -0.4872, -0.6999, -0.5388, -0.0000],
             ]
         ]
     )

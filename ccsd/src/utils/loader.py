@@ -20,6 +20,7 @@ from torch.utils.data import DataLoader
 from ccsd.src.evaluation.mmd import gaussian, gaussian_emd, gaussian_tv
 from ccsd.src.losses import get_sde_loss_fn, get_sde_loss_fn_cc
 from ccsd.src.models.ScoreNetwork_A import ScoreNetworkA
+from ccsd.src.models.ScoreNetwork_A_Base_CC import ScoreNetworkA_Base_CC
 from ccsd.src.models.ScoreNetwork_A_CC import ScoreNetworkA_CC
 from ccsd.src.models.ScoreNetwork_F import ScoreNetworkF
 from ccsd.src.models.ScoreNetwork_X import ScoreNetworkX, ScoreNetworkX_GMH
@@ -87,13 +88,15 @@ def load_model(params: Dict[str, Any]) -> torch.nn.Module:
         model = ScoreNetworkX_GMH(**params_)
     elif model_type == "ScoreNetworkA":
         model = ScoreNetworkA(**params_)
+    elif model_type == "ScoreNetworkA_Base_CC":
+        model = ScoreNetworkA_Base_CC(**params_)
     elif model_type == "ScoreNetworkA_CC":
         model = ScoreNetworkA_CC(**params_)
     elif model_type == "ScoreNetworkF":
         model = ScoreNetworkF(**params_)
     else:
         raise ValueError(
-            f"Model Name <{model_type}> is unknown. Please select from [ScoreNetworkX, ScoreNetworkX_GMH, ScoreNetworkA, ScoreNetworkA_CC, ScoreNetworkF]"
+            f"Model Name <{model_type}> is unknown. Please select from [ScoreNetworkX, ScoreNetworkX_GMH, ScoreNetworkA, ScoreNetworkA_CC, ScoreNetworkA_Base_CC, ScoreNetworkF]"
         )
     return model
 
@@ -509,7 +512,7 @@ def load_model_params(
     }
     if not (is_cc):
         return params_x, params_adj
-    # If is_cc, also load rank-2 parameters and some additional parameters to params_adj if ScoreNetworkA_CC
+    # If is_cc, also load rank-2 parameters and some additional parameters to params_adj if ScoreNetworkA_CC or ScoreNetworkA_Base_CC
     d_min = config.data.d_min
     d_max = config.data.d_max
     if config_m.adj == "ScoreNetworkA_CC":
@@ -523,6 +526,15 @@ def load_model_params(
         params_adj["adim_h"] = config_m.adim_h
         params_adj["num_heads_h"] = config_m.num_heads_h
         params_adj["conv_hodge"] = config_m.conv_hodge
+    elif config_m.adj == "ScoreNetworkA_Base_CC":
+        params_adj["d_min"] = d_min
+        params_adj["d_max"] = d_max
+        params_adj["nhid_h"] = config_m.nhid_h
+        params_adj["num_layers_h"] = config_m.num_layers_h
+        params_adj["num_linears_h"] = config_m.num_linears_h
+        params_adj["c_hid_h"] = config_m.c_hid_h
+        params_adj["c_final_h"] = config_m.c_final_h
+        params_adj["hidden_h"] = config_m.hidden_h
     params_rank2 = {
         "is_cc": config.is_cc,
         "model_type": config_m.rank2,

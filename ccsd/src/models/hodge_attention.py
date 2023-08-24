@@ -46,7 +46,6 @@ class HodgeAttention(torch.nn.Module):
         self.attn_dim = attn_dim
         self.out_dim = out_dim
         self.conv = conv
-        self.softmax_dim = 2
 
         # Initialize the GNNs
         self.ccnn_q, self.ccnn_k, self.ccnn_v = self.get_ccnn(

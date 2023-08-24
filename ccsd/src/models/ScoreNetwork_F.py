@@ -140,7 +140,7 @@ class ScoreNetworkF(torch.nn.Module):
         )
         self.hodge_mask.unsqueeze_(0)
         self.mask = get_ones((self.rows, self.cols), device)
-        self.mask.unsqueeze_(0)
+        self.mask = self.mask.unsqueeze(0)
 
         # Initialize the parameters (glorot weights, zeros bias), default reset for batchnorm (if any)
         self.reset_parameters()

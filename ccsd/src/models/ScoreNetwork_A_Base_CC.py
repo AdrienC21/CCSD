@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""ScoreNetwork_A_CC.py: ScoreNetworkA_CC class.
+"""ScoreNetwork_A_Base_CC.py: ScoreNetworkA_Base_CC class.
 This is a ScoreNetwork model for the adjacency matrix A in the higher-order domain.
+This model is a baseline model for ablation studies.
 """
 
 from typing import Optional
@@ -11,14 +12,16 @@ import torch
 import torch.nn.functional as torch_func
 
 from ccsd.src.models.attention import AttentionLayer
-from ccsd.src.models.hodge_attention import HodgeAdjAttentionLayer
+from ccsd.src.models.hodge_layers import HodgeBaselineLayer
 from ccsd.src.models.layers import MLP
 from ccsd.src.utils.cc_utils import adj_to_hodgedual, default_mask, hodgedual_to_adj
 from ccsd.src.utils.graph_utils import mask_adjs, pow_tensor
 
 
-class ScoreNetworkA_CC(torch.nn.Module):
-    """ScoreNetworkA_CC to calculate the score with respect to the adjacency matrix A in the higher-order domain."""
+class ScoreNetworkA_Base_CC(torch.nn.Module):
+    """ScoreNetworkA_Base_CC to calculate the score with respect to the adjacency matrix A in the higher-order domain.
+    Baseline model for ablation studies. The HodgeAdjAttentionLayer layers are replaced by HodgeBaselineLayer layers.
+    """
 
     def __init__(
         self,
@@ -38,15 +41,13 @@ class ScoreNetworkA_CC(torch.nn.Module):
         c_final: int,
         c_final_h: int,
         adim: int,
-        adim_h: int,
+        hidden_h: int,
         num_heads: int = 4,
-        num_heads_h: int = 4,
         conv: str = "GCN",
-        conv_hodge: str = "HCN",
         use_bn: bool = False,
         is_cc: bool = True,
     ) -> None:
-        """Initialize the ScoreNetworkA_CC model.
+        """Initialize the ScoreNetworkA_Base_CC model.
 
         Args:
             max_feat_num (int): maximum number of node features
@@ -54,30 +55,28 @@ class ScoreNetworkA_CC(torch.nn.Module):
             d_min (int): minimum dimension of the rank-2 cells
             d_max (int): maximum dimension of the rank-2 cells
             nhid (int): number of hidden units in AttentionLayer layers
-            nhid_h (int): number of hidden units in HodgeAdjAttentionLayer layers
+            nhid_h (int): number of hidden units in HodgeBaselineLayer layers
             num_layers (int): number of AttentionLayer layers
-            num_layers_h (int): number of HodgeAdjAttentionLayer layers
+            num_layers_h (int): number of HodgeBaselineLayer layers
             num_linears (int): number of linear layers in the MLP of each AttentionLayer
-            num_linears_h (int): number of linear layers in the MLP of each HodgeAdjAttentionLayer
-            c_init (int): input dimension of the AttentionLayer and the HodgeAdjAttentionLayer
+            num_linears_h (int): number of linear layers in the MLP of each HodgeBaselineLayer
+            c_init (int): input dimension of the AttentionLayer and the HodgeBaselineLayer
                 (number of DenseGCNConv and DenseHCNConv)
                 Also the number of power iterations to "duplicate" the adjacency matrix
                 as an input
             c_hid (int): number of hidden units in the MLP of each AttentionLayer
-            c_hid_h (int): number of hidden units in the MLP of each HodgeAdjAttentionLayer
+            c_hid_h (int): number of hidden units in the MLP of each HodgeBaselineLayer
             c_final (int): output dimension of the MLP of the last AttentionLayer
-            c_final_h (int): output dimension of the MLP of the last HodgeAdjAttentionLayer
+            c_final_h (int): output dimension of the MLP of the last HodgeBaselineLayer
             adim (int): attention dimension for the AttentionLayer (except for the first layer).
-            adim_h (int): attention dimension for the HodgeAdjAttentionLayer (except for the first layer).
+            hidden_h (int): hidden dimension for the HodgeBaselineLayer (except for the first layer).
             num_heads (int, optional): number of heads for the Attention. Defaults to 4.
-            num_heads_h (int, optional): number of heads for the HodgeAdjAttention. Defaults to 4.
             conv (str, optional): type of convolutional layer, choose from [HCN, MLP]. Defaults to "GCN".
-            conv_hodge (str, optional): type of convolutional layer for the hodge layers, choose from [HCN, MLP]. Defaults to "HCN".
             use_bn (bool, optional): whether to use batch normalization in the MLP and the AttentionLayer(s). Defaults to False.
             is_cc (bool, optional): True if we generate combinatorial complexes. Defaults to True.
         """
 
-        super(ScoreNetworkA_CC, self).__init__()
+        super(ScoreNetworkA_Base_CC, self).__init__()
 
         # Initialize the parameters
         self.max_feat_num = max_feat_num
@@ -97,11 +96,9 @@ class ScoreNetworkA_CC(torch.nn.Module):
         self.c_final = c_final
         self.c_final_h = c_final_h
         self.adim = adim
-        self.adim_h = adim_h
+        self.hidden_h = hidden_h
         self.num_heads = num_heads
-        self.num_heads_h = num_heads_h
         self.conv = conv
-        self.conv_hodge = conv_hodge
         self.use_bn = use_bn
         self.is_cc = is_cc
 
@@ -151,12 +148,12 @@ class ScoreNetworkA_CC(torch.nn.Module):
                         self.use_bn,
                     )
                 )
-        # HodgeAdjAttentionLayer layers
+        # HodgeBaselineLayer layers
         self.layers_hodge = torch.nn.ModuleList()
         for k in range(self.num_layers_h):
             if not (k):  # first layer
                 self.layers_hodge.append(
-                    HodgeAdjAttentionLayer(
+                    HodgeBaselineLayer(
                         self.num_linears_h,
                         self.c_init,
                         self.nhid_h,
@@ -164,38 +161,32 @@ class ScoreNetworkA_CC(torch.nn.Module):
                         self.N,
                         self.d_min,
                         self.d_max,
-                        self.num_heads_h,
-                        self.conv_hodge,
                         self.use_bn,
                     )
                 )
             elif k == (self.num_layers_h - 1):  # last layer
                 self.layers_hodge.append(
-                    HodgeAdjAttentionLayer(
+                    HodgeBaselineLayer(
                         self.num_linears_h,
                         self.c_hid_h,
-                        self.adim_h,
+                        self.hidden_h,
                         self.c_final_h,
                         self.N,
                         self.d_min,
                         self.d_max,
-                        self.num_heads_h,
-                        self.conv_hodge,
                         self.use_bn,
                     )
                 )
             else:  # intermediate layers
                 self.layers_hodge.append(
-                    HodgeAdjAttentionLayer(
+                    HodgeBaselineLayer(
                         self.num_linears_h,
                         self.c_hid_h,
-                        self.adim_h,
+                        self.hidden_h,
                         self.c_hid_h,
                         self.N,
                         self.d_min,
                         self.d_max,
-                        self.num_heads_h,
-                        self.conv_hodge,
                         self.use_bn,
                     )
                 )
@@ -224,16 +215,18 @@ class ScoreNetworkA_CC(torch.nn.Module):
 
         # Pick the right forward function
         if not (self.is_cc):
-            raise ValueError("ScoreNetworkA_CC is only for combinatorial complexes")
+            raise ValueError(
+                "ScoreNetworkA_Base_CC is only for combinatorial complexes"
+            )
 
         # Reset the parameters
         self.reset_parameters()
 
     def __repr__(self) -> str:
-        """Representation of the ScoreNetworkA_CC model.
+        """Representation of the ScoreNetworkA_Base_CC model.
 
         Returns:
-            str: representation of the ScoreNetworkA_CC model
+            str: representation of the ScoreNetworkA_Base_CC model
         """
         return (
             f"{self.__class__.__name__}("
@@ -253,11 +246,9 @@ class ScoreNetworkA_CC(torch.nn.Module):
             f"c_final={self.c_final}, "
             f"c_final_h={self.c_final_h}, "
             f"adim={self.adim}, "
-            f"adim_h={self.adim_h}, "
+            f"hidden_h={self.hidden_h}, "
             f"num_heads={self.num_heads}, "
-            f"num_heads_h={self.num_heads_h}, "
             f"conv={self.conv}, "
-            f"conv_hodge={self.conv_hodge}, "
             f"use_bn={self.use_bn}, "
             f"is_cc={self.is_cc})"
         )
@@ -279,7 +270,7 @@ class ScoreNetworkA_CC(torch.nn.Module):
         rank2: torch.Tensor,
         flags: Optional[torch.Tensor] = None,
     ) -> torch.Tensor:
-        """Forward pass of the ScoreNetworkA_CC. Returns the score with respect to the adjacency matrix A.
+        """Forward pass of the ScoreNetworkA_Base_CC. Returns the score with respect to the adjacency matrix A.
 
         Args:
             x (torch.Tensor): node feature matrix

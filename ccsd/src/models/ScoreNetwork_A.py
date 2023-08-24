@@ -460,7 +460,7 @@ class ScoreNetworkA(torch.nn.Module):
         # Initialize the mask
         device = "cuda:0" if torch.cuda.is_available() else "cpu"
         self.mask = default_mask(self.max_node_num, device)
-        self.mask.unsqueeze_(0)
+        self.mask = self.mask.unsqueeze(0)
 
         # Pick the right forward function
         if not (self.is_cc):

@@ -5,6 +5,14 @@ is_cc: False
 data:
   data: QM9
   dir: './data'
+  min_node_val: 6
+  max_node_val: 9
+  node_label: "symbol"
+  min_edge_val: 1
+  max_edge_val: 3
+  edge_label: "bond_type"
+  d_min: 3
+  d_max: 9
 
 ckpt: gdss_qm9
 

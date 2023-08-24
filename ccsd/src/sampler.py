@@ -19,6 +19,7 @@ from ccsd.src.evaluation.stats import eval_graph_list
 from ccsd.src.utils.cc_utils import (
     cc_from_incidence,
     convert_CC_to_graphs,
+    convert_graphs_to_CCs,
     eval_CC_list,
     init_flags,
     load_cc_eval_settings,
@@ -113,10 +114,22 @@ class Sampler_Graph(Sampler):
         else:
             self.device_score = f"cuda:{self.device0}"
         self.n_samples = None
+        self.cc_nb_eval = None
+        # Worker kwargs for CC eval
+        self.worker_kwargs = {
+            "min_node_val": self.config.data.min_node_val,
+            "max_node_val": self.config.data.max_node_val,
+            "node_label": self.config.data.node_label,
+            "min_edge_val": self.config.data.min_edge_val,
+            "max_edge_val": self.config.data.max_edge_val,
+            "edge_label": self.config.data.edge_label,
+            "d_min": self.config.data.d_min,
+            "d_max": self.config.data.d_max,
+        }
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
-        return f"{self.__class__.__name__}(batch_size={self.config.data.batch_size})"
+        return f"{self.__class__.__name__}(batch_size={self.config.data.batch_size}, cc_nb_eval={self.cc_nb_eval})"
 
     def sample(self) -> None:
         """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates, saves and plot them."""
@@ -215,6 +228,39 @@ class Sampler_Graph(Sampler):
         result_dict_graph = eval_graph_list(
             self.test_graph_list, gen_graph_list, methods=methods, kernels=kernels
         )
+
+        # Eval lifted CCs from the graphs
+
+        # Lift the test graphs and generate graphs into CCs for evaluation
+        lifting_procedure = self.config.data.lifting_procedure
+        lifting_procedure_kwargs = self.config.data.lifting_procedure_kwargs
+        self.test_CC_list = convert_graphs_to_CCs(
+            self.test_graph_list,
+            is_molecule=False,
+            lifting_procedure=lifting_procedure,
+            lifting_procedure_kwargs=lifting_procedure_kwargs,
+        )
+        gen_CC_list = convert_graphs_to_CCs(
+            gen_graph_list,
+            is_molecule=False,
+            lifting_procedure=lifting_procedure,
+            lifting_procedure_kwargs=lifting_procedure_kwargs,
+        )  # same for the generated graphs
+
+        methods, kernels = load_cc_eval_settings()
+        result_dict_CC = eval_CC_list(
+            self.test_CC_list,
+            gen_CC_list,
+            worker_kwargs=self.worker_kwargs,
+            methods=methods,
+            kernels=kernels,
+            cc_nb_eval=self.cc_nb_eval,
+        )
+
+        logger.log(
+            f"CCs Eval @{self.cc_nb_eval} {result_dict_CC}", verbose=False
+        )  # verbose=False cause already printed
+
         logger.log(
             f"MMD_full {result_dict_graph}", verbose=False
         )  # verbose=False cause already printed
@@ -316,7 +362,18 @@ class Sampler_CC(Sampler):
         else:
             self.device_score = f"cuda:{self.device0}"
         self.n_samples = None
-        self.cc_nb_eval = self.config.sample.cc_nb_eval
+        self.cc_nb_eval = None
+        # Worker kwargs for CC eval
+        self.worker_kwargs = {
+            "min_node_val": self.config.data.min_node_val,
+            "max_node_val": self.config.data.max_node_val,
+            "node_label": self.config.data.node_label,
+            "min_edge_val": self.config.data.min_edge_val,
+            "max_edge_val": self.config.data.max_edge_val,
+            "edge_label": self.config.data.edge_label,
+            "d_min": self.config.data.d_min,
+            "d_max": self.config.data.d_max,
+        }
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -449,8 +506,7 @@ class Sampler_CC(Sampler):
         result_dict_CC = eval_CC_list(
             self.test_CC_list,
             gen_CC_list,
-            d_min=self.config.data.d_min,
-            d_max=self.config.data.d_max,
+            worker_kwargs=self.worker_kwargs,
             methods=methods,
             kernels=kernels,
             cc_nb_eval=self.cc_nb_eval,
@@ -582,10 +638,22 @@ class Sampler_mol_Graph(Sampler):
         else:
             self.device_score = f"cuda:{self.device0}"
         self.n_samples = self.config.sample.n_samples
+        self.cc_nb_eval = self.config.sample.cc_nb_eval
+        # Worker kwargs for CC eval
+        self.worker_kwargs = {
+            "min_node_val": self.config.data.min_node_val,
+            "max_node_val": self.config.data.max_node_val,
+            "node_label": self.config.data.node_label,
+            "min_edge_val": self.config.data.min_edge_val,
+            "max_edge_val": self.config.data.max_edge_val,
+            "edge_label": self.config.data.edge_label,
+            "d_min": self.config.data.d_min,
+            "d_max": self.config.data.d_max,
+        }
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
-        return f"{self.__class__.__name__}(n_samples={self.n_samples})"
+        return f"{self.__class__.__name__}(n_samples={self.n_samples}, cc_nb_eval={self.cc_nb_eval})"
 
     def sample(self) -> None:
         """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates and saves them."""
@@ -704,6 +772,27 @@ class Sampler_mol_Graph(Sampler):
         scores_nspdk = eval_graph_list(
             self.test_graph_list, gen_graph_list, methods=["nspdk"]
         )["nspdk"]
+
+        # Eval lifted CCs from the graphs
+
+        # Create test_CC_list based on test_graph_list via a conversion to molecules
+        test_mol_list = nxs_to_mols(self.test_graph_list)
+        self.test_CC_list = mols_to_cc(test_mol_list)
+        gen_CC_list = mols_to_cc(gen_mols)  # same for the generated molecules
+
+        methods, kernels = load_cc_eval_settings()
+        result_dict_CC = eval_CC_list(
+            self.test_CC_list,
+            gen_CC_list,
+            worker_kwargs=self.worker_kwargs,
+            methods=methods,
+            kernels=kernels,
+            cc_nb_eval=self.cc_nb_eval,
+        )
+
+        logger.log(
+            f"CCs Eval @{self.cc_nb_eval} {result_dict_CC}", verbose=False
+        )  # verbose=False cause already printed
 
         logger.log(f"Number of molecules: {num_mols}")
         logger.log(f"validity w/o correction: {num_mols_wo_correction / num_mols}")
@@ -903,6 +992,17 @@ class Sampler_mol_CC(Sampler):
             self.device_score = f"cuda:{self.device0}"
         self.n_samples = self.config.sample.n_samples
         self.cc_nb_eval = self.config.sample.cc_nb_eval
+        # Worker kwargs for CC eval
+        self.worker_kwargs = {
+            "min_node_val": self.config.data.min_node_val,
+            "max_node_val": self.config.data.max_node_val,
+            "node_label": self.config.data.node_label,
+            "min_edge_val": self.config.data.min_edge_val,
+            "max_edge_val": self.config.data.max_edge_val,
+            "edge_label": self.config.data.edge_label,
+            "d_min": self.config.data.d_min,
+            "d_max": self.config.data.d_max,
+        }
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -1049,8 +1149,7 @@ class Sampler_mol_CC(Sampler):
         result_dict_CC = eval_CC_list(
             self.test_CC_list,
             gen_CC_list,
-            d_min=self.config.data.d_min,
-            d_max=self.config.data.d_max,
+            worker_kwargs=self.worker_kwargs,
             methods=methods,
             kernels=kernels,
             cc_nb_eval=self.cc_nb_eval,

@@ -9,6 +9,12 @@ data:
   max_node_num: 9
   max_feat_num: 4
   init: atom
+  min_node_val: 6
+  max_node_val: 9
+  node_label: "symbol"
+  min_edge_val: 1
+  max_edge_val: 3
+  edge_label: "bond_type"
   d_min: 3
   d_max: 9
 
@@ -82,7 +88,7 @@ sampler:
 
 sample:
   n_samples: 10000  # param only for mol datasets
-  cc_nb_eval: 1000  # param only for cc datasets
+  cc_nb_eval: 10000  # param only for cc datasets
   use_ema: False
   noise_removal: True
   probability_flow: False

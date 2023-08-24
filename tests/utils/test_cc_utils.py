@@ -41,6 +41,8 @@ from ccsd.src.utils.cc_utils import (
     get_rank2_dim,
     get_rank2_flags,
     hodge_laplacian,
+    hodge_laplacian_spectrum_stats,
+    hodge_laplacian_spectrum_worker,
     hodgedual_to_adj,
     init_flags,
     is_empty_cc,
@@ -51,6 +53,10 @@ from ccsd.src.utils.cc_utils import (
     pad_rank2,
     path_based_lift_CC,
     pow_tensor_cc,
+    rank0_distrib_stats,
+    rank0_distrib_worker,
+    rank1_distrib_stats,
+    rank1_distrib_worker,
     rank2_distrib_stats,
     rank2_distrib_worker,
 )
@@ -188,16 +194,18 @@ def create_incidence_1_2_advanced_test() -> (
     """
     N = 5
     nb_feat = 10
+    max_node_feat = 3
     nb_adj_feat = 3
+    max_edge_feat = 5
     nb_rank2_feat = 4
     d_min = 3
     d_max = 4
 
-    X = np.array([[np.random.random() for _ in range(nb_feat)] for _ in range(N)])
+    X = np.array([[i % max_node_feat for i in range(nb_feat)] for _ in range(N)])
     X = torch.tensor(X, dtype=torch.float32)
     A = torch.zeros((N, N, nb_adj_feat), dtype=torch.float32)
-    for i, j in [(0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 0)]:
-        A[i, j] = torch.rand(nb_adj_feat)
+    for k, (i, j) in enumerate([(0, 1), (1, 2), (2, 3), (3, 0), (3, 4), (4, 0)]):
+        A[i, j] = torch.tensor([i % max_edge_feat for i in range(nb_adj_feat)])
         A[j, i] = A[i, j]
     random_val1, random_val2 = torch.rand(nb_rank2_feat), torch.rand(nb_rank2_feat)
     two_rank_cells = {
@@ -232,6 +240,35 @@ def create_incidence_1_2_test_tiny() -> Tuple[torch.Tensor, torch.Tensor, torch.
     for i, j in [(0, 1), (1, 2), (2, 3), (0, 3)]:
         A[i, j] = 1.0
         A[j, i] = 1.0
+    two_rank_cells = {frozenset((0, 1, 2)): {}, frozenset((2, 3)): {}}
+    F = create_incidence_1_2(N, A, d_min, d_max, two_rank_cells)
+    F = torch.tensor(F, dtype=torch.float32)
+    return (X, A, F)
+
+
+@pytest.fixture
+def create_incidence_1_2_test_tiny_v2() -> (
+    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+):
+    """Create incidence matrices for testing purposes.
+    Tiny version with smaller rank-2 incidence matrix.
+
+    Returns:
+        Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: incidence matrices
+    """
+    N = 4
+    nb_feat = 1
+    max_node_feat = 3
+    max_edge_feat = 2
+    d_min = 2
+    d_max = 3
+
+    X = np.array([[(i % max_node_feat) + 1 for _ in range(nb_feat)] for i in range(N)])
+    X = torch.tensor(X, dtype=torch.float32)
+    A = torch.zeros((N, N), dtype=torch.float32)
+    for k, (i, j) in enumerate([(0, 1), (1, 2), (2, 3), (0, 3)]):
+        A[i, j] = (k % max_edge_feat) + 1
+        A[j, i] = A[i, j]
     two_rank_cells = {frozenset((0, 1, 2)): {}, frozenset((2, 3)): {}}
     F = create_incidence_1_2(N, A, d_min, d_max, two_rank_cells)
     F = torch.tensor(F, dtype=torch.float32)
@@ -1043,6 +1080,139 @@ def test_is_empty_cc_non_empty_complex() -> None:
     assert is_empty_cc(cc) is False
 
 
+def test_rank0_distrib_worker(
+    create_incidence_1_2_test_tiny_v2: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+) -> None:
+    """Test rank0_distrib_worker on a CombinatorialComplex with rank-0 cells.
+
+    Args:
+        create_incidence_1_2_test_tiny_v2: A tuple of torch.Tensors representing the incidence matrices of a CombinatorialComplex.
+    """
+    X, A, F = create_incidence_1_2_test_tiny_v2
+    d_min = 2
+    d_max = 3
+    cc = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)
+
+    min_node_val = 1
+    max_node_val = 3
+    node_label = "label_0"
+
+    result = rank0_distrib_worker(cc, min_node_val, max_node_val, node_label)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (max_node_val - min_node_val + 1,)
+    assert np.all(result >= 0)
+    assert np.sum(result) == len(cc.cells.hyperedge_dict.get(0, {}))
+    assert (result == np.array([2.0, 1.0, 1.0])).all()
+
+
+def test_rank0_distrib_stats(
+    create_incidence_1_2_test_tiny_v2: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+) -> None:
+    """Test rank0_distrib_stats on a CombinatorialComplex with rank-0 cells.
+
+    Args:
+        create_incidence_1_2_test_tiny_v2 (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): A tuple of torch.Tensors
+    """
+    # Create some test CombinatorialComplex instances
+    X, A, F = create_incidence_1_2_test_tiny_v2
+    d_min = 2
+    d_max = 3
+    min_node_val = 1
+    max_node_val = 3
+    node_label = "label_0"
+    worker_kwargs = {
+        "min_node_val": min_node_val,
+        "max_node_val": max_node_val,
+        "node_label": node_label,
+    }
+    # CCs with different rank2_distrib:
+    cc1 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [2., 1., 1.]
+    cc2 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [1., 1., 2.]
+    cc3 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [1., 2., 1.]
+    cc4 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [2., 2., 0.]
+
+    # Modify some cells to the CombinatorialComplex instances
+    cc2.cells.hyperedge_dict[0][frozenset({0})] = {"label_0": 3.0}
+    cc3.cells.hyperedge_dict[0][frozenset({0})] = {"label_0": 2.0}
+    cc4.cells.hyperedge_dict[0][frozenset({2})] = {"label_0": 2.0}
+
+    # Create the lists of CombinatorialComplex instances
+    cc_ref_list = [cc1, cc2]
+    cc_pred_list = [cc3, cc4]
+
+    # Compute the statistics
+    result = rank0_distrib_stats(cc_ref_list, cc_pred_list, worker_kwargs)
+    assert isinstance(result, float)
+    assert result == 0.051227249875575476
+
+
+def test_rank1_distrib_worker(
+    create_incidence_1_2_test_tiny_v2: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+) -> None:
+    """Test rank1_distrib_worker on a CombinatorialComplex with rank-1 cells.
+
+    Args:
+        create_incidence_1_2_test_tiny_v2: A tuple of torch.Tensors representing the incidence matrices of a CombinatorialComplex.
+    """
+    X, A, F = create_incidence_1_2_test_tiny_v2
+    d_min = 2
+    d_max = 3
+    cc = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)
+
+    min_edge_val = 1
+    max_edge_val = 2
+    edge_label = "label"
+
+    result = rank1_distrib_worker(cc, min_edge_val, max_edge_val, edge_label)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (max_edge_val - min_edge_val + 1,)
+    assert np.all(result >= 0)
+    assert np.sum(result) == len(cc.cells.hyperedge_dict.get(1, {}))
+    assert (result == np.array([2.0, 2.0])).all()
+
+
+def test_rank1_distrib_stats(
+    create_incidence_1_2_test_tiny_v2: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+) -> None:
+    """Test rank1_distrib_stats on a CombinatorialComplex with rank-1 cells.
+
+    Args:
+        create_incidence_1_2_test_tiny_v2 (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): A tuple of torch.Tensors
+    """
+    # Create some test CombinatorialComplex instances
+    X, A, F = create_incidence_1_2_test_tiny_v2
+    d_min = 2
+    d_max = 3
+    min_edge_val = 1
+    max_edge_val = 2
+    edge_label = "label"
+    worker_kwargs = {
+        "min_edge_val": min_edge_val,
+        "max_edge_val": max_edge_val,
+        "edge_label": edge_label,
+    }
+    # CCs with different rank2_distrib:
+    cc1 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [2., 2.]
+    cc2 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [1., 3.]
+    cc3 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [3., 1.]
+    cc4 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [4., 0.]
+
+    # Modify some cells to the CombinatorialComplex instances
+    cc2.cells.hyperedge_dict[1][frozenset({0, 1})] = {"label": 2.0}
+    cc3.cells.hyperedge_dict[1][frozenset({0, 3})] = {"label": 1.0}
+    cc4.cells.hyperedge_dict[1][frozenset({0, 3})] = {"label": 1.0}
+    cc4.cells.hyperedge_dict[1][frozenset({1, 2})] = {"label": 1.0}
+
+    # Create the lists of CombinatorialComplex instances
+    cc_ref_list = [cc1, cc2]
+    cc_pred_list = [cc3, cc4]
+
+    # Compute the statistics
+    result = rank1_distrib_stats(cc_ref_list, cc_pred_list, worker_kwargs)
+    assert isinstance(result, float)
+    assert result == 0.22469991365907305
+
+
 def test_rank2_distrib_worker(
     create_incidence_1_2_test: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
 ) -> None:
@@ -1076,6 +1246,7 @@ def test_rank2_distrib_stats(
     X, A, F = create_incidence_1_2_test
     d_min = 3
     d_max = 4
+    worker_kwargs = {"d_min": d_min, "d_max": d_max}
     # CCs with different rank2_distrib:
     cc1 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [1., 1.]
     cc2 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [2., 1.]
@@ -1095,23 +1266,60 @@ def test_rank2_distrib_stats(
     cc_pred_list = [cc3, cc4]
 
     # Compute the statistics
-    result = rank2_distrib_stats(cc_ref_list, cc_pred_list, d_min, d_max)
+    result = rank2_distrib_stats(cc_ref_list, cc_pred_list, worker_kwargs)
     assert isinstance(result, float)
     assert result == 0.008230171666159913
 
 
-def test_eval_CC_list(
+def test_hodge_laplacian_spectrum_worker(
     create_incidence_1_2_test: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
 ) -> None:
-    """Test eval_CC_list with default methods and kernels.
+    """Test hodge_laplacian_spectrum_worker on a CombinatorialComplex with rank-2 cells.
 
     Args:
         create_incidence_1_2_test: A tuple of torch.Tensors representing the incidence matrices of a CombinatorialComplex.
+    """
+    X, A, F = create_incidence_1_2_test
+    d_min = 3
+    d_max = 4
+    cc = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)
+
+    result = hodge_laplacian_spectrum_worker(cc, d_min, d_max)
+    assert isinstance(result, np.ndarray)
+    assert result.shape == (F.shape[0],)
+    assert (
+        result
+        == np.array(
+            [
+                -2.1627358e-07,
+                -3.8018430e-12,
+                -1.7259639e-22,
+                0.0000000e00,
+                8.6718281e-20,
+                2.7654548e-15,
+                6.4728845e-09,
+                2.0459815e-07,
+                2.3819659e00,
+                4.6180339e00,
+            ],
+            dtype=np.float32,
+        )
+    ).all()
+
+
+def test_hodge_laplacian_spectrum_stats(
+    create_incidence_1_2_test: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+) -> None:
+    """Test hodge_laplacian_spectrum_stats on a CombinatorialComplex with rank-2 cells.
+
+    Args:
+        create_incidence_1_2_test (Tuple[torch.Tensor, torch.Tensor, torch.Tensor]): A tuple of torch.Tensors
     """
     # Create some test CombinatorialComplex instances
     X, A, F = create_incidence_1_2_test
     d_min = 3
     d_max = 4
+    worker_kwargs = {"d_min": d_min, "d_max": d_max}
     # CCs with different rank2_distrib:
     cc1 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [1., 1.]
     cc2 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [2., 1.]
@@ -1119,12 +1327,82 @@ def test_eval_CC_list(
     cc4 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [3., 2.]
 
     # Add some cells to the CombinatorialComplex instances
-    cc2.add_cell(frozenset((0, 1, 2)), rank=2)
-    cc3.add_cell(frozenset((0, 1, 2)), rank=2)
-    cc4.add_cell(frozenset((0, 1, 2)), rank=2)
-    cc3.add_cell(frozenset((0, 2, 3)), rank=2)
-    cc4.add_cell(frozenset((0, 2, 3)), rank=2)
-    cc4.add_cell(frozenset((1, 2, 3, 4)), rank=2)
+    cc2.add_cell(frozenset((0, 1, 2)), rank=2, **{"label": 1.0})
+    cc3.add_cell(frozenset((0, 1, 2)), rank=2, **{"label": 1.0})
+    cc4.add_cell(frozenset((0, 1, 2)), rank=2, **{"label": 1.0})
+    cc3.add_cell(frozenset((0, 2, 3)), rank=2, **{"label": 1.0})
+    cc4.add_cell(frozenset((0, 2, 3)), rank=2, **{"label": 1.0})
+    cc4.add_cell(frozenset((1, 2, 3, 4)), rank=2, **{"label": 1.0})
+
+    # Create the lists of CombinatorialComplex instances
+    cc_ref_list = [cc1, cc2]
+    cc_pred_list = [cc3, cc4]
+
+    # Compute the statistics
+    result = hodge_laplacian_spectrum_stats(cc_ref_list, cc_pred_list, worker_kwargs)
+    assert isinstance(result, float)
+    assert result == 0.06474705926004187
+
+
+def test_eval_CC_list(
+    create_incidence_1_2_test_tiny_v2: Tuple[torch.Tensor, torch.Tensor, torch.Tensor]
+) -> None:
+    """Test eval_CC_list with default methods and kernels.
+
+    Args:
+        create_incidence_1_2_test_tiny_v2: A tuple of torch.Tensors representing the incidence matrices of a CombinatorialComplex.
+    """
+    # Create some test CombinatorialComplex instances
+    X, A, F = create_incidence_1_2_test_tiny_v2
+    d_min = 2
+    d_max = 3
+
+    min_node_val = 1
+    max_node_val = 3
+    node_label = "label_0"
+    min_edge_val = 1
+    max_edge_val = 2
+    edge_label = "label"
+    worker_kwargs = {
+        "min_node_val": min_node_val,
+        "max_node_val": max_node_val,
+        "node_label": node_label,
+        "min_edge_val": min_edge_val,
+        "max_edge_val": max_edge_val,
+        "edge_label": edge_label,
+        "d_min": d_min,
+        "d_max": d_max,
+    }
+
+    # CCs with different rank0_distrib, rank1_distrib, rank2_distrib, hodge_laplacian_spectrum:
+    cc1 = cc_from_incidence(
+        [X, A, F], d_min=d_min, d_max=d_max
+    )  # [2., 1., 1.], [2., 2.], [1., 1.]
+    cc2 = cc_from_incidence(
+        [X, A, F], d_min=d_min, d_max=d_max
+    )  # [1., 1., 2.], [1., 3.], [2., 1.]
+    cc3 = cc_from_incidence(
+        [X, A, F], d_min=d_min, d_max=d_max
+    )  # [1., 2., 1.], [3., 1.], [3., 1.]
+    cc4 = cc_from_incidence(
+        [X, A, F], d_min=d_min, d_max=d_max
+    )  # [2., 2., 0.], [4., 0.], [3., 1.]
+
+    # Add some cells to the CombinatorialComplex instances
+    cc2.cells.hyperedge_dict[0][frozenset({0})] = {"label_0": 3.0}
+    cc3.cells.hyperedge_dict[0][frozenset({0})] = {"label_0": 2.0}
+    cc4.cells.hyperedge_dict[0][frozenset({2})] = {"label_0": 2.0}
+
+    cc2.cells.hyperedge_dict[1][frozenset({0, 1})] = {"label": 2.0}
+    cc3.cells.hyperedge_dict[1][frozenset({0, 3})] = {"label": 1.0}
+    cc4.cells.hyperedge_dict[1][frozenset({0, 3})] = {"label": 1.0}
+    cc4.cells.hyperedge_dict[1][frozenset({1, 2})] = {"label": 1.0}
+
+    cc2.add_cell(frozenset((0, 1)), rank=2, **{"label": 1.0})
+    cc3.add_cell(frozenset((0, 1)), rank=2, **{"label": 1.0})
+    cc4.add_cell(frozenset((0, 1)), rank=2, **{"label": 1.0})
+    cc3.add_cell(frozenset((1, 2)), rank=2, **{"label": 1.0})
+    cc4.add_cell(frozenset((1, 2)), rank=2, **{"label": 1.0})
 
     # Create the lists of CombinatorialComplex instances
     cc_ref_list = [cc1, cc2]
@@ -1134,25 +1412,42 @@ def test_eval_CC_list(
     result = eval_CC_list(
         cc_ref_list,
         cc_pred_list,
-        d_min,
-        d_max,
-        methods=["rank2_distrib"],
+        worker_kwargs=worker_kwargs,
+        methods=[
+            "rank0_distrib",
+            "rank1_distrib",
+            "rank2_distrib",
+            "hodge_laplacian_spectrum",
+        ],
         kernels={
+            "rank0_distrib": gaussian_emd,
+            "rank1_distrib": gaussian_emd,
             "rank2_distrib": gaussian_emd,
+            "hodge_laplacian_spectrum": gaussian_emd,
         },
     )
     assert isinstance(result, dict)
+    assert "rank0_distrib" in result
+    assert "rank1_distrib" in result
     assert "rank2_distrib" in result
+    assert "hodge_laplacian_spectrum" in result
+    assert isinstance(result["rank0_distrib"], float)
+    assert isinstance(result["rank1_distrib"], float)
     assert isinstance(result["rank2_distrib"], float)
-    assert result["rank2_distrib"] == 0.00823  # statistics round to 6 digits
+    assert isinstance(result["hodge_laplacian_spectrum"], float)
+    assert result["rank0_distrib"] == 0.051227  # statistics round to 6 digits
+    assert result["rank1_distrib"] == 0.2247  # statistics round to 6 digits
+    assert result["rank2_distrib"] == 0.027336  # statistics round to 6 digits
+    assert (
+        result["hodge_laplacian_spectrum"] == 0.044606
+    )  # statistics round to 6 digits
 
     # Try calling the function with an invalid method
     with pytest.raises(KeyError):
         eval_CC_list(
             cc_ref_list,
             cc_pred_list,
-            d_min,
-            d_max,
+            worker_kwargs=worker_kwargs,
             methods=["invalid_method"],
             kernels={},
         )
@@ -1164,9 +1459,17 @@ def test_load_cc_eval_settings() -> None:
     methods, kernels = load_cc_eval_settings()
 
     # Define the expected values for methods and kernels
-    expected_methods = ["rank2_distrib"]
+    expected_methods = [
+        "rank0_distrib",
+        "rank1_distrib",
+        "rank2_distrib",
+        "hodge_laplacian_spectrum",
+    ]
     expected_kernels = {
+        "rank0_distrib": gaussian_emd,
+        "rank1_distrib": gaussian_emd,
         "rank2_distrib": gaussian_emd,
+        "hodge_laplacian_spectrum": gaussian_emd,
     }
 
     # Check if the returned values match the expected values

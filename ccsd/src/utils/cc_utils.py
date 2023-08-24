@@ -369,7 +369,7 @@ def CC_to_incidence_matrices(
         d_max (Optional[int]): maximum size of rank-2 cells. If not provided, calculated from the CC
 
     Returns:
-        List[np.ndarray]: list of incidence matrices
+        List[np.ndarray]: list of incidence matrices [X, A, F]
     """
 
     if not (CC.cells.hyperedge_dict):  # empty CC
@@ -789,13 +789,18 @@ def convert_CC_to_graphs(
 
 
 def convert_graphs_to_CCs(
-    graphs: List[nx.Graph], is_molecule: bool = False
+    graphs: List[nx.Graph],
+    is_molecule: bool = False,
+    lifting_procedure: Optional[str] = None,
+    lifting_procedure_kwargs: Optional[Dict[Any, Any]] = None,
 ) -> List[CombinatorialComplex]:
     """Convert a list of graphs to a list of combinatorial complexes (of dimension 1).
 
     Args:
         graphs (List[nx.Graph]): list of graphs
         is_molecule (bool, optional): whether the graphs are molecules. Defaults to False.
+        lifting_procedure (Optional[str], optional): lifting procedure to use. Defaults to None.
+        lifting_procedure_kwargs (Optional[Dict[Any, Any]], optional): kwargs for the lifting procedure. Defaults to None.
 
     Returns:
         List[CombinatorialComplex]: list of combinatorial complexes
@@ -816,6 +821,14 @@ def convert_graphs_to_CCs(
                 attr["bond_type"] = float(attr["label"])
                 del attr["label"]
             CC.add_cell(edge, rank=1, **attr)
+
+        if lifting_procedure is not None:  # lift to higher order
+            if lifting_procedure == "path_based":
+                CC = path_based_lift_CC(CC, **lifting_procedure_kwargs)
+            else:
+                raise NotImplementedError(
+                    f"Lifting procedure {lifting_procedure} not implemented"
+                )
         ccs.append(CC)
     return ccs
 
@@ -931,15 +944,232 @@ def is_empty_cc(cc: CombinatorialComplex) -> bool:
     return cc.number_of_cells() == 0
 
 
+def rank0_distrib_worker(
+    CC: CombinatorialComplex,
+    min_node_val: int,
+    max_node_val: int,
+    node_label: str = "label",
+) -> np.ndarray:
+    """Function for computing the rank-0 cell value histogram of a combinatorial complex.
+    Values are converted to integers.
+
+    Args:
+        CC (CombinatorialComplex): combinatorial complex
+        min_node_val (int): minimum node value
+        max_node_val (int): maximum node value
+        node_label (str, optional): node label, where is stored the value in the CC. Defaults to "label".
+
+    Returns:
+        np.ndarray: rank-0 cell histogram
+    """
+    rank0_cells = CC.cells.hyperedge_dict.get(0, {})
+    rank0_distrib = np.zeros(max_node_val - min_node_val + 1)
+    for cell in rank0_cells:
+        val = int(rank0_cells[cell][node_label])
+        if (min_node_val <= val) and (val <= max_node_val):
+            rank0_distrib[val - min_node_val] += 1
+    return rank0_distrib
+
+
+def rank0_distrib_stats(
+    cc_ref_list: List[CombinatorialComplex],
+    cc_pred_list: List[CombinatorialComplex],
+    worker_kwargs: Dict[str, Any],
+    kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
+    is_parallel: bool = True,
+    debug_mode: bool = False,
+) -> float:
+    """Compute the MMD distance between the rank-0 cells' values distributions of two unordered sets of combinatorial complexes.
+
+    Args:
+        cc_ref_list (List[CombinatorialComplex]): reference list of toponetx combinatorial complexes to be evaluated
+        cc_pred_list (List[CombinatorialComplex]): target list of toponetx combinatorial complexes to be evaluated
+        worker_kwargs (Dict[str, Any]): kwargs for the worker function
+        kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
+        is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
+        debug_mode (bool, optional): if True, print debug information when is_parallel is set to True. Defaults to False.
+
+    Returns:
+        float: MMD distance
+    """
+    # Extract kwargs
+    min_node_val = worker_kwargs["min_node_val"]
+    max_node_val = worker_kwargs["max_node_val"]
+    node_label = worker_kwargs["node_label"]
+
+    sample_ref = []
+    sample_pred = []
+    # Remove empty CCs if generated
+    cc_pred_list_remove_empty = [cc for cc in cc_pred_list if not is_empty_cc(cc)]
+
+    prev = datetime.now()
+    if is_parallel:
+        if debug_mode:
+            print("Start parallel computing for rank0 distrib mmd reference objects")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(
+                lambda cc: rank0_distrib_worker(
+                    cc, min_node_val, max_node_val, node_label
+                ),
+                cc_ref_list,
+            )
+            try:
+                for rank0_distrib_hist in results:
+                    sample_ref.append(rank0_distrib_hist)
+            except Exception as e:
+                raise e
+        if debug_mode:
+            print("Start parallel computing for rank2 distrib mmd predicted objects")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(
+                lambda cc: rank0_distrib_worker(
+                    cc, min_node_val, max_node_val, node_label
+                ),
+                cc_pred_list_remove_empty,
+            )
+            try:
+                for rank0_distrib_hist in results:
+                    sample_pred.append(rank0_distrib_hist)
+            except Exception as e:
+                raise e
+    else:
+        for i in range(len(cc_ref_list)):
+            rank0_distrib_temp = rank0_distrib_worker(
+                cc_ref_list[i], min_node_val, max_node_val, node_label
+            )
+            sample_ref.append(rank0_distrib_temp)
+        for i in range(len(cc_pred_list_remove_empty)):
+            rank0_distrib_temp = rank0_distrib_worker(
+                cc_pred_list_remove_empty[i], min_node_val, max_node_val, node_label
+            )
+            sample_pred.append(rank0_distrib_temp)
+    # Compute MMD
+    mmd_dist = compute_mmd(sample_ref, sample_pred, kernel=kernel)
+    elapsed = datetime.now() - prev
+    if PRINT_TIME:
+        print("Time computing rank0 mmd: ", elapsed)
+    return mmd_dist
+
+
+def rank1_distrib_worker(
+    CC: CombinatorialComplex,
+    min_edge_val: int,
+    max_edge_val: int,
+    edge_label: str = "label",
+) -> np.ndarray:
+    """Function for computing the rank-1 cell value histogram of a combinatorial complex.
+    Values are converted to integers.
+
+    Args:
+        CC (CombinatorialComplex): combinatorial complex
+        min_edge_val (int): minimum edge value
+        max_edge_val (int): maximum edge value
+        edge_label (str, optional): edge label, where is stored the value in the CC. Defaults to "label".
+
+    Returns:
+        np.ndarray: rank-1 cell histogram
+    """
+    rank1_cells = CC.cells.hyperedge_dict.get(1, {})
+    rank1_distrib = np.zeros(max_edge_val - min_edge_val + 1)
+    for cell in rank1_cells:
+        val = int(rank1_cells[cell][edge_label])
+        if (min_edge_val <= val) and (val <= max_edge_val):
+            rank1_distrib[val - min_edge_val] += 1
+    return rank1_distrib
+
+
+def rank1_distrib_stats(
+    cc_ref_list: List[CombinatorialComplex],
+    cc_pred_list: List[CombinatorialComplex],
+    worker_kwargs: Dict[str, Any],
+    kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
+    is_parallel: bool = True,
+    debug_mode: bool = False,
+) -> float:
+    """Compute the MMD distance between the rank-1 cells' values distributions of two unordered sets of combinatorial complexes.
+
+    Args:
+        cc_ref_list (List[CombinatorialComplex]): reference list of toponetx combinatorial complexes to be evaluated
+        cc_pred_list (List[CombinatorialComplex]): target list of toponetx combinatorial complexes to be evaluated
+        worker_kwargs (Dict[str, Any]): kwargs for the worker function
+        kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
+        is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
+        debug_mode (bool, optional): if True, print debug information when is_parallel is set to True. Defaults to False.
+
+    Returns:
+        float: MMD distance
+    """
+    # Extract kwargs
+    min_edge_val = worker_kwargs["min_edge_val"]
+    max_edge_val = worker_kwargs["max_edge_val"]
+    edge_label = worker_kwargs["edge_label"]
+
+    sample_ref = []
+    sample_pred = []
+    # Remove empty CCs if generated
+    cc_pred_list_remove_empty = [cc for cc in cc_pred_list if not is_empty_cc(cc)]
+
+    prev = datetime.now()
+    if is_parallel:
+        if debug_mode:
+            print("Start parallel computing for rank0 distrib mmd reference objects")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(
+                lambda cc: rank1_distrib_worker(
+                    cc, min_edge_val, max_edge_val, edge_label
+                ),
+                cc_ref_list,
+            )
+            try:
+                for rank1_distrib_hist in results:
+                    sample_ref.append(rank1_distrib_hist)
+            except Exception as e:
+                raise e
+        if debug_mode:
+            print("Start parallel computing for rank2 distrib mmd predicted objects")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(
+                lambda cc: rank1_distrib_worker(
+                    cc, min_edge_val, max_edge_val, edge_label
+                ),
+                cc_pred_list_remove_empty,
+            )
+            try:
+                for rank1_distrib_hist in results:
+                    sample_pred.append(rank1_distrib_hist)
+            except Exception as e:
+                raise e
+    else:
+        for i in range(len(cc_ref_list)):
+            rank1_distrib_temp = rank1_distrib_worker(
+                cc_ref_list[i], min_edge_val, max_edge_val, edge_label
+            )
+            sample_ref.append(rank1_distrib_temp)
+        for i in range(len(cc_pred_list_remove_empty)):
+            rank1_distrib_temp = rank1_distrib_worker(
+                cc_pred_list_remove_empty[i], min_edge_val, max_edge_val, edge_label
+            )
+            sample_pred.append(rank1_distrib_temp)
+    # Compute MMD
+    mmd_dist = compute_mmd(sample_ref, sample_pred, kernel=kernel)
+    elapsed = datetime.now() - prev
+    if PRINT_TIME:
+        print("Time computing rank1 mmd: ", elapsed)
+    return mmd_dist
+
+
 def rank2_distrib_worker(
     CC: CombinatorialComplex, d_min: int, d_max: int
 ) -> np.ndarray:
     """Function for computing the rank-2 cell histogram of a combinatorial complex.
 
-    Returns:
-        np.ndarray: rank-2 cell histogram
+    Args:
+        CC (CombinatorialComplex): combinatorial complex
         d_min (int): minimum dimension of the rank-2 cells
         d_max (int): maximum dimension of the rank-2 cells
+
+    Returns:
+        np.ndarray: rank-2 cell histogram
     """
     rank2_cells = CC.cells.hyperedge_dict.get(2, {})
     rank2_distrib = np.zeros(d_max - d_min + 1)
@@ -953,19 +1183,17 @@ def rank2_distrib_worker(
 def rank2_distrib_stats(
     cc_ref_list: List[CombinatorialComplex],
     cc_pred_list: List[CombinatorialComplex],
-    d_min: int,
-    d_max: int,
+    worker_kwargs: Dict[str, Any],
     kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
     is_parallel: bool = True,
     debug_mode: bool = False,
 ) -> float:
-    """Compute the MMD distance between the nummber of rank-2 cells distributions of two unordered sets of combinatorial complexes.
+    """Compute the MMD distance between the number of rank-2 cells distributions of two unordered sets of combinatorial complexes.
 
     Args:
         cc_ref_list (List[CombinatorialComplex]): reference list of toponetx combinatorial complexes to be evaluated
         cc_pred_list (List[CombinatorialComplex]): target list of toponetx combinatorial complexes to be evaluated
-        d_min (int): minimum dimension of the rank-2 cells
-        d_max (int): maximum dimension of the rank-2 cells
+        worker_kwargs (Dict[str, Any]): kwargs for the worker function
         kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
         is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
         debug_mode (bool, optional): if True, print debug information when is_parallel is set to True. Defaults to False.
@@ -973,6 +1201,9 @@ def rank2_distrib_stats(
     Returns:
         float: MMD distance
     """
+    # Extract kwargs
+    d_min = worker_kwargs["d_min"]
+    d_max = worker_kwargs["d_max"]
 
     sample_ref = []
     sample_pred = []
@@ -1017,21 +1248,116 @@ def rank2_distrib_stats(
     mmd_dist = compute_mmd(sample_ref, sample_pred, kernel=kernel)
     elapsed = datetime.now() - prev
     if PRINT_TIME:
-        print("Time computing degree mmd: ", elapsed)
+        print("Time computing rank2 mmd: ", elapsed)
+    return mmd_dist
+
+
+def hodge_laplacian_spectrum_worker(
+    CC: CombinatorialComplex, d_min: int, d_max: int
+) -> np.ndarray:
+    """Function for computing the rank-2 cell histogram of a combinatorial complex.
+
+    Args:
+        CC (CombinatorialComplex): combinatorial complex
+        d_min (int): minimum dimension of the rank-2 cells
+        d_max (int): maximum dimension of the rank-2 cells
+
+    Returns:
+        np.ndarray: rank-2 cell histogram
+    """
+    _, _, F = CC_to_incidence_matrices(CC, d_min, d_max)
+    H = hodge_laplacian(torch.tensor(F, dtype=torch.float32))
+    return torch.linalg.eigvalsh(H).numpy()
+
+
+def hodge_laplacian_spectrum_stats(
+    cc_ref_list: List[CombinatorialComplex],
+    cc_pred_list: List[CombinatorialComplex],
+    worker_kwargs: Dict[str, Any],
+    kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
+    is_parallel: bool = True,
+    debug_mode: bool = False,
+) -> float:
+    """Compute the MMD distance between the hodge laplacian eigenvalues distributions of two unordered sets of combinatorial complexes.
+
+    Args:
+        cc_ref_list (List[CombinatorialComplex]): reference list of toponetx combinatorial complexes to be evaluated
+        cc_pred_list (List[CombinatorialComplex]): target list of toponetx combinatorial complexes to be evaluated
+        worker_kwargs (Dict[str, Any]): kwargs for the worker function
+        kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
+        is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
+        debug_mode (bool, optional): if True, print debug information when is_parallel is set to True. Defaults to False.
+
+    Returns:
+        float: MMD distance
+    """
+    # Extract kwargs
+    d_min = worker_kwargs["d_min"]
+    d_max = worker_kwargs["d_max"]
+
+    sample_ref = []
+    sample_pred = []
+    # Remove empty CCs if generated
+    cc_pred_list_remove_empty = [cc for cc in cc_pred_list if not is_empty_cc(cc)]
+
+    prev = datetime.now()
+    if is_parallel:
+        if debug_mode:
+            print("Start parallel computing for rank2 distrib mmd reference objects")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(
+                lambda cc: hodge_laplacian_spectrum_worker(cc, d_min, d_max),
+                cc_ref_list,
+            )
+            try:
+                for hodge_laplacian_spectrum_hist in results:
+                    sample_ref.append(hodge_laplacian_spectrum_hist)
+            except Exception as e:
+                raise e
+        if debug_mode:
+            print("Start parallel computing for rank2 distrib mmd predicted objects")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(
+                lambda cc: hodge_laplacian_spectrum_worker(cc, d_min, d_max),
+                cc_pred_list_remove_empty,
+            )
+            try:
+                for hodge_laplacian_spectrum_hist in results:
+                    sample_pred.append(hodge_laplacian_spectrum_hist)
+            except Exception as e:
+                raise e
+    else:
+        for i in range(len(cc_ref_list)):
+            hodge_laplacian_spectrum_temp = hodge_laplacian_spectrum_worker(
+                cc_ref_list[i], d_min, d_max
+            )
+            sample_ref.append(hodge_laplacian_spectrum_temp)
+        for i in range(len(cc_pred_list_remove_empty)):
+            hodge_laplacian_spectrum_temp = hodge_laplacian_spectrum_worker(
+                cc_pred_list_remove_empty[i], d_min, d_max
+            )
+            sample_pred.append(hodge_laplacian_spectrum_temp)
+    # Compute MMD
+    mmd_dist = compute_mmd(sample_ref, sample_pred, kernel=kernel)
+    elapsed = datetime.now() - prev
+    if PRINT_TIME:
+        print("Time computing hodge laplacian spectrum mmd: ", elapsed)
     return mmd_dist
 
 
 # Dictionary mapping method names to functions to compute different MMD distances
 CC_METHOD_NAME_TO_FUNC = {
+    "rank0_distrib": rank0_distrib_stats,
+    "rank1_distrib": rank1_distrib_stats,
     "rank2_distrib": rank2_distrib_stats,
+    "hodge_laplacian_spectrum": hodge_laplacian_spectrum_stats,
 }
 
 
 def eval_CC_list(
     cc_ref_list: List[CombinatorialComplex],
     cc_pred_list: List[CombinatorialComplex],
-    d_min: int,
-    d_max: int,
+    worker_kwargs: Dict[str, Any],
     methods: Optional[List[str]] = None,
     kernels: Optional[Dict[str, Callable[[np.ndarray, np.ndarray], float]]] = None,
     cc_nb_eval: Optional[int] = 1000,
@@ -1041,8 +1367,7 @@ def eval_CC_list(
     Args:
         cc_ref_list (List[CombinatorialComplex]): reference list of toponetx combinatorial complexes to be evaluated
         cc_pred_list (List[CombinatorialComplex]): target list of toponetx combinatorial complexes to be evaluated
-        d_min (int): minimum dimension of the rank-2 cells
-        d_max (int): maximum dimension of the rank-2 cells
+        worker_kwargs (Dict[str, Any]): kwargs for the worker functions
         methods (Optional[List[str]], optional): methods to be evaluated. Defaults to None.
         kernels (Optional[Dict[str, Callable[[np.ndarray, np.ndarray], float]]], optional): kernels to be used for each methods. Defaults to None.
         cc_nb_eval (Optional[int], optional): number of reference and predicted combinatorial complexes to be evaluated. If set to None, evaluate on the entire dataset. Defaults to 1000.
@@ -1050,8 +1375,15 @@ def eval_CC_list(
     Returns:
         Dict[str, float]: dictionary mapping method names to their corresponding scores
     """
-    if methods is None:  # by default, evaluate the methods ["rank2_distrib"]
-        methods = ["rank2_distrib"]
+    if (
+        methods is None
+    ):  # by default, evaluate the methods ["rank0_distrib", "rank1_distrib", "rank2_distrib", "hodge_laplacian_spectrum"]
+        methods = [
+            "rank0_distrib",
+            "rank1_distrib",
+            "rank2_distrib",
+            "hodge_laplacian_spectrum",
+        ]
     results = {}
     cc_ref_list_eval = (
         cc_ref_list[:cc_nb_eval] if cc_nb_eval is not None else cc_ref_list
@@ -1063,7 +1395,7 @@ def eval_CC_list(
         print(f"Evaluating method: {method} ({method_id+1}/{len(methods)}) ...")
         results[method] = round(
             CC_METHOD_NAME_TO_FUNC[method](
-                cc_ref_list_eval, cc_pred_list_eval, d_min, d_max, kernels[method]
+                cc_ref_list_eval, cc_pred_list_eval, worker_kwargs, kernels[method]
             ),
             6,
         )
@@ -1088,11 +1420,19 @@ def load_cc_eval_settings() -> (
     Returns:
         Tuple[List[str], Dict[str, Callable[[np.ndarray, np.ndarray], float]]]: methods and kernels to be used for evaluating combinatorial complexes
     """
-    # Methods to use (from [rank2_distrib], see utils/cc_utils.py)
-    methods = ["rank2_distrib"]
+    # Methods to use (from ["rank0_distrib", "rank1_distrib", "rank2_distrib", "hodge_laplacian_spectrum"], see utils/cc_utils.py)
+    methods = [
+        "rank0_distrib",
+        "rank1_distrib",
+        "rank2_distrib",
+        "hodge_laplacian_spectrum",
+    ]
     # Kernels to use for each method (from [gaussian, gaussian_emd, gaussian_tv], see evaluation/mmd.py)
     kernels = {
+        "rank0_distrib": gaussian_emd,
+        "rank1_distrib": gaussian_emd,
         "rank2_distrib": gaussian_emd,
+        "hodge_laplacian_spectrum": gaussian_emd,
     }
     return methods, kernels
 

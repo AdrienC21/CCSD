@@ -382,7 +382,7 @@ from ccsd.diffusion import CCSD
 
 params = {
   "type": "train",
-  "config": "qm9_cc",
+  "config": "qm9_CC",
   "folder": "./",  # optional
   "comment": "test experiment",  # optional
   "seed": 42  # optional

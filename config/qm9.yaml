@@ -9,6 +9,14 @@ data:
   max_node_num: 9
   max_feat_num: 4
   init: atom
+  min_node_val: 6
+  max_node_val: 9
+  node_label: "symbol"
+  min_edge_val: 1
+  max_edge_val: 3
+  edge_label: "bond_type"
+  d_min: 3  # for lifted CC
+  d_max: 9  # for lifted CC
 
 sde:
   x:
