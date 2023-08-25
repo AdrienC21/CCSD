@@ -49,7 +49,7 @@ jobs:
           pip install -r requirements.txt
       - name: Install sphinx and requirements
         run: |
-          pip install sphinx
+          pip install sphinx==7.1.2
           pip install -r docs/requirements.txt
       - name: Install Pandoc [apt-get]
         run: |
