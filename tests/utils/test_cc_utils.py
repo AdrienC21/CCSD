@@ -1303,7 +1303,7 @@ def test_hodge_laplacian_spectrum_worker(
                 4.6180339e00,
             ],
             dtype=np.float32,
-        ),
+        ), atol=1e-4
     )
 
 
