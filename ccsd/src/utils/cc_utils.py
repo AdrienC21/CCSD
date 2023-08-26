@@ -960,7 +960,13 @@ def hodge_laplacian_spectrum_worker(
     X, _, F = CC_to_incidence_matrices(CC, d_min, d_max)
     if F.size:
         H = hodge_laplacian(torch.tensor(F, dtype=torch.float32))
-        return torch.linalg.eigvalsh(H).numpy()
+        try:
+            return torch.linalg.eigvalsh(H, "L").numpy()
+        except Exception as _:
+            try:
+                return torch.linalg.eigvalsh(H, "U").numpy()
+            except Exception as _:
+                return np.zeros((F.shape[-2],), dtype=np.float32)
     else:
         n = X.shape[-2]
         return np.zeros((n,), dtype=np.float32)

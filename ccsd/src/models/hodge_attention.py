@@ -141,7 +141,7 @@ class HodgeAttention(torch.nn.Module):
         ],
         Callable[[torch.Tensor, torch.Tensor], torch.Tensor],
     ]:
-        """Initialize the three CCNNs
+        """Initialize the HCNs
 
         Args:
             in_dim (int): input dimension
