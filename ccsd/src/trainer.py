@@ -518,8 +518,10 @@ class Trainer_CC(Trainer):
                     "time": perf_counter() - t_start,
                     "test_x_loss": mean_test_x,
                     "test_adj_loss": mean_test_adj,
+                    "test_rank2_loss": mean_test_rank2,
                     "train_x_loss": mean_train_x,
                     "train_adj_loss": mean_train_adj,
+                    "train_rank2_loss": mean_train_rank2,
                 }
             )
 
