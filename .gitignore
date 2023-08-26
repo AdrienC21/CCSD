@@ -166,3 +166,5 @@ checkpoints/*
 checkpoints/QM9/*.ckpt
 !checkpoints/QM9/ccsd_qm9_CC_test.pth
 !checkpoints/QM9/gdss_qm9.pth
+!checkpoints/QM9/ccsd_qm9_CC.pth
+!checkpoints/QM9/gdss_qm9_retrained.pth
