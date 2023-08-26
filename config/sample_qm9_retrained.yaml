@@ -14,7 +14,7 @@ data:
   d_min: 3
   d_max: 9
 
-ckpt: gdss_qm9
+ckpt: gdss_qm9_retrained
 
 sampler:
   predictor: Reverse
