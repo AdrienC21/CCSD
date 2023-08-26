@@ -1426,7 +1426,8 @@ def load_cc_eval_settings() -> (
     """
     # Methods to use (from ["hodge_laplacian_spectrum", "rank0_distrib", "rank1_distrib", "rank2_distrib"], see utils/cc_utils.py)
     methods = [
-        "hodge_laplacian_spectrum" "rank0_distrib",
+        "hodge_laplacian_spectrum",
+        "rank0_distrib",
         "rank1_distrib",
         "rank2_distrib",
     ]
