@@ -5,6 +5,7 @@ is_cc: True
 data:
   data: QM9
   dir: './data'
+  max_node_num: 9
   min_node_val: 6
   max_node_val: 9
   node_label: "symbol"
