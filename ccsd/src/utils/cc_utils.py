@@ -1265,9 +1265,13 @@ def hodge_laplacian_spectrum_worker(
     Returns:
         np.ndarray: rank-2 cell histogram
     """
-    _, _, F = CC_to_incidence_matrices(CC, d_min, d_max)
-    H = hodge_laplacian(torch.tensor(F, dtype=torch.float32))
-    return torch.linalg.eigvalsh(H).numpy()
+    X, _, F = CC_to_incidence_matrices(CC, d_min, d_max)
+    if F.size:
+        H = hodge_laplacian(torch.tensor(F, dtype=torch.float32))
+        return torch.linalg.eigvalsh(H).numpy()
+    else:
+        n = X.shape[-2]
+        return torch.zeros((n,), dtype=torch.float32, device=F.device)
 
 
 def hodge_laplacian_spectrum_stats(
