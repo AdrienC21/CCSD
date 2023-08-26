@@ -1284,7 +1284,7 @@ def test_hodge_laplacian_spectrum_worker(
     d_max = 4
     cc = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)
 
-    result = hodge_laplacian_spectrum_worker(cc, d_min, d_max)
+    result = hodge_laplacian_spectrum_worker(cc, d_min, d_max, A.shape[-2])
     assert isinstance(result, np.ndarray)
     assert result.shape == (F.shape[0],)
     assert np.allclose(
@@ -1320,7 +1320,7 @@ def test_hodge_laplacian_spectrum_stats(
     X, A, F = create_incidence_1_2_test
     d_min = 3
     d_max = 4
-    worker_kwargs = {"d_min": d_min, "d_max": d_max}
+    worker_kwargs = {"d_min": d_min, "d_max": d_max, "N": A.shape[-2]}
     # CCs with different rank2_distrib:
     cc1 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [1., 1.]
     cc2 = cc_from_incidence([X, A, F], d_min=d_min, d_max=d_max)  # [2., 1.]
@@ -1358,6 +1358,7 @@ def test_eval_CC_list(
     d_min = 2
     d_max = 3
 
+    N = A.shape[-2]
     min_node_val = 1
     max_node_val = 3
     node_label = "label_0"
@@ -1373,6 +1374,7 @@ def test_eval_CC_list(
         "edge_label": edge_label,
         "d_min": d_min,
         "d_max": d_max,
+        "N": N,
     }
 
     # CCs with different hodge_laplacian_spectrum, rank0_distrib, rank1_distrib, rank2_distrib:
