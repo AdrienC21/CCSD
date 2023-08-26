@@ -10,6 +10,7 @@ from datetime import datetime
 from functools import lru_cache
 from itertools import combinations
 from math import comb
+from time import perf_counter
 from typing import Any, Callable, Dict, FrozenSet, List, Optional, Set, Tuple, Union
 
 import networkx as nx
@@ -359,7 +360,10 @@ def mols_to_cc(mols: List[Chem.Mol]) -> List[CombinatorialComplex]:
 
 
 def CC_to_incidence_matrices(
-    CC: CombinatorialComplex, d_min: Optional[int], d_max: Optional[int]
+    CC: CombinatorialComplex,
+    d_min: Optional[int],
+    d_max: Optional[int],
+    N: Optional[int] = None,
 ) -> List[np.ndarray]:
     """Convert a combinatorial complex to a list of incidence matrices.
 
@@ -367,6 +371,8 @@ def CC_to_incidence_matrices(
         CC (CombinatorialComplex): combinatorial complex
         d_min (Optional[int]): minimum size of rank-2 cells. If not provided, calculated from the CC
         d_max (Optional[int]): maximum size of rank-2 cells. If not provided, calculated from the CC
+        N (Optional[int], optional): maximum number of nodes. If not provided, calculated from the CC. Defaults to None.
+            This parameter is here just in case but it is better to not use it and to pad the matrices with the correct functions.
 
     Returns:
         List[np.ndarray]: list of incidence matrices [X, A, F]
@@ -377,7 +383,8 @@ def CC_to_incidence_matrices(
 
     # Nodes
     nodes = CC.cells.hyperedge_dict[0]
-    N = len(nodes)
+    if N is None:
+        N = len(nodes)
     if not (nodes):
         f = 1
     else:
@@ -958,9 +965,11 @@ def hodge_laplacian_spectrum_worker(
     Returns:
         np.ndarray: rank-2 cell histogram
     """
-    X, _, F = CC_to_incidence_matrices(CC, d_min, d_max)
+    _, _, F = CC_to_incidence_matrices(CC, d_min, d_max)
     if F.size:
-        H = hodge_laplacian(torch.tensor(F, dtype=torch.float32))
+        # Pad first to get the correct number of nodes
+        padded_F = pad_rank2(F, node_number=N, d_min=d_min, d_max=d_max)
+        H = hodge_laplacian(torch.tensor(padded_F, dtype=torch.float32))
         try:
             return torch.linalg.eigvalsh(H, "L").numpy()
         except Exception as _:
@@ -1405,6 +1414,7 @@ def eval_CC_list(
     )
     for method_id, method in enumerate(methods):
         print(f"Evaluating method: {method} ({method_id+1}/{len(methods)}) ...")
+        top = perf_counter()
         results[method] = round(
             CC_METHOD_NAME_TO_FUNC[method](
                 cc_ref_list_eval, cc_pred_list_eval, worker_kwargs, kernels[method]
@@ -1420,6 +1430,7 @@ def eval_CC_list(
             + f"{results[method]:.6f}"
             + "\033[0m"
         )
+        print(f"Time elapsed: {round(perf_counter() - top, 3)}s")
     return results
 
 

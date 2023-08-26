@@ -11,6 +11,7 @@ import os
 import random
 import subprocess as sp
 from datetime import datetime
+from time import perf_counter
 from typing import Callable, Dict, List, Optional, Tuple
 
 import networkx as nx
@@ -505,6 +506,7 @@ def eval_graph_list(
     results = {}
     for method_id, method in enumerate(methods):
         print(f"Evaluating method: {method} ({method_id+1}/{len(methods)}) ...")
+        top = perf_counter()
         if (
             method == "nspdk"
         ):  # nspdk requires a different function signature as there is no kernel as input
@@ -527,6 +529,7 @@ def eval_graph_list(
             + f"{results[method]:.6f}"
             + "\033[0m"
         )
+        print(f"Time elapsed: {round(perf_counter() - top, 3)}s")
     return results
 
 
