@@ -963,7 +963,7 @@ def hodge_laplacian_spectrum_worker(
         return torch.linalg.eigvalsh(H).numpy()
     else:
         n = X.shape[-2]
-        return torch.zeros((n,), dtype=torch.float32, device=F.device)
+        return np.zeros((n,), dtype=np.float32)
 
 
 def hodge_laplacian_spectrum_stats(
