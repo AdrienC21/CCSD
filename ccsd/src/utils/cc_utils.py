@@ -944,6 +944,103 @@ def is_empty_cc(cc: CombinatorialComplex) -> bool:
     return cc.number_of_cells() == 0
 
 
+def hodge_laplacian_spectrum_worker(
+    CC: CombinatorialComplex, d_min: int, d_max: int
+) -> np.ndarray:
+    """Function for computing the rank-2 cell histogram of a combinatorial complex.
+
+    Args:
+        CC (CombinatorialComplex): combinatorial complex
+        d_min (int): minimum dimension of the rank-2 cells
+        d_max (int): maximum dimension of the rank-2 cells
+
+    Returns:
+        np.ndarray: rank-2 cell histogram
+    """
+    X, _, F = CC_to_incidence_matrices(CC, d_min, d_max)
+    if F.size:
+        H = hodge_laplacian(torch.tensor(F, dtype=torch.float32))
+        return torch.linalg.eigvalsh(H).numpy()
+    else:
+        n = X.shape[-2]
+        return torch.zeros((n,), dtype=torch.float32, device=F.device)
+
+
+def hodge_laplacian_spectrum_stats(
+    cc_ref_list: List[CombinatorialComplex],
+    cc_pred_list: List[CombinatorialComplex],
+    worker_kwargs: Dict[str, Any],
+    kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
+    is_parallel: bool = True,
+    debug_mode: bool = False,
+) -> float:
+    """Compute the MMD distance between the hodge laplacian eigenvalues distributions of two unordered sets of combinatorial complexes.
+
+    Args:
+        cc_ref_list (List[CombinatorialComplex]): reference list of toponetx combinatorial complexes to be evaluated
+        cc_pred_list (List[CombinatorialComplex]): target list of toponetx combinatorial complexes to be evaluated
+        worker_kwargs (Dict[str, Any]): kwargs for the worker function
+        kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
+        is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
+        debug_mode (bool, optional): if True, print debug information when is_parallel is set to True. Defaults to False.
+
+    Returns:
+        float: MMD distance
+    """
+    # Extract kwargs
+    d_min = worker_kwargs["d_min"]
+    d_max = worker_kwargs["d_max"]
+
+    sample_ref = []
+    sample_pred = []
+    # Remove empty CCs if generated
+    cc_pred_list_remove_empty = [cc for cc in cc_pred_list if not is_empty_cc(cc)]
+
+    prev = datetime.now()
+    if is_parallel:
+        if debug_mode:
+            print("Start parallel computing for rank2 distrib mmd reference objects")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(
+                lambda cc: hodge_laplacian_spectrum_worker(cc, d_min, d_max),
+                cc_ref_list,
+            )
+            try:
+                for hodge_laplacian_spectrum_hist in results:
+                    sample_ref.append(hodge_laplacian_spectrum_hist)
+            except Exception as e:
+                raise e
+        if debug_mode:
+            print("Start parallel computing for rank2 distrib mmd predicted objects")
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            results = executor.map(
+                lambda cc: hodge_laplacian_spectrum_worker(cc, d_min, d_max),
+                cc_pred_list_remove_empty,
+            )
+            try:
+                for hodge_laplacian_spectrum_hist in results:
+                    sample_pred.append(hodge_laplacian_spectrum_hist)
+            except Exception as e:
+                raise e
+    else:
+        for i in range(len(cc_ref_list)):
+            hodge_laplacian_spectrum_temp = hodge_laplacian_spectrum_worker(
+                cc_ref_list[i], d_min, d_max
+            )
+            sample_ref.append(hodge_laplacian_spectrum_temp)
+        for i in range(len(cc_pred_list_remove_empty)):
+            hodge_laplacian_spectrum_temp = hodge_laplacian_spectrum_worker(
+                cc_pred_list_remove_empty[i], d_min, d_max
+            )
+            sample_pred.append(hodge_laplacian_spectrum_temp)
+    # Compute MMD
+    mmd_dist = compute_mmd(sample_ref, sample_pred, kernel=kernel)
+    elapsed = datetime.now() - prev
+    if PRINT_TIME:
+        print("Time computing hodge laplacian spectrum mmd: ", elapsed)
+    return mmd_dist
+
+
 def rank0_distrib_worker(
     CC: CombinatorialComplex,
     min_node_val: int,
@@ -1252,109 +1349,12 @@ def rank2_distrib_stats(
     return mmd_dist
 
 
-def hodge_laplacian_spectrum_worker(
-    CC: CombinatorialComplex, d_min: int, d_max: int
-) -> np.ndarray:
-    """Function for computing the rank-2 cell histogram of a combinatorial complex.
-
-    Args:
-        CC (CombinatorialComplex): combinatorial complex
-        d_min (int): minimum dimension of the rank-2 cells
-        d_max (int): maximum dimension of the rank-2 cells
-
-    Returns:
-        np.ndarray: rank-2 cell histogram
-    """
-    X, _, F = CC_to_incidence_matrices(CC, d_min, d_max)
-    if F.size:
-        H = hodge_laplacian(torch.tensor(F, dtype=torch.float32))
-        return torch.linalg.eigvalsh(H).numpy()
-    else:
-        n = X.shape[-2]
-        return torch.zeros((n,), dtype=torch.float32, device=F.device)
-
-
-def hodge_laplacian_spectrum_stats(
-    cc_ref_list: List[CombinatorialComplex],
-    cc_pred_list: List[CombinatorialComplex],
-    worker_kwargs: Dict[str, Any],
-    kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian_emd,
-    is_parallel: bool = True,
-    debug_mode: bool = False,
-) -> float:
-    """Compute the MMD distance between the hodge laplacian eigenvalues distributions of two unordered sets of combinatorial complexes.
-
-    Args:
-        cc_ref_list (List[CombinatorialComplex]): reference list of toponetx combinatorial complexes to be evaluated
-        cc_pred_list (List[CombinatorialComplex]): target list of toponetx combinatorial complexes to be evaluated
-        worker_kwargs (Dict[str, Any]): kwargs for the worker function
-        kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian_emd.
-        is_parallel (bool, optional): if True, do parallel computing. Defaults to True.
-        debug_mode (bool, optional): if True, print debug information when is_parallel is set to True. Defaults to False.
-
-    Returns:
-        float: MMD distance
-    """
-    # Extract kwargs
-    d_min = worker_kwargs["d_min"]
-    d_max = worker_kwargs["d_max"]
-
-    sample_ref = []
-    sample_pred = []
-    # Remove empty CCs if generated
-    cc_pred_list_remove_empty = [cc for cc in cc_pred_list if not is_empty_cc(cc)]
-
-    prev = datetime.now()
-    if is_parallel:
-        if debug_mode:
-            print("Start parallel computing for rank2 distrib mmd reference objects")
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = executor.map(
-                lambda cc: hodge_laplacian_spectrum_worker(cc, d_min, d_max),
-                cc_ref_list,
-            )
-            try:
-                for hodge_laplacian_spectrum_hist in results:
-                    sample_ref.append(hodge_laplacian_spectrum_hist)
-            except Exception as e:
-                raise e
-        if debug_mode:
-            print("Start parallel computing for rank2 distrib mmd predicted objects")
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = executor.map(
-                lambda cc: hodge_laplacian_spectrum_worker(cc, d_min, d_max),
-                cc_pred_list_remove_empty,
-            )
-            try:
-                for hodge_laplacian_spectrum_hist in results:
-                    sample_pred.append(hodge_laplacian_spectrum_hist)
-            except Exception as e:
-                raise e
-    else:
-        for i in range(len(cc_ref_list)):
-            hodge_laplacian_spectrum_temp = hodge_laplacian_spectrum_worker(
-                cc_ref_list[i], d_min, d_max
-            )
-            sample_ref.append(hodge_laplacian_spectrum_temp)
-        for i in range(len(cc_pred_list_remove_empty)):
-            hodge_laplacian_spectrum_temp = hodge_laplacian_spectrum_worker(
-                cc_pred_list_remove_empty[i], d_min, d_max
-            )
-            sample_pred.append(hodge_laplacian_spectrum_temp)
-    # Compute MMD
-    mmd_dist = compute_mmd(sample_ref, sample_pred, kernel=kernel)
-    elapsed = datetime.now() - prev
-    if PRINT_TIME:
-        print("Time computing hodge laplacian spectrum mmd: ", elapsed)
-    return mmd_dist
-
-
 # Dictionary mapping method names to functions to compute different MMD distances
 CC_METHOD_NAME_TO_FUNC = {
+    "hodge_laplacian_spectrum": hodge_laplacian_spectrum_stats,
     "rank0_distrib": rank0_distrib_stats,
     "rank1_distrib": rank1_distrib_stats,
     "rank2_distrib": rank2_distrib_stats,
-    "hodge_laplacian_spectrum": hodge_laplacian_spectrum_stats,
 }
 
 
@@ -1381,12 +1381,12 @@ def eval_CC_list(
     """
     if (
         methods is None
-    ):  # by default, evaluate the methods ["rank0_distrib", "rank1_distrib", "rank2_distrib", "hodge_laplacian_spectrum"]
+    ):  # by default, evaluate the methods ["hodge_laplacian_spectrum", "rank0_distrib", "rank1_distrib", "rank2_distrib"]
         methods = [
+            "hodge_laplacian_spectrum",
             "rank0_distrib",
             "rank1_distrib",
             "rank2_distrib",
-            "hodge_laplacian_spectrum",
         ]
     results = {}
     cc_ref_list_eval = (
@@ -1424,19 +1424,18 @@ def load_cc_eval_settings() -> (
     Returns:
         Tuple[List[str], Dict[str, Callable[[np.ndarray, np.ndarray], float]]]: methods and kernels to be used for evaluating combinatorial complexes
     """
-    # Methods to use (from ["rank0_distrib", "rank1_distrib", "rank2_distrib", "hodge_laplacian_spectrum"], see utils/cc_utils.py)
+    # Methods to use (from ["hodge_laplacian_spectrum", "rank0_distrib", "rank1_distrib", "rank2_distrib"], see utils/cc_utils.py)
     methods = [
-        "rank0_distrib",
+        "hodge_laplacian_spectrum" "rank0_distrib",
         "rank1_distrib",
         "rank2_distrib",
-        "hodge_laplacian_spectrum",
     ]
     # Kernels to use for each method (from [gaussian, gaussian_emd, gaussian_tv], see evaluation/mmd.py)
     kernels = {
+        "hodge_laplacian_spectrum": gaussian_emd,
         "rank0_distrib": gaussian_emd,
         "rank1_distrib": gaussian_emd,
         "rank2_distrib": gaussian_emd,
-        "hodge_laplacian_spectrum": gaussian_emd,
     }
     return methods, kernels
 

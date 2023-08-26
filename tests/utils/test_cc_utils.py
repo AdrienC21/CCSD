@@ -1375,7 +1375,7 @@ def test_eval_CC_list(
         "d_max": d_max,
     }
 
-    # CCs with different rank0_distrib, rank1_distrib, rank2_distrib, hodge_laplacian_spectrum:
+    # CCs with different hodge_laplacian_spectrum, rank0_distrib, rank1_distrib, rank2_distrib:
     cc1 = cc_from_incidence(
         [X, A, F], d_min=d_min, d_max=d_max
     )  # [2., 1., 1.], [2., 2.], [1., 1.]
@@ -1415,33 +1415,33 @@ def test_eval_CC_list(
         cc_pred_list,
         worker_kwargs=worker_kwargs,
         methods=[
+            "hodge_laplacian_spectrum",
             "rank0_distrib",
             "rank1_distrib",
             "rank2_distrib",
-            "hodge_laplacian_spectrum",
         ],
         kernels={
+            "hodge_laplacian_spectrum": gaussian_emd,
             "rank0_distrib": gaussian_emd,
             "rank1_distrib": gaussian_emd,
             "rank2_distrib": gaussian_emd,
-            "hodge_laplacian_spectrum": gaussian_emd,
         },
     )
     assert isinstance(result, dict)
+    assert "hodge_laplacian_spectrum" in result
     assert "rank0_distrib" in result
     assert "rank1_distrib" in result
     assert "rank2_distrib" in result
-    assert "hodge_laplacian_spectrum" in result
+    assert isinstance(result["hodge_laplacian_spectrum"], float)
     assert isinstance(result["rank0_distrib"], float)
     assert isinstance(result["rank1_distrib"], float)
     assert isinstance(result["rank2_distrib"], float)
-    assert isinstance(result["hodge_laplacian_spectrum"], float)
-    assert result["rank0_distrib"] == 0.051227  # statistics round to 6 digits
-    assert result["rank1_distrib"] == 0.2247  # statistics round to 6 digits
-    assert result["rank2_distrib"] == 0.027336  # statistics round to 6 digits
     assert (
         result["hodge_laplacian_spectrum"] == 0.044606
     )  # statistics round to 6 digits
+    assert result["rank0_distrib"] == 0.051227  # statistics round to 6 digits
+    assert result["rank1_distrib"] == 0.2247  # statistics round to 6 digits
+    assert result["rank2_distrib"] == 0.027336  # statistics round to 6 digits
 
     # Try calling the function with an invalid method
     with pytest.raises(KeyError):
@@ -1461,16 +1461,16 @@ def test_load_cc_eval_settings() -> None:
 
     # Define the expected values for methods and kernels
     expected_methods = [
+        "hodge_laplacian_spectrum",
         "rank0_distrib",
         "rank1_distrib",
         "rank2_distrib",
-        "hodge_laplacian_spectrum",
     ]
     expected_kernels = {
+        "hodge_laplacian_spectrum": gaussian_emd,
         "rank0_distrib": gaussian_emd,
         "rank1_distrib": gaussian_emd,
         "rank2_distrib": gaussian_emd,
-        "hodge_laplacian_spectrum": gaussian_emd,
     }
 
     # Check if the returned values match the expected values
