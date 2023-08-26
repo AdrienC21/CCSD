@@ -125,6 +125,7 @@ class Sampler_Graph(Sampler):
             "edge_label": self.config.data.edge_label,
             "d_min": self.config.data.d_min,
             "d_max": self.config.data.d_max,
+            "N": self.config.data.max_node_num,
         }
 
     def __repr__(self) -> str:
@@ -373,6 +374,7 @@ class Sampler_CC(Sampler):
             "edge_label": self.config.data.edge_label,
             "d_min": self.config.data.d_min,
             "d_max": self.config.data.d_max,
+            "N": self.config.data.max_node_num,
         }
 
     def __repr__(self) -> str:
@@ -649,6 +651,7 @@ class Sampler_mol_Graph(Sampler):
             "edge_label": self.config.data.edge_label,
             "d_min": self.config.data.d_min,
             "d_max": self.config.data.d_max,
+            "N": self.config.data.max_node_num,
         }
 
     def __repr__(self) -> str:
@@ -1002,6 +1005,7 @@ class Sampler_mol_CC(Sampler):
             "edge_label": self.config.data.edge_label,
             "d_min": self.config.data.d_min,
             "d_max": self.config.data.d_max,
+            "N": self.config.data.max_node_num,
         }
 
     def __repr__(self) -> str:

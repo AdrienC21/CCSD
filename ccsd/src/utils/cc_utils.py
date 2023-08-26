@@ -945,7 +945,7 @@ def is_empty_cc(cc: CombinatorialComplex) -> bool:
 
 
 def hodge_laplacian_spectrum_worker(
-    CC: CombinatorialComplex, d_min: int, d_max: int
+    CC: CombinatorialComplex, d_min: int, d_max: int, N: int
 ) -> np.ndarray:
     """Function for computing the rank-2 cell histogram of a combinatorial complex.
 
@@ -953,6 +953,7 @@ def hodge_laplacian_spectrum_worker(
         CC (CombinatorialComplex): combinatorial complex
         d_min (int): minimum dimension of the rank-2 cells
         d_max (int): maximum dimension of the rank-2 cells
+        N (int): maximum number of nodes
 
     Returns:
         np.ndarray: rank-2 cell histogram
@@ -968,8 +969,8 @@ def hodge_laplacian_spectrum_worker(
             except Exception as _:
                 return np.zeros((F.shape[-2],), dtype=np.float32)
     else:
-        n = X.shape[-2]
-        return np.zeros((n,), dtype=np.float32)
+        nb_edges = (N * (N - 1)) // 2
+        return np.zeros((nb_edges,), dtype=np.float32)
 
 
 def hodge_laplacian_spectrum_stats(
@@ -996,6 +997,7 @@ def hodge_laplacian_spectrum_stats(
     # Extract kwargs
     d_min = worker_kwargs["d_min"]
     d_max = worker_kwargs["d_max"]
+    N = worker_kwargs["N"]
 
     sample_ref = []
     sample_pred = []
@@ -1008,7 +1010,7 @@ def hodge_laplacian_spectrum_stats(
             print("Start parallel computing for rank2 distrib mmd reference objects")
         with concurrent.futures.ThreadPoolExecutor() as executor:
             results = executor.map(
-                lambda cc: hodge_laplacian_spectrum_worker(cc, d_min, d_max),
+                lambda cc: hodge_laplacian_spectrum_worker(cc, d_min, d_max, N),
                 cc_ref_list,
             )
             try:
@@ -1020,7 +1022,7 @@ def hodge_laplacian_spectrum_stats(
             print("Start parallel computing for rank2 distrib mmd predicted objects")
         with concurrent.futures.ThreadPoolExecutor() as executor:
             results = executor.map(
-                lambda cc: hodge_laplacian_spectrum_worker(cc, d_min, d_max),
+                lambda cc: hodge_laplacian_spectrum_worker(cc, d_min, d_max, N),
                 cc_pred_list_remove_empty,
             )
             try:
@@ -1031,12 +1033,12 @@ def hodge_laplacian_spectrum_stats(
     else:
         for i in range(len(cc_ref_list)):
             hodge_laplacian_spectrum_temp = hodge_laplacian_spectrum_worker(
-                cc_ref_list[i], d_min, d_max
+                cc_ref_list[i], d_min, d_max, N
             )
             sample_ref.append(hodge_laplacian_spectrum_temp)
         for i in range(len(cc_pred_list_remove_empty)):
             hodge_laplacian_spectrum_temp = hodge_laplacian_spectrum_worker(
-                cc_pred_list_remove_empty[i], d_min, d_max
+                cc_pred_list_remove_empty[i], d_min, d_max, N
             )
             sample_pred.append(hodge_laplacian_spectrum_temp)
     # Compute MMD
