@@ -40,7 +40,7 @@ sde:
 
 model:
   x: ScoreNetworkX
-  adj: ScoreNetworkA_CC
+  adj: ScoreNetworkA_Base_CC
   rank2: ScoreNetworkF
   conv: GCN
   num_heads: 4
@@ -56,14 +56,13 @@ model:
   cnum: 2  # only for cc and ScoreNetworkF
   num_layers_mlp: 1  # only for cc and ScoreNetworkF
   use_hodge_mask: True  # only for cc and ScoreNetworkF
-  conv_hodge: HCN  # only for cc and ScoreNetworkA_CC
-  nhid_h: 4 # only for cc and ScoreNetworkA_CC
-  num_layers_h: 2  # only for cc and ScoreNetworkA_CC
-  num_linears_h: 2  # only for cc and ScoreNetworkA_CC
-  c_hid_h: 4  # only for cc and ScoreNetworkA_CC
-  c_final_h: 2  # only for cc and ScoreNetworkA_CC
-  adim_h: 4  # only for cc and ScoreNetworkA_CC
-  num_heads_h: 2  # only for cc and ScoreNetworkA_CC
+  conv_hodge: HCN  # only for cc and ScoreNetworkA_Base_CC
+  nhid_h: 8 # only for cc and ScoreNetworkA_Base_CC
+  num_layers_h: 2  # only for cc and ScoreNetworkA_Base_CC
+  num_linears_h: 2  # only for cc and ScoreNetworkA_Base_CC
+  c_hid_h: 8  # only for cc and ScoreNetworkA_Base_CC
+  c_final_h: 8  # only for cc and ScoreNetworkA_Base_CC
+  hidden_h: 8  # only for cc and ScoreNetworkA_Base_CC
   
 train:
   name: test
