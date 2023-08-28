@@ -1,0 +1,94 @@
+# Description: Configuration file for the ZINC250k dataset with combinatorial complexes using CCSD Baseline
+
+is_cc: True
+
+data:
+  data: ZINC250k
+  dir: './data'
+  batch_size: 1024
+  max_node_num: 38
+  max_feat_num: 9
+  init: atom
+  min_node_val: 6
+  max_node_val: 53
+  node_label: symbol
+  min_edge_val: 1
+  max_edge_val: 3
+  edge_label: bond_type
+  d_min: 3
+  d_max: 24
+
+sde:
+  x: 
+    type: VP
+    beta_min: 0.1
+    beta_max: 1.0
+    num_scales: 1000
+  adj:
+    type: VE
+    beta_min: 0.2
+    beta_max: 1.0
+    num_scales: 1000
+  rank2:
+    type: VE
+    beta_min: 0.1
+    beta_max: 1.0
+    num_scales: 1000
+
+model:
+  x: ScoreNetworkX
+  adj: ScoreNetworkA_Base_CC
+  rank2: ScoreNetworkF
+  conv: GCN
+  num_heads: 2
+  depth: 2
+  adim: 4
+  nhid: 2
+  num_layers: 2
+  num_linears: 2
+  c_init: 2
+  c_hid: 2
+  c_final: 2
+  use_bn: False
+  cnum: 2  # only for cc and ScoreNetworkF
+  num_layers_mlp: 1  # only for cc and ScoreNetworkF
+  use_hodge_mask: True  # only for cc and ScoreNetworkF
+  conv_hodge: HCN  # only for cc and ScoreNetworkA_Base_CC
+  nhid_h: 2 # only for cc and ScoreNetworkA_Base_CC
+  num_layers_h: 1  # only for cc and ScoreNetworkA_Base_CC
+  num_linears_h: 1  # only for cc and ScoreNetworkA_Base_CC
+  c_hid_h: 2  # only for cc and ScoreNetworkA_Base_CC
+  c_final_h: 2  # only for cc and ScoreNetworkA_Base_CC
+  hidden_h: 2  # only for cc and ScoreNetworkA_Base_CC
+
+train:
+  name: test
+  num_epochs: 500
+  save_interval: 100
+  print_interval: 50
+  reduce_mean: False
+  lr: 0.005
+  lr_schedule: True
+  ema: 0.999
+  weight_decay: 0.0001
+  grad_norm: 1.0
+  lr_decay: 0.999
+  eps: 1.0e-5
+
+# Sampling after the training
+
+sampler:
+  predictor: Reverse
+  corrector: Langevin
+  snr: 0.2
+  scale_eps: 0.9
+  n_steps: 1
+
+sample:
+  n_samples: 10000  # param only for mol datasets
+  cc_nb_eval: 1000  # param only for cc datasets
+  use_ema: False
+  noise_removal: True
+  probability_flow: False
+  eps: 1.0e-4
+  seed: 42

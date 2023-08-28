@@ -26,7 +26,7 @@ class ParserPreprocess:
             "--dataset",
             type=str,
             default="QM9",
-            choices=["QM9"],
+            choices=["QM9", "ZINC250k"],
             help="Dataset name",
         )
         self.parser.add_argument(

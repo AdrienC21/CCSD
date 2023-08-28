@@ -3,6 +3,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![pypi version](https://img.shields.io/pypi/v/ccsd.svg)](https://pypi.python.org/pypi/ccsd)
 [![Documentation Status](https://readthedocs.org/projects/ccsd/badge/?version=latest)](https://ccsd.readthedocs.io/en/latest/?badge=latest)
+[![visitors](https://visitor-badge.laobi.icu/badge?page_id=AdrienC21.CCSD&right_color=%23FFA500)](https://github.com/AdrienC21/CCSD)
 [![Downloads](https://static.pepy.tech/badge/ccsd)](https://pepy.tech/project/ccsd)
 [![Python versions](https://img.shields.io/badge/python-3.10%20%7C%203.11-blue)](https://pypi.python.org/pypi/ccsd)
 [![Test](https://github.com/AdrienC21/CCSD/actions/workflows/test.yml/badge.svg)](https://github.com/AdrienC21/CCSD/actions/workflows/test.yml)
@@ -228,14 +229,14 @@ python <script_path> --help
 
 ### Process molecular datasets
 
-If you want to use molecular datasets such as QM9, you first need to run the two following commands:
+If you want to use molecular datasets such as QM9 or ZINC250k, you first need to run the two following commands:
 
 ```bash
 python ccsd/data/preprocess.py --dataset <dataset_name> --folder <folder_name>
 python ccsd/data/preprocess_for_nspdk.py --dataset <dataset_name>  --folder <folder_name>
 ```
 
-`<dataset_name>` has to be chosen from this list: `["QM9"]`. `<folder_name>` is the location of the `data` folder that contains the datasets (default to `./`).
+`<dataset_name>` has to be chosen from this list: `["QM9", "ZINC250k"]`. `<folder_name>` is the location of the `data` folder that contains the datasets (default to `./`).
 
 ### Generate generic graphs datasets
 
@@ -307,7 +308,7 @@ PPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPPP
 Current experiment:
 
         type: train
-        config: qm9_test
+        config: qm9
         comment: 
         seed: 42
 

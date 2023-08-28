@@ -1,4 +1,4 @@
-# Description: Adapted configuration file to sample from the QM9 dataset used in GDSS
+# Description: Adapted configuration file to sample from the QM9 dataset using GDSS
 
 is_cc: False
 
@@ -8,10 +8,10 @@ data:
   max_node_num: 9
   min_node_val: 6
   max_node_val: 9
-  node_label: "symbol"
+  node_label: symbol
   min_edge_val: 1
   max_edge_val: 3
-  edge_label: "bond_type"
+  edge_label: bond_type
   d_min: 3
   d_max: 9
 

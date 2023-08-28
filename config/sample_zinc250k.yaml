@@ -1,0 +1,34 @@
+# Description: Adapted configuration file to sample from the ZINC250k dataset using GDSS
+
+is_cc: False
+
+data:
+  data: ZINC250k
+  dir: './data'
+  max_node_num: 38
+  min_node_val: 6
+  max_node_val: 53
+  node_label: symbol
+  min_edge_val: 1
+  max_edge_val: 3
+  edge_label: bond_type
+  d_min: 3  # for lifted CC
+  d_max: 24  # for lifted CC
+
+ckpt: gdss_zinc250k
+
+sampler:
+  predictor: Reverse
+  corrector: Langevin
+  snr: 0.2
+  scale_eps: 0.9
+  n_steps: 1
+
+sample:
+  n_samples: 10000  # param only for mol datasets
+  cc_nb_eval: 1000  # param only for cc datasets
+  use_ema: False
+  noise_removal: True
+  probability_flow: False
+  eps: 1.0e-4
+  seed: 42

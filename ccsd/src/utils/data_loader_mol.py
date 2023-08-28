@@ -236,6 +236,92 @@ def get_transform_fn(
                 rank2 = torch.tensor(rank2).to(torch.float32)
                 return x, adj, rank2
 
+    elif dataset == "ZINC250k":
+        if not (is_cc):
+
+            def transform(
+                data: Tuple[np.ndarray, np.ndarray],
+            ) -> Tuple[torch.Tensor, torch.Tensor]:
+                """Transform data from ZINC250k (node matrix, adj matrix) into tensors with some preprocessing.
+
+                Args:
+                    data (Tuple[np.ndarray, np.ndarray]): tuple of (node features, adjacency matrix)
+
+                Returns:
+                    Tuple[torch.Tensor, torch.Tensor]: tuple of (node features, adjacency matrix) as tensors
+                """
+                x, adj = data
+                # the last place is for virtual nodes
+                # 6: C, 7: N, 8: O, 9: F, 15: P, 16: S, 17: Cl, 35: Br, 53: I
+                zinc250k_atomic_num_list = [6, 7, 8, 9, 15, 16, 17, 35, 53, 0]
+                x_ = np.zeros((38, 10), dtype=np.float32)
+                for i in range(38):
+                    ind = zinc250k_atomic_num_list.index(x[i])
+                    x_[i, ind] = 1.0
+                x = torch.tensor(x_).to(torch.float32)
+                # single, double, triple and no-bond; the last channel is for virtual edges
+                adj = np.concatenate(
+                    [adj[:3], 1 - np.sum(adj[:3], axis=0, keepdims=True)], axis=0
+                ).astype(np.float32)
+
+                x = x[
+                    :, :-1
+                ]  # 9, 5 (the last place is for vitual nodes) -> 9, 4 (38, 9)
+                adj = torch.tensor(
+                    adj.argmax(axis=0)
+                )  # 4, 9, 9 (the last place is for vitual edges) -> 9, 9 (38, 38)
+                # 0, 1, 2, 3 -> 1, 2, 3, 0; now virtual edges are denoted as 0
+                adj = torch.where(adj == 3, 0, adj + 1).to(torch.float32)
+                return x, adj
+
+        else:
+            d_min = kwargs["d_min"]
+            d_max = kwargs["d_max"]
+
+            def transform(
+                data: Tuple[np.ndarray, np.ndarray],
+            ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
+                """Transform data from ZINC250k (node matrix, adj matrix) into tensors with some preprocessing.
+
+                Args:
+                    data (Tuple[np.ndarray, np.ndarray]): tuple of (node features, adjacency matrix)
+
+                Returns:
+                    Tuple[torch.Tensor, torch.Tensor, torch.Tensor]: tuple of (node features, adjacency matrix, rank2 incidence matrix) as tensors
+                """
+                x, adj = data
+                # the last place is for virtual nodes
+                # 6: C, 7: N, 8: O, 9: F, 15: P, 16: S, 17: Cl, 35: Br, 53: I
+                zinc250k_atomic_num_list = [6, 7, 8, 9, 15, 16, 17, 35, 53, 0]
+                x_ = np.zeros((38, 10), dtype=np.float32)
+                for i in range(38):
+                    ind = zinc250k_atomic_num_list.index(x[i])
+                    x_[i, ind] = 1.0
+                x = torch.tensor(x_).to(torch.float32)
+                # single, double, triple and no-bond; the last channel is for virtual edges
+                adj = np.concatenate(
+                    [adj[:3], 1 - np.sum(adj[:3], axis=0, keepdims=True)], axis=0
+                ).astype(np.float32)
+
+                x = x[
+                    :, :-1
+                ]  # 9, 5 (the last place is for vitual nodes) -> 9, 4 (38, 9)
+                adj = torch.tensor(
+                    adj.argmax(axis=0)
+                )  # 4, 9, 9 (the last place is for vitual edges) -> 9, 9 (38, 38)
+                # 0, 1, 2, 3 -> 1, 2, 3, 0; now virtual edges are denoted as 0
+                adj = torch.where(adj == 3, 0, adj + 1).to(torch.float32)
+
+                # rank2 incidence matrix
+                mol = get_mol_from_x_adj(x, adj)
+                rings = get_all_mol_rings(mol)
+                rings = {ring: {} for ring in rings}  # convert to dict
+                rank2 = create_incidence_1_2(
+                    x.shape[0], adj, d_min, d_max, two_rank_cells=rings
+                )
+                rank2 = torch.tensor(rank2).to(torch.float32)
+                return x, adj, rank2
+
     else:
         raise ValueError(f"Invalid dataset {dataset}")
 

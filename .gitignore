@@ -139,13 +139,13 @@ dmypy.json
 
 # Data
 data/qm9_kekulized.npz
+data/zinc250k_kekulized.npz
 
 # Generated samples, plots, logs
 samples/
 logs_train/
 logs_sample/
 wandb/
-dataset/
 data/QM9_cc_True_train.pkl
 data/QM9_cc_True_test.pkl
 data/QM9_cc_False_train.pkl
@@ -154,6 +154,8 @@ data/QM9_graphs_True_train.pkl
 data/QM9_graphs_True_test.pkl
 data/QM9_graphs_False_train.pkl
 data/QM9_graphs_False_test.pkl
+data/ZINC250k_graphs_True_train.pkl
+data/ZINC250k_graphs_True_test.pkl
 
 # images
 notes.txt

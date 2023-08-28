@@ -57,7 +57,16 @@ SYMBOL_TO_AN = {v: k for k, v in AN_TO_SYMBOL.items()}
 
 
 def is_molecular_config(config: EasyDict) -> bool:
-    return config.data.data in ["QM9"]
+    """Checks if the config is for a molecular dataset.
+    Right now, it only checks if the dataset is QM9 or ZINC250k.
+
+    Args:
+        config (EasyDict): config to check
+
+    Returns:
+        bool: whether or not the config is for a molecular dataset
+    """
+    return config.data.data in ("QM9", "ZINC250k")
 
 
 def mols_to_smiles(mols: List[Chem.Mol]) -> List[str]:
@@ -110,6 +119,8 @@ def load_smiles(dataset: str = "QM9") -> Tuple[List[str], List[str]]:
     """
     if dataset == "QM9":
         col = "SMILES1"
+    elif dataset == "ZINC250k":
+        col = "smiles"
     else:
         raise ValueError(f"Wrong dataset name {dataset} in load_smiles")
 

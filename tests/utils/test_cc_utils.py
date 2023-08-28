@@ -26,6 +26,7 @@ from ccsd.src.utils.cc_utils import (
     convert_CC_to_graphs,
     convert_graphs_to_CCs,
     create_incidence_1_2,
+    cycles_lift_CC,
     default_mask,
     eval_CC_list,
     gen_noise_rank2,
@@ -1682,5 +1683,28 @@ def test_path_based_lift_CC(
             frozenset([0, 3]),
             frozenset([1, 2]),
             frozenset([1, 3]),
+        ]
+    )
+
+
+def test_cycles_lift_CC(
+    create_edge_dict_graph: Dict[FrozenSet[int], Dict[str, Any]]
+) -> None:
+    """
+    Test cycles_lift_CC function.
+
+    Args:
+        create_edge_dict_graph (Dict[FrozenSet[int], Dict[str, Any]]): A fixture graph with 4 nodes and 6 edges.
+    """
+    cc = CombinatorialComplex()
+    for cell in create_edge_dict_graph.keys():
+        cc.add_cell(cell, rank=1, **create_edge_dict_graph[cell])
+
+    res_cc = cycles_lift_CC(cc)
+    assert set(res_cc.cells.hyperedge_dict[2].keys()) == set(
+        [
+            frozenset([1, 3, 0]),
+            frozenset([2, 3, 0]),
+            frozenset([1, 2, 0]),
         ]
     )

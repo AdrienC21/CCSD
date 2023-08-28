@@ -1,4 +1,4 @@
-# Description: Configuration file for the QM9 dataset with combinatorial complexes used in our work CDSS
+# Description: Configuration file for the QM9 dataset with combinatorial complexes using CCSD
 
 is_cc: True
 
@@ -11,10 +11,10 @@ data:
   init: atom
   min_node_val: 6
   max_node_val: 9
-  node_label: "symbol"
+  node_label: symbol
   min_edge_val: 1
   max_edge_val: 3
-  edge_label: "bond_type"
+  edge_label: bond_type
   d_min: 3
   d_max: 9
 
@@ -40,7 +40,6 @@ model:
   adj: ScoreNetworkA_CC
   rank2: ScoreNetworkF
   conv: GCN
-  conv_hodge: HCN
   num_heads: 4
   depth: 2
   adim: 10
@@ -54,7 +53,7 @@ model:
   cnum: 2  # only for cc and ScoreNetworkF
   num_layers_mlp: 1  # only for cc and ScoreNetworkF
   use_hodge_mask: True  # only for cc and ScoreNetworkF
-  conv_hodge: "HCN"  # only for cc and ScoreNetworkA_CC
+  conv_hodge: HCN  # only for cc and ScoreNetworkA_CC
   nhid_h: 4 # only for cc and ScoreNetworkA_CC
   num_layers_h: 2  # only for cc and ScoreNetworkA_CC
   num_linears_h: 1  # only for cc and ScoreNetworkA_CC

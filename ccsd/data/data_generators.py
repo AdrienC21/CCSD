@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""data_generators.py: functions and GraphGenerator class for generating graphs and graph datasets with given properties.
-Run this script with -h flag to see usage on how to generate graph datasets.
-The arguments are:
-    --data-dir: directory to save generated graphs (default "data")
-    --dataset: name of dataset to generate (default "grid"), choices are ["ego_small", "community_small", "ENZYMES", "grid"]
-Adapted from Jo, J. & al (2022)
+"""data_generators.py: functions and GraphGenerator class for generating graphs and graph/combinatorial complexes datasets with given properties.
+Run this script with -h flag to see usage on how to generate graph and combinatorial complex datasets.
+The arguments are (see ccsd/src/parsers/parser_generator.py for more details):
+    --data-dir: directory to save generated graphs. Default: "data".
+    --dataset: name of dataset to generate (default "grid"), choices are ["ego_small", "community_small", "ENZYMES", "ENZYMES_small", "grid"].
+    --is_cc: whether to generate combinatorial complexes instead of graphs. Default: False.
+    --folder: Directory to save the results, load checkpoints, load config, etc. Default: "./".
+Adapted from Jo, J. & al (2022) for the graph generation part.
 """
 
 import argparse
@@ -14,15 +16,18 @@ import json
 import logging
 import os
 import pickle
+import sys
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import networkx as nx
 import numpy as np
 import scipy.sparse as sp
 from toponetx.classes.combinatorial_complex import CombinatorialComplex
-from torch.utils.data import DataLoader
+
+sys.path.insert(0, os.getcwd())
 
 from ccsd.src.parsers.parser_generator import ParserGenerator
+from ccsd.src.utils.cc_utils import convert_graphs_to_CCs
 
 
 def n_community(
@@ -231,6 +236,7 @@ def graph_load_batch(
     name: str = "ENZYMES",
     node_attributes: bool = True,
     graph_labels: bool = True,
+    folder: str = "./",
 ) -> List[nx.Graph]:
     """Load a graph dataset, for ENZYMES, PROTEIN and DD.
 
@@ -240,6 +246,7 @@ def graph_load_batch(
         name (str, optional): name of the dataset to load. Defaults to "ENZYMES".
         node_attributes (bool, optional): if True, also load the node attributes. Defaults to True.
         graph_labels (bool, optional): if True, also load the graph labels. Defaults to True.
+        folder (str, optional): directory of the data/dataset/ folders. Defaults to "./".
 
     Returns:
         List[nx.Graph]: list of graphs
@@ -247,20 +254,24 @@ def graph_load_batch(
     print("Loading graph dataset: " + str(name))
     G = nx.Graph()  # start with an empty graph
     # Load the data
-    path = "dataset/" + name + "/"
-    data_adj = np.loadtxt(path + name + "_A.txt", delimiter=",").astype(int)
+    path = os.path.join(folder, "data", "dataset", name)
+    data_adj = np.loadtxt(os.path.join(path, f"{name}_A.txt"), delimiter=",").astype(
+        int
+    )
     data_node_att = []
     if node_attributes:  # Load the node attributes
-        data_node_att = np.loadtxt(path + name + "_node_attributes.txt", delimiter=",")
+        data_node_att = np.loadtxt(
+            os.path.join(path, f"{name}_node_attributes.txt"), delimiter=","
+        )
     data_node_label = np.loadtxt(
-        path + name + "_node_labels.txt", delimiter=","
+        os.path.join(path, f"{name}_node_labels.txt"), delimiter=","
     ).astype(int)
     data_graph_indicator = np.loadtxt(
-        path + name + "_graph_indicator.txt", delimiter=","
+        os.path.join(path, f"{name}_graph_indicator.txt"), delimiter=","
     ).astype(int)
     if graph_labels:  # Load the graph labels
         data_graph_labels = np.loadtxt(
-            path + name + "_graph_labels.txt", delimiter=","
+            os.path.join(path, f"{name}_graph_labels.txt"), delimiter=","
         ).astype(int)
 
     data_tuple = list(map(tuple, data_adj))  # convert to tuple
@@ -293,7 +304,8 @@ def graph_load_batch(
         if (min_num_nodes <= G_sub.number_of_nodes()) and (
             G_sub.number_of_nodes() <= max_num_nodes
         ):
-            graphs.append(G_sub)
+            # Relabel the nodes using consecutive integers
+            graphs.append(nx.convert_node_labels_to_integers(G_sub))
             if G_sub.number_of_nodes() > max_nodes:
                 max_nodes = G_sub.number_of_nodes()
     print(f"Graphs loaded, total num: {len(graphs)}")
@@ -315,11 +327,14 @@ def parse_index_file(filename: str) -> List[int]:
     return index
 
 
-def graph_load(dataset: str = "cora") -> Tuple[sp.spmatrix, List[nx.Graph]]:
+def graph_load(
+    dataset: str = "cora", folder: str = "./"
+) -> Tuple[sp.spmatrix, List[nx.Graph]]:
     """Load the citation datasets: cora, citeseer or pubmed.
 
     Args:
         dataset (str, optional): name of the dataset to load. Defaults to "cora".
+        folder (str, optional): directory of the data/dataset/ folders. Defaults to "./".
 
     Returns:
         Tuple[sp.spmatrix, List[nx.Graph]]: tuple of features and the graph
@@ -328,11 +343,19 @@ def graph_load(dataset: str = "cora") -> Tuple[sp.spmatrix, List[nx.Graph]]:
     objects = []
     for i in range(len(names)):
         load = pickle.load(
-            open("dataset/ind.{}.{}".format(dataset, names[i]), "rb"), encoding="latin1"
+            open(
+                os.path.join(
+                    folder, "data", "dataset", "ind.{}.{}".format(dataset, names[i])
+                ),
+                "rb",
+            ),
+            encoding="latin1",
         )
         objects.append(load)
     x, tx, allx, graph = tuple(objects)
-    test_idx_reorder = parse_index_file("dataset/ind.{}.test.index".format(dataset))
+    test_idx_reorder = parse_index_file(
+        os.path.join(folder, "data", "dataset", "ind.{}.test.index".format(dataset))
+    )
     test_idx_range = np.sort(test_idx_reorder)
 
     if dataset == "citeseer":  # Special case for citeseer
@@ -350,7 +373,7 @@ def graph_load(dataset: str = "cora") -> Tuple[sp.spmatrix, List[nx.Graph]]:
 
 
 def citeseer_ego(
-    radius: int = 3, node_min: int = 50, node_max: int = 400
+    radius: int = 3, node_min: int = 50, node_max: int = 400, folder: str = "./"
 ) -> List[nx.Graph]:
     """Load the citeseer dataset, keep the largest connected component, and extract the ego graphs
     (graphs of nodes within a certain radius) with a number of nodes within our range.
@@ -359,12 +382,13 @@ def citeseer_ego(
         radius (int, optional): radius. Defaults to 3.
         node_min (int, optional): minimum number of nodes in our dataset. Defaults to 50.
         node_max (int, optional): maximum number of nodes in our dataset. Defaults to 400.
+        folder (str, optional): directory of the data/dataset/ folders. Defaults to "./".
 
     Returns:
         List[nx.Graph]: list of (ego) graphs
     """
     # Load citeseer
-    _, G = graph_load(dataset="citeseer")
+    _, G = graph_load(dataset="citeseer", folder=folder)
     # Keep the largest connected component
     G = max([G.subgraph(c) for c in nx.connected_components(G)], key=len)
     # Relabel the nodes using consecutive integers
@@ -409,7 +433,7 @@ def save_dataset(
 
 
 def generate_dataset(args: argparse.Namespace) -> None:
-    """Generate a graph dataset and save it in the specified directory.
+    """Generate a graph/combinatorial complex dataset and save it in the specified directory.
 
     Args:
         args (argparse.Namespace): arguments
@@ -417,12 +441,15 @@ def generate_dataset(args: argparse.Namespace) -> None:
     Raises:
         NotImplementedError: raise and error if the specified dataset is not implemented
     """
-    data_dir = os.path.join(args.folder, args.data_dir)  # default: "data"
+    data_dir = os.path.join(args.folder, args.data_dir)  # default: "./data/"
     dataset = args.dataset  # default: "community_small"
+    is_cc = args.is_cc  # default: False
 
     if dataset == "community_small":
         # Generate 100 community graphs with 2 communities and 12-20 nodes
         # (dataset already save within the function)
+        if is_cc:
+            raise NotImplementedError("Combinatorial complexes not supported yet.")
         _ = gen_graph_list(
             graph_type="community",
             possible_params_dict={
@@ -435,6 +462,8 @@ def generate_dataset(args: argparse.Namespace) -> None:
             file_name=dataset,
         )
     elif dataset == "grid":
+        if is_cc:
+            raise NotImplementedError("Combinatorial complexes not supported yet.")
         # Generate 100 grid graphs with 10-20 rows and 10-20 columns
         # (dataset already save within the function)
         _ = gen_graph_list(
@@ -450,8 +479,12 @@ def generate_dataset(args: argparse.Namespace) -> None:
         )
 
     elif dataset == "ego_small":
+        if is_cc:
+            raise NotImplementedError("Combinatorial complexes not supported yet.")
         # Generate 200 ego graphs from the citeseer dataset with radius 1 and 4-18 nodes
-        graphs = citeseer_ego(radius=1, node_min=4, node_max=18)[:200]
+        graphs = citeseer_ego(radius=1, node_min=4, node_max=18, folder=args.folder)[
+            :200
+        ]
         save_dataset(data_dir, graphs, dataset)
         print(max([g.number_of_nodes() for g in graphs]))
 
@@ -464,8 +497,35 @@ def generate_dataset(args: argparse.Namespace) -> None:
             name=dataset,
             node_attributes=False,
             graph_labels=True,
+            folder=args.folder,
         )
-        save_dataset(data_dir, graphs, dataset)
+        if not (is_cc):
+            save_dataset(data_dir, graphs, dataset)
+        else:
+            ccs = convert_graphs_to_CCs(
+                graphs, is_molecule=False, lifting_procedure="cycles"
+            )
+            save_dataset(data_dir, ccs, f"{dataset}_CC")
+        print(max([g.number_of_nodes() for g in graphs]))
+
+    elif dataset == "ENZYMES_small":
+        # Load and save the ENZYMES dataset, but a smaller version (graphs with 1-12 nodes only)
+        # Don't keep the node attributes but keep the graph labels
+        graphs = graph_load_batch(
+            min_num_nodes=1,
+            max_num_nodes=12,
+            name="ENZYMES",
+            node_attributes=False,
+            graph_labels=True,
+            folder=args.folder,
+        )
+        if not (is_cc):
+            save_dataset(data_dir, graphs, dataset)
+        else:
+            ccs = convert_graphs_to_CCs(
+                graphs, is_molecule=False, lifting_procedure="cycles"
+            )
+            save_dataset(data_dir, ccs, f"{dataset}_CC")
         print(max([g.number_of_nodes() for g in graphs]))
 
     else:

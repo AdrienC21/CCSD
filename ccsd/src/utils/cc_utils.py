@@ -28,7 +28,17 @@ from ccsd.src.utils.mol_utils import AN_TO_SYMBOL, SYMBOL_TO_AN, bond_decoder
 
 RDLogger.DisableLog("rdApp.*")
 
-DIC_MOL_CONV = {0: "C", 1: "N", 2: "O", 3: "F"}
+DIC_MOL_CONV = {
+    0: "C",
+    1: "N",
+    2: "O",
+    3: "F",
+    4: "P",
+    5: "S",
+    6: "Cl",
+    7: "Br",
+    8: "I",
+}
 
 
 @lru_cache(maxsize=1)
@@ -266,14 +276,13 @@ def get_rank2_dim(N: int, d_min: int, d_max: int) -> int:
     return rows, cols
 
 
-def get_mol_from_x_adj(x: torch.Tensor, adj: torch.Tensor) -> Chem.Mol:
+def get_mol_from_x_adj(
+    x: torch.Tensor, adj: torch.Tensor, dataset: str = "QM9"
+) -> Chem.Mol:
     """Get a molecule from the node and adjacency matrices after
     being processed by get_transform_fn inside data_loader_mol.py.
-
-    Atoms:
-    0: C, 1: N, 2: O, 3: F
-    Bonds:
-    1: single, 2: double, 3: triple
+    Atoms - 0: C, 1: N, 2: O, 3: F, 4: P, 5: S, 6: Cl, 7: Br, 8: I
+    Bonds - 1: single, 2: double, 3: triple
 
     Args:
         x (torch.Tensor): node matrix
@@ -283,6 +292,7 @@ def get_mol_from_x_adj(x: torch.Tensor, adj: torch.Tensor) -> Chem.Mol:
         Chem.Mol: molecule (RDKIT mol)
     """
     mol = Chem.RWMol()
+
     for i in range(x.shape[0]):
         if x[i].any():
             atom_symbol = DIC_MOL_CONV[torch.argmax(x[i]).item()]
@@ -306,6 +316,7 @@ def get_all_mol_rings(mol: Chem.Mol) -> List[FrozenSet[int]]:
     Returns:
         List[FrozenSet[int]]: list of rings as frozensets of atom indices
     """
+    _ = Chem.GetSymmSSSR(mol)  # initialize ring info
     res = []
     ri = mol.GetRingInfo()
     for ring in ri.AtomRings():
@@ -830,8 +841,12 @@ def convert_graphs_to_CCs(
             CC.add_cell(edge, rank=1, **attr)
 
         if lifting_procedure is not None:  # lift to higher order
+            if lifting_procedure_kwargs is None:
+                lifting_procedure_kwargs = {}
             if lifting_procedure == "path_based":
                 CC = path_based_lift_CC(CC, **lifting_procedure_kwargs)
+            elif lifting_procedure == "cycles":
+                CC = cycles_lift_CC(CC, **lifting_procedure_kwargs)
             else:
                 raise NotImplementedError(
                     f"Lifting procedure {lifting_procedure} not implemented"
@@ -1668,7 +1683,7 @@ def path_based_lift_CC(
         cells = input_cc.cells.hyperedge_dict[rank]
         for cell in cells:
             attr = cells[cell]
-            input_cc.add_cell(cell, rank=rank, **attr)
+            cc.add_cell(cell, rank=rank, **attr)
 
     # Add the paths as rank-2 cells
     edges = input_cc.cells.hyperedge_dict[1]
@@ -1680,4 +1695,34 @@ def path_based_lift_CC(
     paths = get_all_paths_from_nodes(sources_nodes, graph, path_length)
     for path in paths:
         cc.add_cell(path, rank=2)
+    return cc
+
+
+def cycles_lift_CC(input_cc: CombinatorialComplex) -> CombinatorialComplex:
+    """Lift a 1-dimensional CC to a 2-dimensional CC by lifting the cycles to rank-2 cells.
+
+    Args:
+        input_cc (CombinatorialComplex): original combinatorial complex
+
+    Returns:
+        CombinatorialComplex: lifted combinatorial complex
+    """
+    # Copy the rank-0 and rank-1 cells from the input CC
+    cc = CombinatorialComplex()
+    for rank in input_cc.cells.hyperedge_dict:
+        cells = input_cc.cells.hyperedge_dict[rank]
+        for cell in cells:
+            attr = cells[cell]
+            cc.add_cell(cell, rank=rank, **attr)
+
+    # Add the cycles as rank-2 cells
+    edges = input_cc.cells.hyperedge_dict[1]
+    graph = nx.Graph()
+    for e in edges:
+        edge = tuple(e)
+        graph.add_edge(edge[0], edge[1])
+    graph = graph.to_undirected()
+    cycles = nx.cycle_basis(graph)
+    for cycle in cycles:
+        cc.add_cell(frozenset(cycle), rank=2)
     return cc

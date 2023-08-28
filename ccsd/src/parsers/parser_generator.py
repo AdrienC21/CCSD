@@ -29,7 +29,20 @@ class ParserGenerator:
             type=str,
             default="community_small",
             help="type of dataset to generate",
-            choices=["ego_small", "community_small", "ENZYMES", "grid"],
+            choices=[
+                "ego_small",
+                "community_small",
+                "ENZYMES",
+                "ENZYMES_small",
+                "grid",
+            ],
+        )
+        self.parser.add_argument(
+            "--is_cc",
+            type=bool,
+            default=False,
+            help="whether to generate combinatorial complexes or graphs if not",
+            choices=[True, False],
         )
         self.parser.add_argument(
             "--folder",

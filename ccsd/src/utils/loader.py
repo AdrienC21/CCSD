@@ -205,7 +205,7 @@ def load_data(
     Returns:
         Union[Tuple[DataLoader, DataLoader], Union[Tuple[List[nx.Graph], List[nx.Graph]], Tuple[List[CombinatorialComplex], List[CombinatorialComplex]]]]: DataLoader object or list of objects for training
     """
-    if config.data.data in ["QM9"]:
+    if config.data.data in ["QM9", "ZINC250k"]:
         if not (is_cc):
             return dataloader_mol(config, get_list)
         return dataloader_mol_cc(config, get_list)
@@ -382,7 +382,7 @@ def load_sampling_fn(
         get_sampler = get_pc_sampler
 
     # Get shape in function of dataset
-    if config_train.data.data in ["QM9"]:
+    if config_train.data.data in ["QM9", "ZINC250k"]:
         shape_x = (
             config_sample.n_samples,
             max_node_num,
