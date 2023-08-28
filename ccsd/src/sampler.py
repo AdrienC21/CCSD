@@ -135,7 +135,7 @@ class Sampler_Graph(Sampler):
     def sample(self) -> None:
         """Sample from the model. Loads the checkpoint, load the modes, generates samples, evaluates, saves and plot them."""
         # -------- Load checkpoint --------
-        self.ckpt_dict = load_ckpt(self.config, self.device, is_cc=self.is_cc)
+        self.ckpt_dict = load_ckpt(self.config, self.device, is_cc=False)
         self.configt = self.ckpt_dict["config"]
 
         load_seed(self.configt.seed)
@@ -227,7 +227,11 @@ class Sampler_Graph(Sampler):
         # Eval graphs
         methods, kernels = load_eval_settings(self.config.data.data)
         result_dict_graph = eval_graph_list(
-            self.test_graph_list, gen_graph_list, methods=methods, kernels=kernels
+            self.test_graph_list,
+            gen_graph_list,
+            methods=methods,
+            kernels=kernels,
+            folder=self.config.folder,
         )
 
         # Eval lifted CCs from the graphs
@@ -500,7 +504,11 @@ class Sampler_CC(Sampler):
         # Eval graphs
         methods, kernels = load_eval_settings(self.config.data.data)
         result_dict_graph = eval_graph_list(
-            self.test_graph_list, gen_graph_list, methods=methods, kernels=kernels
+            self.test_graph_list,
+            gen_graph_list,
+            methods=methods,
+            kernels=kernels,
+            folder=self.config.folder,
         )
 
         # Eval CCs
@@ -773,7 +781,10 @@ class Sampler_mol_Graph(Sampler):
             train=train_smiles,
         )
         scores_nspdk = eval_graph_list(
-            self.test_graph_list, gen_graph_list, methods=["nspdk"]
+            self.test_graph_list,
+            gen_graph_list,
+            methods=["nspdk"],
+            folder=self.config.folder,
         )["nspdk"]
 
         # Eval lifted CCs from the graphs
@@ -1145,7 +1156,10 @@ class Sampler_mol_CC(Sampler):
             train=train_smiles,
         )
         scores_nspdk = eval_graph_list(
-            self.test_graph_list, gen_graph_list, methods=["nspdk"]
+            self.test_graph_list,
+            gen_graph_list,
+            methods=["nspdk"],
+            folder=self.config.folder,
         )["nspdk"]
 
         # Eval CCs

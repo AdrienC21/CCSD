@@ -39,10 +39,9 @@ class ParserGenerator:
         )
         self.parser.add_argument(
             "--is_cc",
-            type=bool,
+            action=argparse.BooleanOptionalAction,
             default=False,
-            help="whether to generate combinatorial complexes or graphs if not",
-            choices=[True, False],
+            help="if you want to generate combinatorial complexes instead of graphs",
         )
         self.parser.add_argument(
             "--folder",

@@ -6,7 +6,7 @@ Run this script with -h flag to see usage on how to generate graph and combinato
 The arguments are (see ccsd/src/parsers/parser_generator.py for more details):
     --data-dir: directory to save generated graphs. Default: "data".
     --dataset: name of dataset to generate (default "grid"), choices are ["ego_small", "community_small", "ENZYMES", "ENZYMES_small", "grid"].
-    --is_cc: whether to generate combinatorial complexes instead of graphs. Default: False.
+    --is_cc: if you want to generate combinatorial complexes instead of graphs
     --folder: Directory to save the results, load checkpoints, load config, etc. Default: "./".
 Adapted from Jo, J. & al (2022) for the graph generation part.
 """

@@ -380,18 +380,18 @@ def orca(graph: nx.Graph, orca_dir: str) -> np.ndarray:
 
 
 def orbit_stats_all(
-    config: EasyDict,
     graph_ref_list: List[nx.Graph],
     graph_pred_list: List[nx.Graph],
     kernel: Callable[[np.ndarray, np.ndarray], float] = gaussian,
+    folder: str = "./",
 ) -> float:
     """Compute the MMD distance between the orbits of two unordered sets of graphs.
 
     Args:
-        config (EasyDict): configuration (to provide the folder to create the ORCA_DIR)
         graph_ref_list (List[nx.Graph]): reference list of networkx graphs to be evaluated
         graph_pred_list (List[nx.Graph]): target list of networkx graphs to be evaluated
         kernel (Callable[[np.ndarray, np.ndarray], float], optional): kernel function. Defaults to gaussian.
+        folder (str, optional): path to the main folder where the ccsd/src/evaluation folders are to locate the orca executable. Defaults to "./".
 
     Returns:
         float: mmd distance
@@ -402,8 +402,8 @@ def orbit_stats_all(
     prev = datetime.now()
 
     orca_dir = os.path.join(
-        *[config.folder, "evaluation", "orca"]
-    )  # relative path to the orca dir
+        *[folder, "ccsd", "src", "evaluation", "orca"]
+    )  # path to the orca dir
 
     for G in graph_ref_list:
         try:
@@ -487,6 +487,7 @@ def eval_graph_list(
             Callable[[np.ndarray, np.ndarray], float],
         ]
     ] = None,
+    folder: str = "./",
 ) -> Dict[str, float]:
     """Evaluate generated generic graphs against a reference set of graphs using a set of methods and their corresponding kernels.
 
@@ -495,6 +496,7 @@ def eval_graph_list(
         graph_pred_list (List[nx.Graph]): target list of networkx graphs to be evaluated
         methods (Optional[List[str]], optional): methods to be evaluated. Defaults to None.
         kernels (Optional[Dict[str, Callable[[np.ndarray, np.ndarray], float]]], optional): kernels to be used for each methods. Defaults to None.
+        folder (str, optional): path to the main folder where the ccsd/src/evaluation folders are to locate the orca executable. Defaults to "./".
 
     Returns:
         Dict[str, float]: dictionary mapping method names to their corresponding scores
@@ -512,6 +514,15 @@ def eval_graph_list(
         ):  # nspdk requires a different function signature as there is no kernel as input
             results[method] = METHOD_NAME_TO_FUNC[method](
                 graph_ref_list, graph_pred_list
+            )
+        elif (
+            method == "orbit"
+        ):  # orbit requires a different function signature with the folder provided
+            results[method] = round(
+                METHOD_NAME_TO_FUNC[method](
+                    graph_ref_list, graph_pred_list, kernels[method], folder=folder
+                ),
+                6,
             )
         else:
             results[method] = round(
@@ -537,6 +548,7 @@ def eval_torch_batch(
     ref_batch: torch.Tensor,
     pred_batch: torch.Tensor,
     methods: Optional[List[str]] = None,
+    folder: str = "./",
 ) -> Dict[str, float]:
     """Evaluate generated generic graphs against a reference set of graphs using a set of methods and their corresponding kernels,
     with the input graphs in torch.Tensor format (adjacency matrices).
@@ -545,11 +557,14 @@ def eval_torch_batch(
         ref_batch (torch.Tensor): reference batch of adjacency matrices
         pred_batch (torch.Tensor): target batch of adjacency matrices
         methods (Optional[List[str]], optional): methods to be evaluated. Defaults to None.
+        folder (str, optional): path to the main folder where the ccsd/src/evaluation folders are to locate the orca executable. Defaults to "./".
 
     Returns:
         Dict[str, float]: dictionary mapping method names to their corresponding scores
     """
     graph_ref_list = adjs_to_graphs(ref_batch.detach().cpu().numpy())
     graph_pred_list = adjs_to_graphs(pred_batch.detach().cpu().numpy())
-    results = eval_graph_list(graph_ref_list, graph_pred_list, methods=methods)
+    results = eval_graph_list(
+        graph_ref_list, graph_pred_list, methods=methods, folder=folder
+    )
     return results

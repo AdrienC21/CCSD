@@ -18,6 +18,8 @@ data:
   edge_label: weight
   d_min: 3
   d_max: 4
+  lifting_procedure: cycles
+  lifting_procedure_kwargs : {}
 
 sde:
   x: 
@@ -92,4 +94,4 @@ sample:
   noise_removal: True
   probability_flow: False
   eps: 1.0e-4
-  seed: 12
+  seed: 42
