@@ -45,12 +45,12 @@ model:
   conv: GCN
   num_heads: 4
   depth: 2
-  adim: 18
-  nhid: 18
-  num_layers: 4
+  adim: 16
+  nhid: 16
+  num_layers: 3
   num_linears: 2
   c_init: 2
-  c_hid: 6
+  c_hid: 5
   c_final: 4
   use_bn: False
   cnum: 2  # only for cc and ScoreNetworkF
@@ -62,7 +62,7 @@ model:
   num_linears_h: 1  # only for cc and ScoreNetworkA_CC
   c_hid_h: 2  # only for cc and ScoreNetworkA_CC
   c_final_h: 2  # only for cc and ScoreNetworkA_CC
-  adim_h: 2  # only for cc and ScoreNetworkA_CC
+  adim_h: 4  # only for cc and ScoreNetworkA_CC
   num_heads_h: 2  # only for cc and ScoreNetworkA_CC
   
 train:
