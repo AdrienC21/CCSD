@@ -1,4 +1,4 @@
-# Description: Configuration file for the ENZYMES dataset with combinatorial complexes using CCSD
+# Description: Configuration file for the ENZYMES_small dataset with combinatorial complexes using CCSD
 
 is_cc: True
 
@@ -11,8 +11,8 @@ data:
   max_feat_num: 10
   init: deg
   min_node_val: 1
-  max_node_val: 3
-  node_label: label
+  max_node_val: 1
+  node_label: weight
   min_edge_val: 1
   max_edge_val: 1
   edge_label: weight
