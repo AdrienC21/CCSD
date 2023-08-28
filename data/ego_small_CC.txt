@@ -1,0 +1,2 @@
+ego_small_CC
+200
