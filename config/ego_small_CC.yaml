@@ -3,7 +3,7 @@
 is_cc: True
 
 data: 
-  data: ego_small
+  data: ego_small_CC
   dir: './data'
   batch_size: 128
   test_split: 0.2
