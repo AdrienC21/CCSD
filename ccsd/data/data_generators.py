@@ -198,7 +198,7 @@ def gen_graph_list(
         max_N = max(max_N, graph.number_of_nodes())
         if graph.number_of_nodes() <= 1:
             continue
-        graph_list.append(graph)
+        graph_list.append(nx.convert_node_labels_to_integers(graph))
         i += 1
     if save_dir is not None:
         if not os.path.isdir(save_dir):
