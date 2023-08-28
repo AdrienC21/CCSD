@@ -136,7 +136,9 @@ class GraphGenerator:
         # Generate graph
         graph = self.nx_generator(**params)
         # Relabel nodes to be 0, 1, 2, ...
-        graph = nx.relabel.convert_node_labels_to_integers(graph)
+        graph = nx.relabel.convert_node_labels_to_integers(
+            graph
+        )  # convert to consecutive integers
         if self.corrupt_func is not None:  # Corrupt graph
             graph = self.corrupt_func(self.corrupt_func)
         return graph
@@ -402,7 +404,9 @@ def citeseer_ego(
             G_ego.number_of_nodes() <= node_max
         ):
             G_ego.remove_edges_from(nx.selfloop_edges(G_ego))
-            graphs.append(G_ego)
+            graphs.append(
+                nx.convert_node_labels_to_integers(G_ego)
+            )  # convert to consecutive integers
     return graphs
 
 
