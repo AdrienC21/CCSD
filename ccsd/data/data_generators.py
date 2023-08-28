@@ -479,13 +479,20 @@ def generate_dataset(args: argparse.Namespace) -> None:
         )
 
     elif dataset == "ego_small":
-        if is_cc:
-            raise NotImplementedError("Combinatorial complexes not supported yet.")
         # Generate 200 ego graphs from the citeseer dataset with radius 1 and 4-18 nodes
         graphs = citeseer_ego(radius=1, node_min=4, node_max=18, folder=args.folder)[
             :200
         ]
-        save_dataset(data_dir, graphs, dataset)
+        if is_cc:
+            ccs = convert_graphs_to_CCs(
+                graphs,
+                is_molecule=False,
+                lifting_procedure="cycles",
+                lifting_procedure_kwargs=None,
+            )
+            save_dataset(data_dir, ccs, f"{dataset}_CC")
+        else:
+            save_dataset(data_dir, graphs, dataset)
         print(max([g.number_of_nodes() for g in graphs]))
 
     elif dataset == "ENZYMES":
