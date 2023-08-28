@@ -1354,6 +1354,7 @@ int writeResults(int g, const char* output_filename) {
         fout << endl;
     }
     fout.close();
+    return 0;
 }
 
 string writeResultsString(int g) {
@@ -1385,6 +1386,7 @@ int writeEdgeResults(int g, const char* output_filename) {
         fout << endl;
     }
     fout.close();
+    return 0;
 }
 
 string writeEdgeResultsString(int g) {
