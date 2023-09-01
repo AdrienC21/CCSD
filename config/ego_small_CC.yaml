@@ -45,9 +45,9 @@ model:
   conv: GCN
   num_heads: 4
   depth: 2
-  adim: 16
-  nhid: 16
-  num_layers: 3
+  adim: 12
+  nhid: 12
+  num_layers: 2
   num_linears: 2
   c_init: 2
   c_hid: 5

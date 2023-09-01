@@ -508,14 +508,14 @@ def generate_dataset(args: argparse.Namespace) -> None:
         print(max_nb_nodes)
 
     elif dataset == "grid_small":
-        # Generate 100 grid graphs with 5-8 rows and 5-8 columns
+        # Generate 100 grid graphs with 4-7 rows and 4-7 columns
         # (dataset already save within the function)
         # smaller dataset than the original grid dataset used in benchmarks
         graphs = gen_graph_list(
             graph_type="grid",
             possible_params_dict={
-                "m": np.arange(5, 9).tolist(),
-                "n": np.arange(5, 9).tolist(),
+                "m": np.arange(4, 8).tolist(),
+                "n": np.arange(4, 8).tolist(),
             },
             corrupt_func=None,
             length=100,
