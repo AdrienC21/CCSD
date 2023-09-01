@@ -342,6 +342,7 @@ def load_sampling_fn(
     is_cc: bool = False,
     d_min: Optional[int] = None,
     d_max: Optional[int] = None,
+    divide_batch: Optional[int] = None,
 ) -> Union[
     Callable[
         [torch.nn.Module, torch.nn.Module, torch.Tensor],
@@ -362,6 +363,7 @@ def load_sampling_fn(
         is_cc (bool, optional): if True, we sample combinatorial complexes. Defaults to False.
         d_min (Optional[int], optional): minimum size of rank2 cells (for cc). Defaults to None.
         d_max (Optional[int], optional): maximum size of rank2 cells (for cc). Defaults to None.
+        divide_batch (Optional[int], optional): if not None, divide the samples by this number to bypass RAM saturation. Defaults to None.
 
     Returns:
         Union[Callable[[torch.nn.Module, torch.nn.Module, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, float]], Callable[[torch.nn.Module, torch.nn.Module, torch.nn.Module, torch.Tensor], Tuple[torch.Tensor, torch.Tensor, torch.Tensor, float]]]: sampling function
@@ -383,25 +385,35 @@ def load_sampling_fn(
 
     # Get shape in function of dataset
     if config_train.data.data in ["QM9", "ZINC250k"]:
+        batch_size = (
+            config_sample.n_samples
+            if divide_batch is None
+            else config_sample.n_samples // divide_batch
+        )
         shape_x = (
-            config_sample.n_samples,
+            batch_size,
             max_node_num,
             config_train.data.max_feat_num,
         )
-        shape_adj = (config_sample.n_samples, max_node_num, max_node_num)
+        shape_adj = (batch_size, max_node_num, max_node_num)
         if is_cc:
             rank2_dim = get_rank2_dim(max_node_num, d_min, d_max)
-            shape_rank2 = (config_sample.n_samples, rank2_dim[0], rank2_dim[1])
+            shape_rank2 = (batch_size, rank2_dim[0], rank2_dim[1])
     else:
+        batch_size = (
+            config_train.data.batch_size
+            if divide_batch is None
+            else config_train.data.batch_size // divide_batch
+        )
         shape_x = (
-            config_train.data.batch_size,
+            batch_size,
             max_node_num,
             config_train.data.max_feat_num,
         )
-        shape_adj = (config_train.data.batch_size, max_node_num, max_node_num)
+        shape_adj = (batch_size, max_node_num, max_node_num)
         if is_cc:
             rank2_dim = get_rank2_dim(max_node_num, d_min, d_max)
-            shape_rank2 = (config_train.data.batch_size, rank2_dim[0], rank2_dim[1])
+            shape_rank2 = (batch_size, rank2_dim[0], rank2_dim[1])
 
     # Get sampling function
     if not (is_cc):

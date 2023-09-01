@@ -127,6 +127,7 @@ class Sampler_Graph(Sampler):
             "d_max": self.config.data.d_max,
             "N": self.config.data.max_node_num,
         }
+        self.divide_batch = self.config.sample.get("divide_batch", 1)
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -183,7 +184,11 @@ class Sampler_Graph(Sampler):
             self.ema_adj.copy_to(self.model_adj.parameters())
 
         self.sampling_fn = load_sampling_fn(
-            self.configt, self.config.sampler, self.config.sample, self.device
+            self.configt,
+            self.config.sampler,
+            self.config.sample,
+            self.device,
+            divide_batch=self.divide_batch,
         )
 
         # -------- Generate samples --------
@@ -202,12 +207,19 @@ class Sampler_Graph(Sampler):
             t_start = perf_counter()
 
             self.init_flags = init_flags(
-                self.train_graph_list, self.configt, self.n_samples
+                self.train_graph_list, self.configt, self.n_samples // self.divide_batch
             ).to(self.device0)
 
             x, adj, _, diff_traj = self.sampling_fn(
                 self.model_x, self.model_adj, self.init_flags
             )
+
+            for _ in range(1, self.divide_batch):
+                x_, adj_, _, _ = self.sampling_fn(
+                    self.model_x, self.model_adj, self.init_flags
+                )
+                x = torch.cat((x, x_), dim=0)
+                adj = torch.cat((adj, adj_), dim=0)
 
             logger.log(f"Round {r} : {perf_counter()-t_start:.2f}s")
 
@@ -382,6 +394,7 @@ class Sampler_CC(Sampler):
             "d_max": self.config.data.d_max,
             "N": self.config.data.max_node_num,
         }
+        self.divide_batch = self.config.sample.get("divide_batch", 1)
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -453,6 +466,7 @@ class Sampler_CC(Sampler):
             is_cc=True,
             d_min=self.config.data.d_min,
             d_max=self.config.data.d_max,
+            divide_batch=self.divide_batch,
         )
 
         # -------- Generate samples --------
@@ -471,12 +485,23 @@ class Sampler_CC(Sampler):
             t_start = perf_counter()
 
             self.init_flags = init_flags(
-                self.train_CC_list, self.configt, self.n_samples, is_cc=True
+                self.train_CC_list,
+                self.configt,
+                self.n_samples // self.divide_batch,
+                is_cc=True,
             ).to(self.device0)
 
             x, adj, rank2, _, diff_traj = self.sampling_fn(
                 self.model_x, self.model_adj, self.model_rank2, self.init_flags
             )
+
+            for _ in range(1, self.divide_batch):
+                x_, adj_, rank2_, _, _ = self.sampling_fn(
+                    self.model_x, self.model_adj, self.model_rank2, self.init_flags
+                )
+                x = torch.cat((x, x_), dim=0)
+                adj = torch.cat((adj, adj_), dim=0)
+                rank2 = torch.cat((rank2, rank2_), dim=0)
 
             logger.log(f"Round {r} : {perf_counter()-t_start:.2f}s")
 
@@ -668,6 +693,7 @@ class Sampler_mol_Graph(Sampler):
             "d_max": self.config.data.d_max,
             "N": self.config.data.max_node_num,
         }
+        self.divide_batch = self.config.sample.get("divide_batch", 1)
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -709,7 +735,11 @@ class Sampler_mol_Graph(Sampler):
             )
 
         self.sampling_fn = load_sampling_fn(
-            self.configt, self.config.sampler, self.config.sample, self.device
+            self.configt,
+            self.config.sampler,
+            self.config.sample,
+            self.device,
+            divide_batch=self.divide_batch,
         )
 
         # -------- Generate samples --------
@@ -737,11 +767,18 @@ class Sampler_mol_Graph(Sampler):
         logger.log(f"Sampling {self.n_samples} samples ...")
         start_sampling_time = perf_counter()
         self.init_flags = init_flags(
-            self.train_graph_list, self.configt, self.n_samples
+            self.train_graph_list, self.configt, self.n_samples // self.divide_batch
         ).to(self.device0)
         x, adj, _, diff_traj = self.sampling_fn(
             self.model_x, self.model_adj, self.init_flags
         )
+
+        for _ in range(1, self.divide_batch):
+            x_, adj_, _, _ = self.sampling_fn(
+                self.model_x, self.model_adj, self.init_flags
+            )
+            x = torch.cat((x, x_), dim=0)
+            adj = torch.cat((adj, adj_), dim=0)
 
         samples_int = quantize_mol(adj)
 
@@ -1025,6 +1062,7 @@ class Sampler_mol_CC(Sampler):
             "d_max": self.config.data.d_max,
             "N": self.config.data.max_node_num,
         }
+        self.divide_batch = self.config.sample.get("divide_batch", 1)
 
     def __repr__(self) -> str:
         """Return the string representation of the sampler."""
@@ -1078,6 +1116,7 @@ class Sampler_mol_CC(Sampler):
             is_cc=True,
             d_min=self.config.data.d_min,
             d_max=self.config.data.d_max,
+            divide_batch=self.divide_batch,
         )
 
         # -------- Generate samples --------
@@ -1110,11 +1149,22 @@ class Sampler_mol_CC(Sampler):
         logger.log(f"Sampling {self.n_samples} samples ...")
         start_sampling_time = perf_counter()
         self.init_flags = init_flags(
-            self.train_CC_list, self.configt, self.n_samples, is_cc=True
+            self.train_CC_list,
+            self.configt,
+            self.n_samples // self.divide_batch,
+            is_cc=True,
         ).to(self.device0)
         x, adj, rank2, _, diff_traj = self.sampling_fn(
             self.model_x, self.model_adj, self.model_rank2, self.init_flags
         )
+
+        for _ in range(1, self.divide_batch):
+            x_, adj_, rank2_, _, _ = self.sampling_fn(
+                self.model_x, self.model_adj, self.model_rank2, self.init_flags
+            )
+            x = torch.cat((x, x_), dim=0)
+            adj = torch.cat((adj, adj_), dim=0)
+            rank2 = torch.cat((rank2, rank2_), dim=0)
 
         samples_int = quantize_mol(adj)
         samples_int_rank2 = quantize(rank2)

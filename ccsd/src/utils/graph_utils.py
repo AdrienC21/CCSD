@@ -107,9 +107,14 @@ def init_features(init: str, adjs: torch.Tensor, nfeat: int = 10) -> torch.Tenso
         try:
             feature = F.one_hot(feature, num_classes=num_classes).to(torch.float32)
         except:
-            raise ValueError(
-                f"Max number of feature ({feature.max().item()}) and number of classes ({num_classes}) missmatch"
-            )
+            try:  # maybe the 0 is not taken into account
+                feature = F.one_hot(feature, num_classes=(num_classes + 1)).to(
+                    torch.float32
+                )
+            except:
+                raise ValueError(
+                    f"Max number of feature ({feature.max().item()}) and number of classes ({num_classes}) missmatch"
+                )
     else:
         raise NotImplementedError(
             f"{init} not implemented. Please select from [zeros, ones, deg]."
