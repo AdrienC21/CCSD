@@ -181,7 +181,6 @@ def gen_graph_list(
     logging.info("gen data: " + json.dumps(params))
     if file_name is None:
         file_name = graph_type + "_" + str(length)
-    file_path = os.path.join(save_dir, file_name)
     graph_generator = GraphGenerator(
         graph_type=graph_type,
         possible_params_dict=possible_params_dict,
@@ -203,6 +202,7 @@ def gen_graph_list(
         graph_list.append(nx.convert_node_labels_to_integers(graph))
         i += 1
     if save_dir is not None:
+        file_path = os.path.join(save_dir, file_name)
         if not os.path.isdir(save_dir):
             os.makedirs(save_dir)
         with open(file_path + ".pkl", "wb") as f:
@@ -452,9 +452,7 @@ def generate_dataset(args: argparse.Namespace) -> None:
     if dataset == "community_small":
         # Generate 100 community graphs with 2 communities and 12-20 nodes
         # (dataset already save within the function)
-        if is_cc:
-            raise NotImplementedError("Combinatorial complexes not supported yet.")
-        _ = gen_graph_list(
+        graphs = gen_graph_list(
             graph_type="community",
             possible_params_dict={
                 "num_communities": [2],
@@ -462,15 +460,28 @@ def generate_dataset(args: argparse.Namespace) -> None:
             },
             corrupt_func=None,
             length=100,
-            save_dir=data_dir,
-            file_name=dataset,
         )
+        max_nb_nodes = max([g.number_of_nodes() for g in graphs])
+        if not (is_cc):
+            save_dataset(data_dir, graphs, dataset)
+        else:
+            ccs = convert_graphs_to_CCs(
+                graphs,
+                is_molecule=False,
+                lifting_procedure="path_based",
+                lifting_procedure_kwargs={
+                    "sources_nodes": list(range(max_nb_nodes)),
+                    "path_length": 3,
+                },
+                max_nb_nodes=max_nb_nodes,
+            )
+            save_dataset(data_dir, ccs, f"{dataset}_CC")
+        print(max_nb_nodes)
+
     elif dataset == "grid":
-        if is_cc:
-            raise NotImplementedError("Combinatorial complexes not supported yet.")
-        # Generate 100 grid graphs with 10-20 rows and 10-20 columns
+        # Generate 100 grid graphs with 10-19 rows and 10-19 columns
         # (dataset already save within the function)
-        _ = gen_graph_list(
+        graphs = gen_graph_list(
             graph_type="grid",
             possible_params_dict={
                 "m": np.arange(10, 20).tolist(),
@@ -478,9 +489,52 @@ def generate_dataset(args: argparse.Namespace) -> None:
             },
             corrupt_func=None,
             length=100,
-            save_dir=data_dir,
-            file_name=dataset,
         )
+        max_nb_nodes = max([g.number_of_nodes() for g in graphs])
+        if not (is_cc):
+            save_dataset(data_dir, graphs, dataset)
+        else:
+            ccs = convert_graphs_to_CCs(
+                graphs,
+                is_molecule=False,
+                lifting_procedure="path_based",
+                lifting_procedure_kwargs={
+                    "sources_nodes": list(range(max_nb_nodes)),
+                    "path_length": 3,
+                },
+                max_nb_nodes=max_nb_nodes,
+            )
+            save_dataset(data_dir, ccs, f"{dataset}_CC")
+        print(max_nb_nodes)
+
+    elif dataset == "grid_small":
+        # Generate 100 grid graphs with 5-8 rows and 5-8 columns
+        # (dataset already save within the function)
+        # smaller dataset than the original grid dataset used in benchmarks
+        graphs = gen_graph_list(
+            graph_type="grid",
+            possible_params_dict={
+                "m": np.arange(5, 9).tolist(),
+                "n": np.arange(5, 9).tolist(),
+            },
+            corrupt_func=None,
+            length=100,
+        )
+        max_nb_nodes = max([g.number_of_nodes() for g in graphs])
+        if not (is_cc):
+            save_dataset(data_dir, graphs, dataset)
+        else:
+            ccs = convert_graphs_to_CCs(
+                graphs,
+                is_molecule=False,
+                lifting_procedure="path_based",
+                lifting_procedure_kwargs={
+                    "sources_nodes": list(range(max_nb_nodes)),
+                    "path_length": 3,
+                },
+            )
+            save_dataset(data_dir, ccs, f"{dataset}_CC")
+        print(max_nb_nodes)
 
     elif dataset == "ego_small":
         # Generate 200 ego graphs from the citeseer dataset with radius 1 and 4-18 nodes

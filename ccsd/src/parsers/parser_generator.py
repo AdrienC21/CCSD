@@ -35,6 +35,7 @@ class ParserGenerator:
                 "ENZYMES",
                 "ENZYMES_small",
                 "grid",
+                "grid_small",
             ],
         )
         self.parser.add_argument(

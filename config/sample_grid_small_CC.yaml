@@ -1,0 +1,39 @@
+# Description: Configuration file to sample from the grid_small dataset using combinatorial complexes with CCSD
+
+is_cc: True
+
+data: 
+  data: grid_small_CC
+  dir: './data'
+  batch_size: 8
+  test_split: 0.2
+  max_node_num: 361
+  max_feat_num: 5
+  init: deg
+  min_node_val: 1
+  max_node_val: 1
+  node_label: weight
+  min_edge_val: 1
+  max_edge_val: 1
+  edge_label: weight
+  d_min: 3  # for lifted CC
+  d_max: 3  # for lifted CC
+  lifting_procedure: path_based
+  lifting_procedure_kwargs : basic
+
+ckpt: ccsd_grid_small_CC
+
+sampler:
+  predictor: Reverse
+  corrector: Langevin
+  snr: 0.1
+  scale_eps: 0.7
+  n_steps: 1
+
+sample:
+  cc_nb_eval: 1000  # param only for cc datasets
+  use_ema: True
+  noise_removal: True
+  probability_flow: False
+  eps: 1.0e-4
+  seed: 12

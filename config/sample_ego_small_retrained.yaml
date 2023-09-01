@@ -1,0 +1,39 @@
+# Description: Adapted configuration file to sample from the ego_small dataset using GDSS retrained
+
+is_cc: False
+
+data:
+  data: ego_small
+  dir: './data'
+  batch_size: 128
+  test_split: 0.2
+  max_node_num: 18
+  max_feat_num: 17
+  init: deg
+  min_node_val: 1
+  max_node_val: 1
+  node_label: weight
+  min_edge_val: 1
+  max_edge_val: 1
+  edge_label: weight
+  d_min: 3  # for lifted CC
+  d_max: 5  # for lifted CC
+  lifting_procedure: cycles
+  lifting_procedure_kwargs : {}
+
+ckpt: gdss_ego_small_retrained
+
+sampler:
+  predictor: Euler
+  corrector: None
+  snr: 0.0
+  scale_eps: 0.0
+  n_steps: 1
+
+sample:
+  cc_nb_eval: 1000  # param only for cc datasets
+  use_ema: False
+  noise_removal: True
+  probability_flow: False
+  eps: 1.0e-4
+  seed: 12

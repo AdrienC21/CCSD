@@ -1,4 +1,4 @@
-# CCSD - Combinatorial Complex Score-based Diffusion Model using Stochastic Differential Equations
+# CCSD - Combinatorial Complex Score-based Diffusion Modeling through Stochastic Differential Equations
 
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 [![pypi version](https://img.shields.io/pypi/v/ccsd.svg)](https://pypi.python.org/pypi/ccsd)
@@ -18,7 +18,7 @@
 
 ## Table of Contents
 
-- [CCSD - Combinatorial Complex Score-based Diffusion Model using Stochastic Differential Equations](#ccsd---combinatorial-complex-score-based-diffusion-model-using-stochastic-differential-equations)
+- [CCSD - Combinatorial Complex Score-based Diffusion Modeling through Stochastic Differential Equations](#ccsd---combinatorial-complex-score-based-diffusion-modeling-through-stochastic-differential-equations)
   - [Table of Contents](#table-of-contents)
   - [CCSD](#ccsd)
     - [Introduction](#introduction)

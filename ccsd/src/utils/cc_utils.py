@@ -154,7 +154,7 @@ def create_incidence_1_2(
 
 
 def cc_from_incidence(
-    incidence_matrices: Optional[
+    incidence_matrices_: Optional[
         Union[List[Optional[np.ndarray]], List[Optional[torch.Tensor]]]
     ],
     d_min: int,
@@ -164,13 +164,13 @@ def cc_from_incidence(
     """Convert (pseudo)-incidence matrices to a combinatorial complex (CC).
 
     Args:
-        incidence_matrices (Optional[Union[List[Optional[np.ndarray]], List[Optional[torch.Tensor]]]]): list of incidence matrices [X, A, F]
+        incidence_matrices_ (Optional[Union[List[Optional[np.ndarray]], List[Optional[torch.Tensor]]]]): list of incidence matrices [X, A, F]
         d_min (int, optional): minimum size of rank-2 cells.
         d_max (int, optional): maximum size of rank-2 cells.
         is_molecule (bool, optional): whether the CC is a molecule. Defaults to False.
 
     Raises:
-        NotImplementedError: raise an error if the CC is of dimension greater than 2 (if len(incidence_matrices) > 3)
+        NotImplementedError: raise an error if the CC is of dimension greater than 2 (if len(incidence_matrices_) > 3)
 
     Returns:
         CombinatorialComplex: combinatorial complex (CC) object
@@ -179,14 +179,21 @@ def cc_from_incidence(
     CC = CombinatorialComplex()
     # Empty CC. No incidence matrices, return empty CC
     if (
-        (incidence_matrices is None)
-        or (len(incidence_matrices) == 0)
-        or (all(m is None for m in incidence_matrices))
+        (incidence_matrices_ is None)
+        or (len(incidence_matrices_) == 0)
+        or (all(m is None for m in incidence_matrices_))
     ):
         return CC
 
     # Convert to tensors
-    incidence_matrices = [torch.Tensor(m) for m in incidence_matrices if m is not None]
+    incidence_matrices = []
+    for m in incidence_matrices_:
+        if m is None:
+            break
+        if not (isinstance(m, torch.Tensor)):
+            incidence_matrices.append(torch.tensor(m))
+        else:
+            incidence_matrices.append(m)
 
     # 0-dimension CC. If only one incidence matrix, return CC with just nodes
     N = incidence_matrices[0].shape[0]
@@ -810,7 +817,8 @@ def convert_graphs_to_CCs(
     graphs: List[nx.Graph],
     is_molecule: bool = False,
     lifting_procedure: Optional[str] = None,
-    lifting_procedure_kwargs: Optional[Dict[Any, Any]] = None,
+    lifting_procedure_kwargs: Optional[Union[str, Dict[Any, Any]]] = None,
+    **kwargs,
 ) -> List[CombinatorialComplex]:
     """Convert a list of graphs to a list of combinatorial complexes (of dimension 1).
 
@@ -818,7 +826,7 @@ def convert_graphs_to_CCs(
         graphs (List[nx.Graph]): list of graphs
         is_molecule (bool, optional): whether the graphs are molecules. Defaults to False.
         lifting_procedure (Optional[str], optional): lifting procedure to use. Defaults to None.
-        lifting_procedure_kwargs (Optional[Dict[Any, Any]], optional): kwargs for the lifting procedure. Defaults to None.
+        lifting_procedure_kwargs (Optional[Union[str, Dict[Any, Any]]], optional): kwargs for the lifting procedure. Defaults to None.
 
     Returns:
         List[CombinatorialComplex]: list of combinatorial complexes
@@ -844,8 +852,25 @@ def convert_graphs_to_CCs(
             if lifting_procedure_kwargs is None:
                 lifting_procedure_kwargs = {}
             if lifting_procedure == "path_based":
+                if isinstance(lifting_procedure_kwargs, str):
+                    if lifting_procedure_kwargs == "basic":
+                        max_nb_nodes = kwargs.get(
+                            "max_nb_nodes", max([g.number_of_nodes() for g in graphs])
+                        )
+                        lifting_procedure_kwargs = {
+                            "sources_nodes": list(range(max_nb_nodes)),
+                            "path_length": 3,
+                        }
+                    else:
+                        raise NotImplementedError(
+                            f"Lifting procedure kwargs {lifting_procedure_kwargs} not implemented"
+                        )
                 CC = path_based_lift_CC(CC, **lifting_procedure_kwargs)
             elif lifting_procedure == "cycles":
+                if isinstance(lifting_procedure_kwargs, str):
+                    raise NotImplementedError(
+                        f"Lifting procedure kwargs {lifting_procedure_kwargs} not implemented"
+                    )
                 CC = cycles_lift_CC(CC, **lifting_procedure_kwargs)
             else:
                 raise NotImplementedError(
@@ -1657,9 +1682,10 @@ def get_all_paths_from_nodes(
     """
     paths = set()
     for n in nodes:
-        n_paths = get_all_paths_from_single_node(n, g, path_length)
-        for path in n_paths:
-            paths.add(path)
+        if n in g:
+            n_paths = get_all_paths_from_single_node(n, g, path_length)
+            for path in n_paths:
+                paths.add(path)
     return paths
 
 

@@ -244,12 +244,14 @@ class Sampler_Graph(Sampler):
             is_molecule=False,
             lifting_procedure=lifting_procedure,
             lifting_procedure_kwargs=lifting_procedure_kwargs,
+            max_nb_nodes=self.config.data.max_node_num,
         )
         gen_CC_list = convert_graphs_to_CCs(
             gen_graph_list,
             is_molecule=False,
             lifting_procedure=lifting_procedure,
             lifting_procedure_kwargs=lifting_procedure_kwargs,
+            max_nb_nodes=self.config.data.max_node_num,
         )  # same for the generated graphs
 
         methods, kernels = load_cc_eval_settings()
@@ -482,7 +484,12 @@ class Sampler_CC(Sampler):
             sample_int_rank2 = quantize(rank2)
             gen_CC_list.extend(
                 [
-                    cc_from_incidence(x_, adj_, rank2_)
+                    cc_from_incidence(
+                        [x_, adj_, rank2_],
+                        d_min=self.config.data.d_min,
+                        d_max=self.config.data.d_max,
+                        is_molecule=False,
+                    )
                     for x_, adj_, rank2_ in zip(x, samples_int, sample_int_rank2)
                 ]
             )
