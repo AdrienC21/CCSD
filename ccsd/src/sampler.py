@@ -206,8 +206,13 @@ class Sampler_Graph(Sampler):
         for r in range(num_sampling_rounds):
             t_start = perf_counter()
 
+            qty_to_generate = (
+                self.n_samples // self.divide_batch
+                if self.n_samples is not None
+                else None
+            )
             self.init_flags = init_flags(
-                self.train_graph_list, self.configt, self.n_samples // self.divide_batch
+                self.train_graph_list, self.configt, qty_to_generate
             ).to(self.device0)
 
             x, adj, _, diff_traj = self.sampling_fn(
@@ -215,6 +220,9 @@ class Sampler_Graph(Sampler):
             )
 
             for _ in range(1, self.divide_batch):
+                self.init_flags = init_flags(
+                    self.train_graph_list, self.configt, qty_to_generate
+                ).to(self.device0)
                 x_, adj_, _, _ = self.sampling_fn(
                     self.model_x, self.model_adj, self.init_flags
                 )
@@ -484,10 +492,15 @@ class Sampler_CC(Sampler):
         for r in range(num_sampling_rounds):
             t_start = perf_counter()
 
+            qty_to_generate = (
+                self.n_samples // self.divide_batch
+                if self.n_samples is not None
+                else None
+            )
             self.init_flags = init_flags(
                 self.train_CC_list,
                 self.configt,
-                self.n_samples // self.divide_batch,
+                qty_to_generate,
                 is_cc=True,
             ).to(self.device0)
 
@@ -496,6 +509,12 @@ class Sampler_CC(Sampler):
             )
 
             for _ in range(1, self.divide_batch):
+                self.init_flags = init_flags(
+                    self.train_CC_list,
+                    self.configt,
+                    qty_to_generate,
+                    is_cc=True,
+                ).to(self.device0)
                 x_, adj_, rank2_, _, _ = self.sampling_fn(
                     self.model_x, self.model_adj, self.model_rank2, self.init_flags
                 )
@@ -766,14 +785,20 @@ class Sampler_mol_Graph(Sampler):
 
         logger.log(f"Sampling {self.n_samples} samples ...")
         start_sampling_time = perf_counter()
+        qty_to_generate = (
+            self.n_samples // self.divide_batch if self.n_samples is not None else None
+        )
         self.init_flags = init_flags(
-            self.train_graph_list, self.configt, self.n_samples // self.divide_batch
+            self.train_graph_list, self.configt, qty_to_generate
         ).to(self.device0)
         x, adj, _, diff_traj = self.sampling_fn(
             self.model_x, self.model_adj, self.init_flags
         )
 
         for _ in range(1, self.divide_batch):
+            self.init_flags = init_flags(
+                self.train_graph_list, self.configt, qty_to_generate
+            ).to(self.device0)
             x_, adj_, _, _ = self.sampling_fn(
                 self.model_x, self.model_adj, self.init_flags
             )
@@ -1148,10 +1173,13 @@ class Sampler_mol_CC(Sampler):
         # Generate samples
         logger.log(f"Sampling {self.n_samples} samples ...")
         start_sampling_time = perf_counter()
+        qty_to_generate = (
+            self.n_samples // self.divide_batch if self.n_samples is not None else None
+        )
         self.init_flags = init_flags(
             self.train_CC_list,
             self.configt,
-            self.n_samples // self.divide_batch,
+            qty_to_generate,
             is_cc=True,
         ).to(self.device0)
         x, adj, rank2, _, diff_traj = self.sampling_fn(
@@ -1159,6 +1187,12 @@ class Sampler_mol_CC(Sampler):
         )
 
         for _ in range(1, self.divide_batch):
+            self.init_flags = init_flags(
+                self.train_CC_list,
+                self.configt,
+                qty_to_generate,
+                is_cc=True,
+            ).to(self.device0)
             x_, adj_, rank2_, _, _ = self.sampling_fn(
                 self.model_x, self.model_adj, self.model_rank2, self.init_flags
             )
