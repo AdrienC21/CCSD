@@ -113,7 +113,9 @@ class Sampler_Graph(Sampler):
             self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
-        self.n_samples = None
+        self.n_samples = self.config.sample.get(
+            "n_samples", self.config.data.get("batch_size", None)
+        )
         self.cc_nb_eval = None
         # Worker kwargs for CC eval
         self.worker_kwargs = {
@@ -388,7 +390,9 @@ class Sampler_CC(Sampler):
             self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
-        self.n_samples = None
+        self.n_samples = self.config.sample.get(
+            "n_samples", self.config.data.get("batch_size", None)
+        )
         self.cc_nb_eval = None
         # Worker kwargs for CC eval
         self.worker_kwargs = {
@@ -698,7 +702,9 @@ class Sampler_mol_Graph(Sampler):
             self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
-        self.n_samples = self.config.sample.n_samples
+        self.n_samples = self.config.sample.get(
+            "n_samples", self.config.data.get("batch_size", None)
+        )
         self.cc_nb_eval = self.config.sample.cc_nb_eval
         # Worker kwargs for CC eval
         self.worker_kwargs = {
@@ -1073,7 +1079,9 @@ class Sampler_mol_CC(Sampler):
             self.device_score = str(self.device0)
         else:
             self.device_score = f"cuda:{self.device0}"
-        self.n_samples = self.config.sample.n_samples
+        self.n_samples = self.config.sample.get(
+            "n_samples", self.config.data.get("batch_size", None)
+        )
         self.cc_nb_eval = self.config.sample.cc_nb_eval
         # Worker kwargs for CC eval
         self.worker_kwargs = {
