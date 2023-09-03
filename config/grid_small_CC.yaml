@@ -89,6 +89,7 @@ sampler:
   n_steps: 1
 
 sample:
+  divide_batch: 4  # optional, only if RAM issue occurs
   cc_nb_eval: 1000  # param only for cc datasets
   use_ema: True
   noise_removal: True
