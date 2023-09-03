@@ -50,18 +50,18 @@ model:
   num_layers: 6
   num_linears: 2
   c_init: 2
-  c_hid: 6
+  c_hid: 4
   c_final: 4
   use_bn: False
   cnum: 1  # only for cc and ScoreNetworkF
   num_layers_mlp: 2  # only for cc and ScoreNetworkF
   use_hodge_mask: True  # only for cc and ScoreNetworkF
   conv_hodge: HCN  # only for cc and ScoreNetworkA_Base_CC
-  nhid_h: 4 # only for cc and ScoreNetworkA_Base_CC
+  nhid_h: 2 # only for cc and ScoreNetworkA_Base_CC
   num_layers_h: 2  # only for cc and ScoreNetworkA_Base_CC
   num_linears_h: 1  # only for cc and ScoreNetworkA_Base_CC
   c_hid_h: 2  # only for cc and ScoreNetworkA_Base_CC
-  c_final_h: 4  # only for cc and ScoreNetworkA_Base_CC
+  c_final_h: 2  # only for cc and ScoreNetworkA_Base_CC
   hidden_h: 2  # only for cc and ScoreNetworkA_Base_CC
 
 train:
