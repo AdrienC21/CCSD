@@ -146,6 +146,7 @@ samples/
 logs_train/
 logs_sample/
 wandb/
+analysis/
 ccsd/src/evaluation/orca/*.txt
 data/QM9_cc_True_train.pkl
 data/QM9_cc_True_test.pkl

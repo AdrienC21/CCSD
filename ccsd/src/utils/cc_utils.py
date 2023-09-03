@@ -800,10 +800,10 @@ def convert_CC_to_graphs(
     graphs = []
     for cc in ccs:
         graph = nx.Graph()
-        for node in cc.cells.hyperedge_dict[0]:
+        for node in cc.cells.hyperedge_dict.get(0, {}):
             n = tuple(node)[0]
             graph.add_node(n, **cc.cells.hyperedge_dict[0][node])
-        for edge in cc.cells.hyperedge_dict[1]:
+        for edge in cc.cells.hyperedge_dict.get(1, {}):
             u = tuple(edge)[0]
             v = tuple(edge)[1]
             graph.add_edge(u, v, **cc.cells.hyperedge_dict[1][edge])
