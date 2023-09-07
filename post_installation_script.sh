@@ -42,6 +42,7 @@ sudo NEEDRESTART_MODE=a apt-get -y install cuda-drivers
 sudo NEEDRESTART_MODE=a apt-get -y install cuda
 sudo NEEDRESTART_MODE=a apt install -y nvidia-cuda-toolkit
 cuda_version=cuda-12.1
+# cuda_version=cuda-11.8
 export PATH=/usr/local/$cuda_version/bin${PATH:+:${PATH}}
 export LD_LIBRARY_PATH=/usr/local/$cuda_version/lib64${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}
 sudo apt-get install zlib1g
@@ -89,6 +90,10 @@ cd CCSD
 # Apply fixes
 echo "Apply fixes"
 python ./.github/workflows/apply_fixes.py
+# Compile orca
+cd ccsd/src/evaluation/orca 
+g++ -O2 -std=c++11 -o orca orca.cpp
+cd ../../../../
 # Install the required Python packages (others)
 echo "Install the required Python packages"
 pip install -r requirements.txt
@@ -96,6 +101,20 @@ pip install -r requirements.txt
 echo "Preprocess molecules datasets"
 python ccsd/data/preprocess.py --dataset QM9
 python ccsd/data/preprocess_for_nspdk.py --dataset QM9
+python ccsd/data/preprocess.py --dataset ZINC250k
+python ccsd/data/preprocess_for_nspdk.py --dataset ZINC250k
+
+# Add large files to save some time (OPTIONAL)
+cd ../
+git clone git@github.com:AdrienC21/temp_CCSD_files.git
+cd CCSD
+cp ../temp_CCSD_files/QM9_cc_True_train.pkl data/
+cp ../temp_CCSD_files/QM9_cc_True_test.pkl data/
+cp ../temp_CCSD_files/QM9_graphs_True_train.pkl data/
+cp ../temp_CCSD_files/QM9_graphs_True_test.pkl data/
+
+# Set up CUDA environment variables
+export "PYTORCH_CUDA_ALLOC_CONF=max_split_size_mb:512"
 
 # Finished!
 echo "Post-installation script completed!"
