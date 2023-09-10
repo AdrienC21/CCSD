@@ -5,7 +5,7 @@ is_cc: True
 data: 
   data: grid_small_CC
   dir: './data'
-  batch_size: 4
+  batch_size: 8
   test_split: 0.2
   max_node_num: 49
   max_feat_num: 5
