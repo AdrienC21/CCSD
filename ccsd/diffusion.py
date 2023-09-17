@@ -61,13 +61,15 @@ class CCSD:
         self.folder = folder
         self.comment = comment
         self.seed = seed
-        self.args = {
-            "type": type,
-            "config": config,
-            "folder": folder,
-            "comment": comment,
-            "seed": seed,
-        }
+        self.args = EasyDict(
+            {
+                "type": type,
+                "config": config,
+                "folder": folder,
+                "comment": comment,
+                "seed": seed,
+            }
+        )
 
         # Objects saved during the experiment
         self.cfg = None  # config dictionary
