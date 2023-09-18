@@ -30,13 +30,16 @@ def get_config(config: str, seed: int, folder: str = "./") -> EasyDict:
     return config
 
 
-def get_general_config() -> EasyDict:
+def get_general_config(folder: str = "./") -> EasyDict:
     """Get the general configuration.
+
+    Args:
+        folder (str, optional): folder where the config folder is located. Defaults to "./".
 
     Returns:
         EasyDict: general configuration.
     """
-    config_dir = os.path.join("config", "general_config.yaml")
+    config_dir = os.path.join(folder, "config", "general_config.yaml")
     config = EasyDict(yaml.load(open(config_dir, "r"), Loader=yaml.FullLoader))
 
     return config
