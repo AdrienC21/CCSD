@@ -1,6 +1,13 @@
 Changelog
 ==================================
 
+0.3.1 (2023/09/18)
+--------------------
+
+- Debug folder structure when calling some functions
+
+- Add example script and notebook
+
 0.3.0 (2023/09/18)
 --------------------
 

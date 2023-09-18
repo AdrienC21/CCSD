@@ -26,7 +26,7 @@ sampler:
   n_steps: 1
 
 sample:
-  # divide_batch: 4  # optional, only if RAM issue occurs
+  divide_batch: 4  # optional, only if RAM issue occurs
   n_samples: 16  # param only for mol datasets
   cc_nb_eval: 1000  # param only for cc datasets
   use_ema: False

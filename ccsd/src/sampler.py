@@ -1156,7 +1156,9 @@ class Sampler_mol_CC(Sampler):
         logger.log(f"GEN SEED: {self.config.sample.seed}")
         load_seed(self.config.sample.seed)
 
-        train_smiles, test_smiles = load_smiles(self.configt.data.data)
+        train_smiles, test_smiles = load_smiles(
+            self.configt.data.data, self.config.folder
+        )
         train_smiles, test_smiles = canonicalize_smiles(
             train_smiles
         ), canonicalize_smiles(test_smiles)

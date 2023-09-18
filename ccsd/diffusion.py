@@ -104,7 +104,7 @@ class CCSD:
             ValueError: raise and error the experiment type is not one of [train, sample].
         """
         # Get the configuration and the general configuration
-        config = get_config(self.args.config, self.args.seed)
+        config = get_config(self.args.config, self.args.seed, self.args.folder)
         general_config = get_general_config()
 
         # Print the initial message

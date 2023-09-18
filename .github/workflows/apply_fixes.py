@@ -12,7 +12,7 @@ import site
 packages = site.getsitepackages()
 site_packages = None
 for p in packages:
-    if "site-packages" in p:
+    if ("dist-packages" in p) or ("site-packages" in p):
         site_packages = p
         break
 

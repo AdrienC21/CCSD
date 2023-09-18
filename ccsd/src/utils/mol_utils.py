@@ -105,11 +105,14 @@ def canonicalize_smiles(smiles: List[str]) -> List[str]:
     return [Chem.MolToSmiles(Chem.MolFromSmiles(smi)) for smi in smiles]
 
 
-def load_smiles(dataset: str = "QM9") -> Tuple[List[str], List[str]]:
+def load_smiles(
+    dataset: str = "QM9", folder: str = "./"
+) -> Tuple[List[str], List[str]]:
     """Loads SMILES strings from a dataset and return train and test splits.
 
     Args:
         dataset (str, optional): smiles dataset to load. Defaults to "QM9".
+        folder (str, optional): folder where the data folder is located. Defaults to "./".
 
     Raises:
         ValueError: raise an error if dataset is not supported
@@ -124,9 +127,9 @@ def load_smiles(dataset: str = "QM9") -> Tuple[List[str], List[str]]:
     else:
         raise ValueError(f"Wrong dataset name {dataset} in load_smiles")
 
-    df = pd.read_csv(os.path.join("data", f"{dataset.lower()}.csv"))
+    df = pd.read_csv(os.path.join(folder, "data", f"{dataset.lower()}.csv"))
 
-    with open(os.path.join("data", f"valid_idx_{dataset.lower()}.json")) as f:
+    with open(os.path.join(folder, "data", f"valid_idx_{dataset.lower()}.json")) as f:
         test_idx = json.load(f)
 
     if dataset == "QM9":  # special case for QM9

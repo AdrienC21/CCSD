@@ -41,7 +41,7 @@ def main(args: argparse.Namespace) -> None:
     """
 
     # Get the configuration and the general configuration
-    config = get_config(args.config, args.seed)
+    config = get_config(args.config, args.seed, args.folder)
     general_config = get_general_config()
 
     # Print the initial message

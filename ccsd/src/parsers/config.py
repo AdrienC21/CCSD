@@ -12,17 +12,18 @@ import yaml
 from easydict import EasyDict
 
 
-def get_config(config: str, seed: int) -> EasyDict:
+def get_config(config: str, seed: int, folder: str = "./") -> EasyDict:
     """Load the config file.
 
     Args:
         config (str): name of the config file.
         seed (int): random seed (to be added to the config object).
+        folder (str, optional): folder where the config folder is located. Defaults to "./".
 
     Returns:
         EasyDict: configuration object.
     """
-    config_dir = os.path.join("config", f"{config}.yaml")
+    config_dir = os.path.join(folder, "config", f"{config}.yaml")
     config = EasyDict(yaml.load(open(config_dir, "r"), Loader=yaml.FullLoader))
     config.seed = seed
 
