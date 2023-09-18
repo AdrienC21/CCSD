@@ -1,6 +1,11 @@
 Changelog
 ==================================
 
+0.3.3 (2023/09/18)
+--------------------
+
+- Debug like 0.3.1 (add path to general_config in diffusion.py and main.py)
+
 0.3.2 (2023/09/18)
 --------------------
 

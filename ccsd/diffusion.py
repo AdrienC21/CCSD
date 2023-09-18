@@ -105,7 +105,7 @@ class CCSD:
         """
         # Get the configuration and the general configuration
         config = get_config(self.args.config, self.args.seed, self.args.folder)
-        general_config = get_general_config()
+        general_config = get_general_config(self.args.folder)
 
         # Print the initial message
         if general_config.print_initial:
